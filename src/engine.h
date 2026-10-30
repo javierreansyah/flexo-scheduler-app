@@ -67,9 +67,12 @@ inline double changeover(std::vector<int> a, std::vector<int> b,
 struct Step { double setup_start, start, completion, cost; int pattern; };
 inline Step advance(double time, double arrival, double proc, double cost, double empty_cost, double setup) {
     double earliest=std::max(time,arrival);
-    if (earliest>=8 && (std::floor(earliest/8)>std::floor(time/8) || (time>=8 && std::fmod(time,8)==0))) cost=empty_cost;
+    double shift=std::floor(earliest/8);
+    // For time <= earliest, this tests every crossed/exact shift boundary
+    // without a floating-point remainder or a second floor operation.
+    if (earliest>=8 && time<=shift*8) cost=empty_cost;
     double duration=cost>0 ? setup:0;
-    double end=(std::floor(earliest/8)+1)*8;
+    double end=(shift+1)*8;
     if (earliest+duration+proc>end+1e-10) { earliest=end; cost=empty_cost; duration=cost>0 ? setup:0; }
     if (duration+proc>8+1e-10) return {earliest,earliest,std::numeric_limits<double>::infinity(),cost,0};
     return {earliest,earliest+duration,earliest+duration+proc,cost,0};
@@ -111,7 +114,15 @@ struct Problem {
             auto s=step(machine,jobs[i],out.time[i],out.pattern[i]);
             out.time[i+1]=s.completion; out.pattern[i+1]=s.pattern; out.ink[i+1]=out.ink[i]+s.cost;
             auto dest=out.batches.data()+(i+1)*b;
-            std::copy_n(out.batches.data()+i*b,b,dest);
+            auto source=out.batches.data()+i*b;
+            // Most snapshots have one to three arrival groups; avoid calling
+            // a variable-size memcpy once per scheduled job in these cases.
+            switch (b) {
+            case 3: dest[2]=source[2]; [[fallthrough]];
+            case 2: dest[1]=source[1]; [[fallthrough]];
+            case 1: dest[0]=source[0]; break;
+            default: std::copy_n(source,b,dest);
+            }
             dest[job_batch[jobs[i]]]=std::max(dest[job_batch[jobs[i]]],s.completion);
         }
     }

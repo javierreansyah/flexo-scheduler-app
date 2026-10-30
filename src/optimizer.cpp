@@ -7,10 +7,11 @@ namespace py = pybind11;
 namespace flexo {
 
 void commit_suffix(Cache& dest, const Cache& src, int first, int last, int b) {
-    for (int i=first; i<=last; ++i) {
-        dest.time[i]=src.time[i]; dest.pattern[i]=src.pattern[i]; dest.ink[i]=src.ink[i];
-        std::copy_n(src.batches.data()+i*b,b,dest.batches.data()+i*b);
-    }
+    int count=last-first+1;
+    std::copy_n(src.time.data()+first,count,dest.time.data()+first);
+    std::copy_n(src.pattern.data()+first,count,dest.pattern.data()+first);
+    std::copy_n(src.ink.data()+first,count,dest.ink.data()+first);
+    std::copy_n(src.batches.data()+first*b,count*b,dest.batches.data()+first*b);
 }
 
 SearchResult search(const Problem& p, const Parameters& par, uint64_t seed, int budget, bool debug) {

@@ -1,5 +1,33 @@
 # Refactoring measurements
 
+## Additional hot-loop optimization (five-case benchmark)
+
+The repeatable runner is `python -m experiments.benchmark`. It uses the original
+tuned industry parameters (833,333 proposals/start, six starts, seed 42), with
+automatic CPU parallelism across starts. One before/after pass on this Windows
+host measured:
+
+| Case | Before seconds | After seconds | Speedup |
+| --- | ---: | ---: | ---: |
+| 10 jobs, static | 0.227 | 0.096 | 2.35x |
+| 50 jobs, static | 0.339 | 0.243 | 1.39x |
+| 100 jobs, static | 0.586 | 0.431 | 1.36x |
+| 50 jobs, two horizons | 0.500 | 0.384 | 1.30x |
+| 100 jobs, three horizons | 0.967 | 0.732 | 1.32x |
+
+Aggregate solve time improved by 1.39x. All five final schedule hashes matched,
+including assignments and timestamps. This compares the cleaned core before and
+after the targeted changes, not the older implementation in the table below.
+The small case is especially sensitive to warm-up and scheduling noise; these
+single-pass figures are measurements, not guaranteed speedups.
+
+Changes: reuse one shift-index calculation instead of repeated floor/remainder
+operations, directly copy the common one-to-three batch completion values, and
+copy accepted cache suffixes contiguously instead of performing tiny per-job
+copies. No search settings, RNG draws, objective, or evaluation budget changed.
+
+## Initial repository overhaul
+
 Measured on the same Windows host on 2026-10-31 against the installed original
 extension, whose source was captured in commit `81fb1fc`. Each variant solved the
 same static workload using seeds 42–71, 60,000 proposals, three starts, one thread,

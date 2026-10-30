@@ -1,5 +1,32 @@
 # Experiment playground
 
+## Runtime benchmark
+
+```powershell
+python -m experiments.benchmark --output results/my-benchmark
+python -m experiments.benchmark --compare results/five-before/report.json results/five-after/report.json
+```
+
+One pass runs **five cases**, not the full validation suite: static 10/50/100
+jobs, then 50 jobs with two horizons and 100 jobs with three horizons (rho=1.5,
+replica 00). N10 is derived from the first ten orders of N15 static replica 00;
+the checked-in instance is unchanged.
+
+The benchmark uses the original tuned `industry.py` settings: **833,333 proposals
+per start, six starts** (4,999,998 total proposals per horizon), original cooling,
+GRASP and move probabilities. Automatic profiles are bypassed. Six starts run
+on up to six CPU workers; no additional parallelism across cases competes with
+the starts. Seed defaults to 42. Each output directory must be fresh.
+
+`runs.csv` and `report.json` record wall time, quality metrics, schedule hashes,
+native binary hash, input digest, settings and machine information. Comparison
+checks compatible inputs/settings and reports schedule equality and speedups.
+Timing covers optimization, preparation, and every horizon, excluding input-file
+loading and report writing. Repeat passes if small timing differences matter;
+the first case can include CPU warm-up effects.
+
+## Timeline and notebook playground
+
 Run from the repository root. Install optional plotting/notebook dependencies:
 
 ```powershell
