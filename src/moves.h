@@ -113,9 +113,10 @@ void apply_move_internal(
                 if (j1.size() < 2) { undo.move_type = -1; return; }
                 undo.move_type = 2;
                 size_t i = rnd(0, j1.size()-1);
+                size_t pos = rnd(0, j1.size()-1);
+                if (pos == i) { undo.move_type = -1; return; }
                 int job = j1[i];
                 j1.erase(j1.begin() + i);
-                size_t pos = rnd(0, j1.size());
                 j1.insert(j1.begin() + pos, job);
                 undo.i1 = i; undo.i2 = pos;
             }
@@ -159,11 +160,12 @@ void apply_move_internal(
                 undo.move_type = 5;
                 size_t max_start = j1.size() - L;
                 size_t i = rnd(0, max_start);
+                size_t pos = rnd(0, max_start);
+                if (pos == i) { undo.move_type = -1; return; }
                 undo.i1 = i;
                 undo.saved_len1 = L;
                 std::copy(j1.begin() + i, j1.begin() + i + L, ws.move_buf1.begin());
                 j1.erase(j1.begin() + i, j1.begin() + i + L);
-                size_t pos = rnd(0, j1.size());
                 undo.i2 = pos;
                 j1.insert(j1.begin() + pos, ws.move_buf1.begin(), ws.move_buf1.begin() + L);
             }

@@ -4,6 +4,7 @@
 
 ```powershell
 python -m experiments.benchmark --output results/my-benchmark
+python -m experiments.benchmark --repeats 3 --output results/my-repeated-benchmark
 python -m experiments.benchmark --compare results/five-before/report.json results/five-after/report.json
 ```
 
@@ -24,6 +25,11 @@ checks compatible inputs/settings and reports schedule equality and speedups.
 Timing covers optimization, preparation, and every horizon, excluding input-file
 loading and report writing. Repeat passes if small timing differences matter;
 the first case can include CPU warm-up effects.
+
+`--repeats 3` measures each of the same five cases three times; it does not expand
+the instance collection. Comparisons print per-case median times and check every
+recorded schedule hash. Keep seed, parameters, and CPU worker counts unchanged
+when comparing builds. For close results, alternate build order across passes.
 
 ## Timeline and notebook playground
 

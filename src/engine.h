@@ -107,23 +107,30 @@ struct Problem {
         c.ink[0]=initial_ink[machine];
         std::copy_n(initial_batches.data()+machine*b, b, c.batches.data());
     }
-    void suffix(Cache& out, const Cache& old, const std::vector<int>& jobs, int machine, int first) const {
+    template<int B>
+    void suffix_impl(Cache& out, const Cache& old, const std::vector<int>& jobs, int machine, int first) const {
+        const int groups=B ? B:b;
         out.time[first]=old.time[first]; out.pattern[first]=old.pattern[first]; out.ink[first]=old.ink[first];
-        std::copy_n(old.batches.data()+first*b,b,out.batches.data()+first*b);
+        std::copy_n(old.batches.data()+first*groups,groups,out.batches.data()+first*groups);
         for (int i=first; i<(int)jobs.size(); ++i) {
             auto s=step(machine,jobs[i],out.time[i],out.pattern[i]);
             out.time[i+1]=s.completion; out.pattern[i+1]=s.pattern; out.ink[i+1]=out.ink[i]+s.cost;
-            auto dest=out.batches.data()+(i+1)*b;
-            auto source=out.batches.data()+i*b;
-            // Most snapshots have one to three arrival groups; avoid calling
-            // a variable-size memcpy once per scheduled job in these cases.
-            switch (b) {
-            case 3: dest[2]=source[2]; [[fallthrough]];
-            case 2: dest[1]=source[1]; [[fallthrough]];
-            case 1: dest[0]=source[0]; break;
-            default: std::copy_n(source,b,dest);
+            auto dest=out.batches.data()+(i+1)*groups;
+            if constexpr (B==1) {
+                // Completion times on one machine are nondecreasing.
+                dest[0]=s.completion;
+            } else {
+                std::copy_n(out.batches.data()+i*groups,groups,dest);
+                dest[job_batch[jobs[i]]]=std::max(dest[job_batch[jobs[i]]],s.completion);
             }
-            dest[job_batch[jobs[i]]]=std::max(dest[job_batch[jobs[i]]],s.completion);
+        }
+    }
+    void suffix(Cache& out, const Cache& old, const std::vector<int>& jobs, int machine, int first) const {
+        switch (b) {
+        case 1: suffix_impl<1>(out,old,jobs,machine,first); break;
+        case 2: suffix_impl<2>(out,old,jobs,machine,first); break;
+        case 3: suffix_impl<3>(out,old,jobs,machine,first); break;
+        default: suffix_impl<0>(out,old,jobs,machine,first);
         }
     }
     double score(const Schedule& seq, const std::vector<Cache>& caches,

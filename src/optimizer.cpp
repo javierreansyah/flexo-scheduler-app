@@ -7,7 +7,10 @@ namespace py = pybind11;
 namespace flexo {
 
 void commit_suffix(Cache& dest, const Cache& src, int first, int last, int b) {
-    int count=last-first+1;
+    // The incoming row is unchanged; copy only the newly simulated rows.
+    int count=last-first;
+    if (count==0) return;
+    ++first;
     std::copy_n(src.time.data()+first,count,dest.time.data()+first);
     std::copy_n(src.pattern.data()+first,count,dest.pattern.data()+first);
     std::copy_n(src.ink.data()+first,count,dest.ink.data()+first);
@@ -65,9 +68,11 @@ SearchResult search(const Problem& p, const Parameters& par, uint64_t seed, int 
     int stages=std::max(1,budget/par.stage_length+(budget%par.stage_length!=0));
     double factor=stages>1 ? std::pow(par.t_min/par.t_max,1./(stages-1)) : 1.;
     double temperature=par.t_max;
+    int stage_remaining=par.stage_length;
     Schedule before;
     for (int it=0; it<budget; ++it) {
-        if (it && it%par.stage_length==0) temperature*=factor;
+        if (stage_remaining==0) { temperature*=factor; stage_remaining=par.stage_length; }
+        --stage_remaining;
         if (debug) before=seq;
         MoveUndo undo;
         apply_move_internal(seq,ctx,ws,rng,undo);

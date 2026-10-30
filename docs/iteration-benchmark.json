@@ -1,0 +1,58 @@
+{
+  "baseline_revision": "1196cbc",
+  "seeds": [
+    42,
+    43,
+    44,
+    45
+  ],
+  "order": "Alternating baseline/new and new/baseline across seeds",
+  "parameters": {
+    "evaluations": 4999998,
+    "starts": 6,
+    "t_max": 0.1603194019,
+    "t_min": 0.011616991,
+    "stage_length": 4908,
+    "rcl_alpha": 0.274691474,
+    "p_inter": 0.6647498733,
+    "p_shift": 0.5008078735,
+    "p_block": 0.2693767726
+  },
+  "iterations_per_start": 833333,
+  "max_workers": 6,
+  "cpu_count": 20,
+  "platform": "Windows-10-10.0.26300-SP0",
+  "python": "3.11.9",
+  "dataset_sha256": "ce9a8b96294edcf999389e3e7c06d8e1c5479759670ad3d715d186b3f63b0f8a",
+  "baseline_core_sha256": "dc9f79a9f3e556e70319e62a2edf28c697e31172f426e157f7247e9d016f7fa3",
+  "new_core_sha256": "f382ef455b7c6a1f22e08cb240ff7c8c727a1b829aa63c0fc552cb852e7988e1",
+  "identical_schedule_hashes": 20,
+  "cases": [
+    {
+      "instance": "N10_K1_static_derived.json",
+      "before": 0.12812065001344308,
+      "after": 0.10889059997862205
+    },
+    {
+      "instance": "N50_K1_static_rep00.json",
+      "before": 0.2393943999777548,
+      "after": 0.23747634998289868
+    },
+    {
+      "instance": "N100_K1_static_rep00.json",
+      "before": 0.41360870003700256,
+      "after": 0.3524316000402905
+    },
+    {
+      "instance": "N50_K2_rho1.5_rep00.json",
+      "before": 0.4109982999507338,
+      "after": 0.37315390002913773
+    },
+    {
+      "instance": "N100_K3_rho1.5_rep00.json",
+      "before": 0.8235968999797478,
+      "after": 0.7294095999677666
+    }
+  ],
+  "speedup": 1.1189971221832498
+}

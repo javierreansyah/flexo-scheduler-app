@@ -49,5 +49,10 @@ def test_benchmark_uses_five_cases_and_original_parameters(tmp_path, monkeypatch
     assert ORIGINAL_PARAMETERS["evaluations"] == 833333*6
     assert a["iterations_per_start"] == 833333
     compare(tmp_path/"a/report.json", tmp_path/"b/report.json")
+    repeated = sweep(data, tmp_path/"repeated", repeats=2)
+    assert len(repeated["rows"]) == 10 and repeated["instances"] == 5
+    assert [r["repeat"] for r in repeated["rows"]] == [0, 1]*5
+    with pytest.raises(ValueError, match="positive"):
+        sweep(data, tmp_path/"invalid", repeats=0)
     with pytest.raises(ValueError, match="already"):
         sweep(data, tmp_path/"a")

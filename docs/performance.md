@@ -1,5 +1,50 @@
 # Refactoring measurements
 
+## Iterative optimization after commit 1196cbc
+
+Seven build/test trials examined no-op moves, arrival-group specialization,
+temperature scheduling, fitness aggregation, and accepted-cache handling.
+Final confirmation alternated baseline/new build order over seeds 42–45 on the
+same five cases, with the original six starts and 833,333 proposals per start.
+The following are medians across those four seeds; these compare against the
+already optimized core from 1196cbc, not the older tables below.
+
+| Case | Before ms | After ms | Speedup |
+| --- | ---: | ---: | ---: |
+| 10 jobs, static | 128.1 | 108.9 | 1.18x |
+| 50 jobs, static | 239.4 | 237.5 | 1.01x |
+| 100 jobs, static | 413.6 | 352.4 | 1.17x |
+| 50 jobs, two horizons | 411.0 | 373.2 | 1.10x |
+| 100 jobs, three horizons | 823.6 | 729.4 | 1.13x |
+
+The sum of per-case median times improved by 1.119x. All 20 before/after final
+schedule hashes matched. Timings remain sensitive to CPU frequency and competing
+work; sequential preliminary passes gave noticeably noisier results. The 50-job
+static result should be treated as essentially unchanged.
+
+Kept:
+
+- Skip sampled insertions that put a job/block back in the same position, while
+  retaining the same RNG draws and proposal budget.
+- Compile small arrival-group suffix evaluators for one, two, and three groups;
+  retain a generic evaluator for larger group counts.
+- Use a countdown instead of integer remainder on every proposal to schedule
+  temperature changes, without changing their timing or arithmetic.
+- Avoid copying the unchanged incoming cache row when accepting a move.
+
+Rejected: separate fitness-aggregation specializations and adaptive swapping of
+whole cache buffers. Their extra code did not demonstrate a reliable additional
+gain. No approximate math, parameter retuning, or reduced search budgets were
+used. The 32-test suite includes full-evaluation and undo checks for specialized
+and generic arrival-group paths.
+
+Machine-readable confirmation: [iteration benchmark](iteration-benchmark.json).
+Reproduce timing passes with:
+
+```powershell
+python -m experiments.benchmark --repeats 3 --output results/new-pass
+```
+
 ## Additional hot-loop optimization (five-case benchmark)
 
 The repeatable runner is `python -m experiments.benchmark`. It uses the original

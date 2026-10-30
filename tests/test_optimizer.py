@@ -90,6 +90,16 @@ def test_multithreading_and_budget_are_deterministic():
     assert single["evaluations"] == parallel["evaluations"] == 1001
 
 
+@pytest.mark.parametrize("groups", [1, 2, 3, 5])
+def test_specialized_and_generic_arrival_groups(groups):
+    rng = random.Random(319)
+    jobs = [job(str(i), rng.randint(1000, 18000), [rng.randint(1, 9)], arrival=i % groups) for i in range(35)]
+    data = snapshot(jobs, now=6)
+    result = optimize(data, FAST, seed=319, num_threads=2, debug=True)
+    check_schedule(data, result)
+    assert evaluate(data, result["schedule"])["fitness"] == pytest.approx(result["fitness"])
+
+
 def test_carryover_preserves_locked_times_and_original_arrivals():
     data = production_example()
     first = optimize(data, FAST, seed=4)
