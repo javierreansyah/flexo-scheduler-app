@@ -1,0 +1,176 @@
+{
+  "machine_rates": {
+    "Flexo A": 112,
+    "Flexo B": 224,
+    "Flexo C": 175
+  },
+  "orders_data": [
+    {
+      "id": 1,
+      "quantity": 6079,
+      "inks": [
+        9
+      ]
+    },
+    {
+      "id": 2,
+      "quantity": 24057,
+      "inks": [
+        6,
+        4,
+        6
+      ]
+    },
+    {
+      "id": 3,
+      "quantity": 11324,
+      "inks": [
+        5,
+        8,
+        9
+      ]
+    },
+    {
+      "id": 4,
+      "quantity": 20560,
+      "inks": [
+        7,
+        4,
+        6
+      ]
+    },
+    {
+      "id": 5,
+      "quantity": 9301,
+      "inks": [
+        9
+      ]
+    },
+    {
+      "id": 6,
+      "quantity": 4505,
+      "inks": [
+        1,
+        2,
+        8
+      ]
+    },
+    {
+      "id": 7,
+      "quantity": 10794,
+      "inks": [
+        5,
+        8,
+        9
+      ]
+    },
+    {
+      "id": 8,
+      "quantity": 15992,
+      "inks": [
+        6,
+        5,
+        6,
+        8
+      ]
+    },
+    {
+      "id": 9,
+      "quantity": 16193,
+      "inks": [
+        2,
+        4,
+        6,
+        6
+      ]
+    },
+    {
+      "id": 10,
+      "quantity": 5576,
+      "inks": [
+        1,
+        2,
+        8
+      ]
+    },
+    {
+      "id": 11,
+      "quantity": 9060,
+      "inks": [
+        9
+      ]
+    },
+    {
+      "id": 12,
+      "quantity": 10349,
+      "inks": [
+        5,
+        8,
+        9
+      ]
+    },
+    {
+      "id": 13,
+      "quantity": 12384,
+      "inks": [
+        6,
+        5,
+        6,
+        8
+      ]
+    },
+    {
+      "id": 14,
+      "quantity": 6643,
+      "inks": [
+        9
+      ]
+    },
+    {
+      "id": 15,
+      "quantity": 4764,
+      "inks": [
+        4,
+        8
+      ]
+    }
+  ],
+  "job_batches": [
+    {
+      "arrival_time": 0.0,
+      "orders": [
+        1,
+        4,
+        11,
+        14,
+        15
+      ]
+    },
+    {
+      "arrival_time": 1.82,
+      "orders": [
+        6,
+        7,
+        8,
+        10,
+        13
+      ]
+    },
+    {
+      "arrival_time": 3.64,
+      "orders": [
+        2,
+        3,
+        5,
+        9,
+        12
+      ]
+    }
+  ],
+  "meta": {
+    "n": 15,
+    "k": 3,
+    "rho": 1.0,
+    "rep": 6
+  }
+}
