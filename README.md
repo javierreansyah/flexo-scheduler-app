@@ -1,5 +1,8 @@
 # Flexo scheduling
 
+For timeline charts, metrics, and repeatable timing runs, see
+[the experiment playground](experiments/README.md).
+
 C++17 simulated annealing, a Python API, single-horizon SMAC tuning, and
 rolling-horizon validation. Website and WebAssembly integration are deferred.
 
