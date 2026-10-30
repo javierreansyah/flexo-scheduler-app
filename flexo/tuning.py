@@ -3,6 +3,7 @@ import hashlib
 import json
 from pathlib import Path
 import statistics
+import time
 
 from .api import DEFAULT_PARAMETERS, optimize, prepare
 from .instances import SIZES, write_json
@@ -89,18 +90,31 @@ def tune(directory="instances/smac", output="flexo/profiles.json", workdir="resu
         campaign_dir = workdir/f"N{n}"
         campaign_dir.mkdir()
         history = campaign_dir/"evaluations.jsonl"
+        trial_count = 0
+        best_score = float("inf")
         def target(config, seed=0):
+            nonlocal trial_count, best_score
+            started = time.perf_counter()
             # The fixed seed panel makes every candidate comparable.
             params = decode(config, evaluations)
             measured = measure(rows, params, seeds, num_threads)
             score = normalized(measured, baseline)
             with history.open("a", encoding="utf-8") as stream:
                 stream.write(json.dumps(dict(parameters=params, score=score, instances=measured), allow_nan=False)+"\n")
+            trial_count += 1
+            best_score = min(best_score, score)
+            print(f"N{n}: trial {trial_count}/{trials}, relative fitness={score:.6f}, best={best_score:.6f}, seconds={time.perf_counter()-started:.2f}", flush=True)
             return score
         cs = configuration_space(seed)
         scenario = Scenario(cs, name=f"N{n}", output_directory=campaign_dir/"smac",
                             n_trials=trials, seed=seed, deterministic=True, n_workers=1, use_default_config=True)
-        design = HyperparameterOptimizationFacade.get_initial_design(scenario, n_configs=min(10, max(1, trials//2)))
+        from ConfigSpace import Configuration
+        prior = Configuration(cs, dict(t_max=.1603194019, temperature_ratio=.0116169910/.1603194019,
+                                       stage_length=4908, starts=6, rcl_alpha=.2746914740,
+                                       p_inter=.6647498733, p_shift=.5008078735, p_block=.2693767726))
+        design = HyperparameterOptimizationFacade.get_initial_design(
+            scenario, n_configs=min(32, max(1, trials//4)),
+            additional_configs=[prior] if trials >= 4 else [])
         smac = HyperparameterOptimizationFacade(scenario, target, initial_design=design, overwrite=False,
                                                logging_level=30)
         incumbent = smac.optimize()

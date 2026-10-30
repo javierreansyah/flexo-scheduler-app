@@ -135,6 +135,17 @@ random rather than reproducing the original NumPy seed sequence. Supply another
 python -m flexo tune --threads 3
 ```
 
+For a first pass with one optimizer seed per training instance per candidate:
+
+```powershell
+python -u -m flexo tune --seeds 42 --threads 0 --workdir results/single-seed
+```
+
+Regular campaigns begin with up to 32 Sobol configurations, the baseline default,
+and the original tuned industry configuration. Each completed trial prints its
+score, best score so far, and elapsed time. Trials run sequentially while each
+SA solve parallelizes its starts across available CPUs.
+
 Independent campaigns tune 10/30/50 **movable** jobs. Defaults are 200 trials per
 size, optimizer seeds 42 through 71, and five million search proposals per solve,
 distributed exactly across starts. Construction is extra work included in runtime.
