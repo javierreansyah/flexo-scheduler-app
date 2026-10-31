@@ -1,4 +1,6 @@
 "use client";
+import { InkCostMatrix } from "./ink-cost-matrix";
+import { inkLabels, inkCostMatrix, isIndustryInkMatrix } from "@/lib/ink-costs";
 import { useEffect, useRef, useState } from "react";
 import { get, set } from "idb-keyval";
 import Papa from "papaparse";
@@ -52,6 +54,8 @@ function download(name: string, data: string, type = "application/json") {
 export default function Workspace() {
   const [project, update] = useState<Project>(initial),
     [ready, setReady] = useState(false),
+    [savedProject, setSavedProject] = useState<Project | null>(null),
+    [saveError, setSaveError] = useState(false),
     [busy, setBusy] = useState(false),
     [progress, setProgress] = useState(0),
     [elapsed, setElapsed] = useState(0),
@@ -64,16 +68,26 @@ export default function Workspace() {
     [historyIndex, setHistoryIndex] = useState(-1),
     [from, setFrom] = useState("empty"),
     [to, setTo] = useState(""),
-    [duration, setDuration] = useState(0.75),
-    [inkFrom, setInkFrom] = useState("empty"),
-    [inkTo, setInkTo] = useState(""),
-    [inkCost, setInkCost] = useState(0);
+    [duration, setDuration] = useState(0.75);
   const active = useRef<ReturnType<typeof run> | null>(null),
     file = useRef<HTMLInputElement>(null),
     csv = useRef<HTMLInputElement>(null);
   const snapshot = project.snapshot,
     history = project.history;
   const physicalLocked = history.length > 0;
+  useEffect(() => {
+    if (!snapshot.ink_costs) return;
+    const complete = inkCostMatrix(
+      inkLabels(snapshot, false),
+      snapshot.ink_costs,
+    );
+    if (JSON.stringify(complete) !== JSON.stringify(snapshot.ink_costs))
+      update((p) => ({
+        ...p,
+        snapshot: { ...p.snapshot, ink_costs: complete },
+      }));
+  }, [snapshot.jobs, snapshot.machine_states, snapshot.ink_costs]);
+
   const fixed = new Set(
     Object.values(snapshot.locked)
       .flat()
@@ -114,9 +128,23 @@ export default function Workspace() {
   }, []);
   useEffect(() => {
     if (!ready) return;
-    set("flexo-project-v1", project).catch((e) =>
-      setError(`Autosave unavailable: ${e}. Export your project to keep it.`),
-    );
+    let current = true;
+    setSaveError(false);
+    set("flexo-project-v1", project)
+      .then(() => {
+        if (current) setSavedProject(project);
+      })
+      .catch((e) => {
+        if (current) {
+          setSaveError(true);
+          setError(
+            `Autosave unavailable: ${e}. Export your project to keep it.`,
+          );
+        }
+      });
+    return () => {
+      current = false;
+    };
   }, [project, ready]);
   function changeSnapshot(change: Partial<Project["snapshot"]>) {
     update((p) => ({ ...p, snapshot: { ...p.snapshot, ...change } }));
@@ -822,89 +850,11 @@ export default function Workspace() {
                       </div>
                     )),
                 )}
-                <h4>Ink transition costs</h4>
-                <div className="actions">
-                  <input
-                    aria-label="Source ink"
-                    value={inkFrom}
-                    onChange={(e) => setInkFrom(e.target.value)}
-                    placeholder="empty"
-                  />
-                  ?
-                  <input
-                    aria-label="Target ink"
-                    value={inkTo}
-                    onChange={(e) => setInkTo(e.target.value)}
-                    placeholder="6"
-                  />
-                  <input
-                    aria-label="Ink transition cost"
-                    type="number"
-                    min={0}
-                    step="any"
-                    value={inkCost}
-                    onChange={(e) => setInkCost(+e.target.value)}
-                  />
-                  <Button
-                    disabled={physicalLocked || busy}
-                    variant="outline"
-                    onClick={() => {
-                      const labels = [
-                        "empty",
-                        ...Array.from(
-                          new Set([
-                            ...snapshot.jobs.flatMap((j) => j.inks),
-                            ...Object.values(
-                              snapshot.machine_states ?? {},
-                            ).flatMap((s) => s.inks),
-                          ]),
-                        )
-                          .sort((a, b) => a - b)
-                          .map(String),
-                      ];
-                      if (
-                        !labels.includes(inkFrom) ||
-                        !labels.includes(inkTo)
-                      ) {
-                        setError(
-                          "Choose an ink present in your jobs or machine states",
-                        );
-                        return;
-                      }
-                      const matrix = Object.fromEntries(
-                        labels.map((a) => [
-                          a,
-                          Object.fromEntries(
-                            labels.map((b) => [
-                              b,
-                              snapshot.ink_costs?.[a]?.[b] ??
-                                Number(
-                                  Number(a === "empty" ? 0 : a) >
-                                    Number(b === "empty" ? 0 : b),
-                                ),
-                            ]),
-                          ),
-                        ]),
-                      );
-                      matrix[inkFrom][inkTo] = inkCost;
-                      changeSnapshot({ ink_costs: matrix });
-                    }}
-                  >
-                    Set cost
-                  </Button>
-                </div>
-                {snapshot.ink_costs && (
-                  <>
-                    <pre>{JSON.stringify(snapshot.ink_costs, null, 2)}</pre>
-                    <Button
-                      disabled={physicalLocked || busy}
-                      variant="outline"
-                      onClick={() => changeSnapshot({ ink_costs: undefined })}
-                    >
-                      Restore default costs
-                    </Button>
-                  </>
-                )}
+                <InkCostMatrix
+                  snapshot={snapshot}
+                  disabled={physicalLocked || busy}
+                  onChange={(ink_costs) => changeSnapshot({ ink_costs })}
+                />
               </div>
             )}
           </section>
@@ -946,6 +896,12 @@ export default function Workspace() {
                   ? "Quick and Balanced share settings at this size. "
                   : ""}
                 Quality tradeoffs are measured averages, not guarantees.
+              </p>
+            )}
+            {!isIndustryInkMatrix(snapshot.ink_costs) && (
+              <p className="warning">
+                Custom ink costs: preset quality was calibrated using the
+                industry matrix.
               </p>
             )}
             {movable > 100 && (
@@ -1047,7 +1003,14 @@ export default function Workspace() {
             <p className="note privacy">
               Your work stays on this device.
               <br />
-              Autosaved locally. Export a copy to keep it elsewhere.
+              <span role="status">
+                {saveError
+                  ? "Autosave unavailable"
+                  : savedProject === project
+                    ? "Saved locally"
+                    : "Saving locally..."}
+              </span>
+              . Export a copy to keep it elsewhere.
             </p>
           </aside>
         </div>

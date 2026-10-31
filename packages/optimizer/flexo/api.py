@@ -138,17 +138,20 @@ def prepare(snapshot):
     costs = [[float(i > j) for j in [0] + labels] for i in [0] + labels]
     if "ink_costs" in d:
         custom = d["ink_costs"]
-        if set(custom) != set(label_index):
+        catalog = set(custom)
+        if not set(label_index) <= catalog:
             raise ValueError("ink_costs must cover all ink ids and 'empty'")
-        costs = [[0.] * len(label_index) for _ in label_index]
+        if any(k != "empty" and (not isinstance(k, str) or not k.isdecimal() or str(int(k)) != k or int(k) < 1) for k in catalog):
+            raise ValueError("Invalid ink id in ink_costs")
         for source, row in custom.items():
-            if set(row) != set(label_index):
+            if set(row) != catalog:
                 raise ValueError(f"Incomplete ink_costs row {source}")
             for target, value in row.items():
                 value = number(value, f"ink_costs[{source}][{target}]")
                 if source == target and value != 0:
                     raise ValueError("Diagonal ink costs must be zero")
-                costs[label_index[source]][label_index[target]] = value
+                if source in label_index and target in label_index:
+                    costs[label_index[source]][label_index[target]] = value
     indexed = [[label_index[str(ink)] for ink in p] for p in patterns]
     transitions = [_core.changeover(a, b, costs) for a in indexed for b in indexed]
     npat = len(patterns)

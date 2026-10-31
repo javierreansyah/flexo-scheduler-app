@@ -16,7 +16,8 @@ self.onmessage = async ({
     for (const key of ["evaluations", "starts", "stage_length"])
       if (!Number.isInteger(p[key]) || p[key] < 1 || p[key] > 2000000000)
         throw Error(`Invalid ${key}`);
-    number(p.t_max,"Initial temperature");number(p.t_min,"Final temperature");
+    number(p.t_max, "Initial temperature");
+    number(p.t_min, "Final temperature");
     if (p.starts > 10 || !(p.t_max > p.t_min && p.t_min > 0))
       throw Error("Invalid starts or temperatures");
     for (const key of ["rcl_alpha", "p_inter", "p_shift", "p_block"])
@@ -48,7 +49,11 @@ self.onmessage = async ({
       )
         throw Error(`Invalid inks: ${j.id}`);
     }
-    s.jobs=s.jobs.map((j:any)=>({...j,id:String(j.id),inks:[...j.inks].sort((a:number,b:number)=>a-b)}));
+    s.jobs = s.jobs.map((j: any) => ({
+      ...j,
+      id: String(j.id),
+      inks: [...j.inks].sort((a: number, b: number) => a - b),
+    }));
     const states = s.machine_states ?? {},
       locked = s.locked ?? {};
     for (const m of [...Object.keys(states), ...Object.keys(locked)])
@@ -71,6 +76,32 @@ self.onmessage = async ({
         ...Array.from(new Set(patterns.flat())).sort((a, b) => a - b),
       ],
       idx = new Map(labels.map((x, i) => [x, i]));
+    if (s.ink_costs) {
+      const catalog = Object.keys(s.ink_costs);
+      if (
+        !["empty", ...labels.filter((x) => x !== 0).map(String)].every((k) =>
+          catalog.includes(k),
+        )
+      )
+        throw Error(
+          "Ink matrix must cover every ink in jobs and machine states",
+        );
+      for (const source of catalog) {
+        if (source !== "empty" && !/^[1-9]\d*$/.test(source))
+          throw Error("Invalid ink matrix label");
+        const row = s.ink_costs[source];
+        if (
+          Object.keys(row).length !== catalog.length ||
+          !catalog.every((k) => Object.hasOwn(row, k))
+        )
+          throw Error(`Incomplete ink matrix row ${source}`);
+        for (const target of catalog) {
+          const value = number(row[target], "Ink transition");
+          if (source === target && value !== 0)
+            throw Error("Ink cost diagonal must be zero");
+        }
+      }
+    }
     const costs = labels.map((a) =>
       labels.map((b) =>
         s.ink_costs
@@ -146,8 +177,15 @@ self.onmessage = async ({
           Math.abs(e.ink_change_cost - result[3]) > 1e-8
         )
           throw Error("Locked ink cost conflicts with equipment");
-        const {job:internalIndex,...entry}=e;
-        prefix[m].push({...j,setup_start:e.setup_start,start:e.start,completion:e.completion,ink_change_cost:result[3],locked:true});
+        const { job: internalIndex, ...entry } = e;
+        prefix[m].push({
+          ...j,
+          setup_start: e.setup_start,
+          start: e.start,
+          completion: e.completion,
+          ink_change_cost: result[3],
+          locked: true,
+        });
         fixed.add(String(e.id));
         clock = e.completion;
         pat = next;
@@ -214,7 +252,10 @@ self.onmessage = async ({
         m,
         [
           ...prefix[m],
-          ...result.schedule[i].map((e: any) => {const {job,...entry}=e;return {...movable[job],...entry,locked:false}}),
+          ...result.schedule[i].map((e: any) => {
+            const { job, ...entry } = e;
+            return { ...movable[job], ...entry, locked: false };
+          }),
         ],
       ]),
     );

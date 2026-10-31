@@ -1,3 +1,4 @@
+import { inkCostMatrix } from "./ink-costs";
 import industry from "./industry.json";
 import profiles from "./profiles.json";
 export type Job = {
@@ -72,6 +73,9 @@ export function initial(): Project {
       jobs: [],
       locked: {},
       setup_time: 0.75,
+      ink_costs: inkCostMatrix(
+        ["empty", ...new Set(industry.jobs.flatMap((j) => j.inks))].map(String),
+      ),
       ink_weight: 0.4,
       batch_flow_time_weight: 0.6,
     },

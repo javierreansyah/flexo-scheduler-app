@@ -52,3 +52,5 @@ Root directory: repository root. Build command: `pnpm wasm:setup && pnpm build`.
 The requested shadcn Claude MCP configuration is in `.mcp.json`; restart the client to load it. All UI uses the buFywKm preset with zero radius.
 
 See [browser verification](docs/browser-app-verification.md) for measured timings and native/browser quality differences. Reproduce the five-case comparison with `pnpm benchmark:browser` after building. Previous tuning reports are under `packages/optimizer/docs`.
+
+The Changeovers tab includes a directed ink-cost matrix seeded from the original industry inks. Rows are source inks; columns are replacements. Higher-numbered inks are darker: lighter replacements/removal cost 1, darker replacements/addition cost 0. Common inks are retained before minimum-cost matching. Restore industry defaults resets all cells; custom costs remain fixed after the first schedule. New ink IDs automatically extend the matrix using industry defaults.

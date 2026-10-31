@@ -1,3 +1,5 @@
+import { inkCostMatrix } from "../lib/ink-costs";
+import fixtures from "./native-fixtures.json";
 import { test, expect } from "@playwright/test";
 test("industry scheduling, arrivals, history, views and reload", async ({
   page,
@@ -80,4 +82,74 @@ test("ink editing and selected row deletion", async ({ page }) => {
     .getByRole("button", { name: "Delete 1 selected", exact: true })
     .click();
   await expect(page.getByLabel("Job ID row 1", { exact: true })).toHaveCount(0);
+});
+
+test("industry cost matrix edits persist and affect actual WASM scoring", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const project = {
+    version: 1,
+    snapshot: {
+      now: 0,
+      machines: { A: 100 },
+      jobs: [{ id: "probe", quantity: 6000, inks: [1], arrival_time: 0 }],
+      locked: {},
+      machine_states: { A: { available_time: 0, inks: [9] } },
+      setup_time: 0.75,
+      ink_weight: 0.4,
+      batch_flow_time_weight: 0.6,
+      ink_costs: inkCostMatrix(["empty", "1", "9"]),
+    },
+    history: [],
+    preset: "low",
+    custom: fixtures[0].parameters,
+    seed: "42",
+  };
+  await page.locator('input[type=file][accept=".json"]').setInputFiles({
+    name: "project.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify(project)),
+  });
+  await page.getByRole("button", { name: "changeovers", exact: true }).click();
+  const cost = page.getByLabel("Ink cost 9 to 1", { exact: true });
+  await expect(cost).toHaveValue("1");
+  await expect(page.getByLabel("Ink cost 1 to 9", { exact: true })).toHaveValue(
+    "0",
+  );
+  await expect(
+    page.getByLabel("Ink cost 9 to 9", { exact: true }),
+  ).toBeDisabled();
+  await cost.fill("3");
+  await cost.press("Enter");
+  await expect(
+    page.getByText("Custom ink costs:", { exact: false }),
+  ).toBeVisible();
+  await expect(page.getByText("Saved locally", { exact: true })).toBeVisible();
+  await page.reload();
+  await page.getByRole("button", { name: "changeovers", exact: true }).click();
+  await expect(cost).toHaveValue("3");
+  await page.getByRole("button", { name: "Optimize schedule" }).click();
+  await expect(page.locator(".metrics")).toContainText("2.25000");
+  await expect(cost).toBeDisabled();
+});
+test("matrix adds new inks without overwriting existing cells", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "changeovers", exact: true }).click();
+  const cost = page.getByLabel("Ink cost 9 to 1", { exact: true });
+  await cost.fill("2.5");
+  await cost.press("Enter");
+  await page.getByRole("button", { name: "jobs / 0", exact: true }).click();
+  await page.getByRole("button", { name: "Add job", exact: true }).click();
+  await page.getByLabel("Inks row 1", { exact: true }).fill("12");
+  await page.getByLabel("Inks row 1", { exact: true }).press("Tab");
+  await page.getByRole("button", { name: "changeovers", exact: true }).click();
+  await expect(cost).toHaveValue("2.5");
+  await expect(
+    page.getByLabel("Ink cost 12 to 1", { exact: true }),
+  ).toHaveValue("1");
+  await page.getByRole("button", { name: "Restore industry defaults" }).click();
+  await expect(cost).toHaveValue("1");
 });

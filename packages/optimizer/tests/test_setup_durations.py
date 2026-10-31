@@ -22,3 +22,18 @@ def test_duration_shift_deferral_and_validation():
     with pytest.raises(ValueError):optimize(s)
     s['setup_durations']={'unknown':{'1':0}}
     with pytest.raises(ValueError):optimize(s)
+
+
+def test_industry_matrix_catalog_and_custom_cost_reach_evaluator():
+    labels=['empty']+list(map(str,range(1,10)))
+    matrix={a:{b:float(int(a if a!='empty' else 0)>int(b if b!='empty' else 0)) for b in labels} for a in labels}
+    s=dict(now=0,machines={'A':100},machine_states={'A':dict(available_time=0,inks=[9])},jobs=[dict(id='probe',quantity=6000,inks=[1],arrival_time=0)])
+    legacy=evaluate(s,{'A':['probe']})
+    s['ink_costs']=matrix
+    assert evaluate(s,{'A':['probe']})==legacy
+    matrix['9']['1']=3
+    out=optimize(s,{'evaluations':100})
+    assert out['ink_changes']==3
+    assert out['fitness']==pytest.approx(2.25)
+    matrix['8']['8']=-1
+    with pytest.raises(ValueError):optimize(s)
