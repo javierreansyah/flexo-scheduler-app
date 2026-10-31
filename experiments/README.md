@@ -13,7 +13,7 @@ jobs, then 50 jobs with two horizons and 100 jobs with three horizons (rho=1.5,
 replica 00). N10 is derived from the first ten orders of N15 static replica 00;
 the checked-in instance is unchanged.
 
-The benchmark uses the original tuned `industry.py` SA settings with the new four-start cap: **833,333 proposals
+The benchmark uses the original tuned `industry.py` SA settings with four starts: **833,333 proposals
 per start, four starts** (3,333,332 total proposals per horizon), original cooling,
 GRASP and move probabilities. Automatic profiles are bypassed. Four starts run
 on up to four CPU workers; no additional parallelism across cases competes with
@@ -75,3 +75,31 @@ size profiles, or supply `--profiles path/to/profiles.json`.
 For notebook exploration, open `experiments/playground.ipynb`. Edit the input,
 seed panel and parameters in its first code cell, run the experiment, then display
 the chart inline. It runs with an ordinary Python Jupyter kernel.
+
+## Pareto presets and worker throughput
+
+After Pareto tuning exports profiles, select `--preset low`, `medium` (default),
+or `high` in the playground. Existing flat profiles use the same parameters for
+all three until retuned. Explicit parameters take precedence.
+
+```powershell
+python -m experiments.playground --preset low --output results/low-quality
+python -m experiments.benchmark_parallel --workers 20 --output results/my-workers
+```
+
+The worker benchmark compares serial execution with a bounded pool across the
+same five representative cases, three seeds and two repeats (30 tasks in each
+mode). It uses the original parameters, including four starts and 833,333
+iterations per start. Each task runs its starts serially. It verifies exact
+schedule and fitness equality, and saves wall time, CPU time, peak workers and
+per-run results. This measures solve throughput; it does not include SMAC model
+fitting or claim all logical processors remain busy throughout a campaign.
+
+Notebook calls can use `run(..., preset="low")`; the existing notebook and
+original timeline rendering remain compatible. For tuning instructions see
+[the tuning guide](../docs/tuning.md).
+
+Measured on the local 20-logical-CPU Windows machine: 30 solves took 33.99s
+serially and 4.57s with 20 workers (7.44x throughput), with identical schedules
+and scores. This is a single timing comparison, not a universal speedup claim.
+The saved local artifact is `results/pareto-worker-benchmark/report.json`.

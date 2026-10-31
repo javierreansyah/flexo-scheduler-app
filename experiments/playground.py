@@ -70,7 +70,7 @@ def timeline(result, title="Schedule", now=None):
 
 
 def run(instance="flexo/example.json", seeds=(42,), parameters=None, profiles=None,
-        threads=0, output_dir=None):
+        threads=0, output_dir=None, preset="medium"):
     """Return metrics and the best result; chart creation is outside timing."""
     path = Path(instance)
     data = json.loads(path.read_text(encoding="utf-8"))
@@ -81,7 +81,7 @@ def run(instance="flexo/example.json", seeds=(42,), parameters=None, profiles=No
         raise ValueError("Provide at least one seed")
     for seed in seeds:
         begin = time.perf_counter()
-        result = solver(data, parameters, seed=seed, num_threads=threads, profiles=profiles)
+        result = solver(data, parameters, seed=seed, num_threads=threads, profiles=profiles, preset=preset)
         elapsed = time.perf_counter()-begin
         row = dict(seed=seed, threads=threads, fitness=result["fitness"], ink_cost=result["ink_changes"],
                    batch_flow_hours=result["batch_flow_time"], makespan_hours=result["makespan"],
@@ -121,6 +121,7 @@ def main():
     parser.add_argument("--starts", type=int)
     parser.add_argument("--threads", type=int, default=0)
     parser.add_argument("--profiles", type=Path)
+    parser.add_argument("--preset", choices=["low", "medium", "high"], default="medium")
     parser.add_argument("--parameters", type=Path)
     parser.add_argument("--output", type=Path, default=Path("results/playground"))
     parser.add_argument("--show", action="store_true", help="Open a Matplotlib window")
@@ -134,7 +135,7 @@ def main():
         if args.starts is not None: params["starts"] = args.starts
     if params is not None and args.profiles:
         parser.error("Use --parameters or --profiles, not both")
-    _, best = run(args.instance, args.seeds, params, args.profiles, args.threads, args.output)
+    _, best = run(args.instance, args.seeds, params, args.profiles, args.threads, args.output, args.preset)
     import matplotlib
     if not args.show:
         matplotlib.use("Agg")

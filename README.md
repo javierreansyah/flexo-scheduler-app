@@ -122,58 +122,42 @@ replays visible arrivals and rejects inputs over 100 jobs.
 python -m flexo validate instances/validation/N100_K3_rho1.5_rep00.json --output results/validation.json
 ```
 
-## Quality-preserving parameter and budget tuning
+## Pareto parameter and budget tuning
 
 ```powershell
-python experiments/run_tuning.py
+python experiments/run_tuning.py --workers 20
 ```
 
-Runs in your terminal with tqdm progress and automatically resumes the saved
-campaign. Press Ctrl+C to stop; repeat the command to continue. Use
-`--workdir results/my-tuning` to start a separate campaign.
+Runs in your terminal with tqdm progress and automatically resumes
+`results/pareto-tuning`. Press Ctrl+C to checkpoint and stop; repeat the command
+to continue. Use a new `--workdir` for a separate campaign.
 
-See [the tuning guide](docs/tuning.md) for stages, quality gates, budget
-quantization, cost, and resuming an interrupted campaign.
+One SMAC ParEGO campaign per size jointly tunes SA parameters, **1-10 starts**,
+and **100k-20m total proposals in 100k steps**. Defaults are 400 configurations
+per size, three training seeds (42/43/44), and three heldout seeds (142/143/144).
+Each full training panel supplies 60 independent solves to a shared worker pool;
+`--workers 0` uses available logical CPUs. Each solve runs its starts serially.
+SMAC model fitting and panel tails can still leave CPUs idle.
 
-The workflow tunes a fixed-budget reference, then jointly reduces proposals and
-retunes parameters. There is no pilot stage. Starts are editable/tunable from **1
-through 4**, defaulting to four; larger values are rejected in Python and C++.
-Every evaluated instance uses three optimizer seeds. Reference budgets are exactly 10m
-total proposals for every size. Efficiency budgets use exact 100k steps from 100k
-through 10m. Stage two requires every training instance to
-match reference mean quality; a regression on any held-out instance selects the
-full-budget reference instead. Efficiency search never uses fewer than 100k proposals.
-
-Defaults: `--reference-calls 1000`, `--reduction-trials 100`, training seeds
-42/43/44, held-out seeds 142/143/144. These replace the old `--trials` and
-single-seed tuning interface. `--evaluations` optionally overrides every size's
-reference budget, mainly for smoke tests. `--threads 0` parallelizes starts while
-SMAC itself remains sequential.
+The resulting cost/quality frontier supplies **low/medium/high** presets. High
+has the best observed training quality; medium and low choose the cheapest points
+within 0.5% and 2%, respectively, overall and for each clean/carryover case type.
+Heldout failures map a cheaper preset to high. These empirical checks do not
+guarantee the same quality on every future input.
 
 ```powershell
-python experiments/run_tuning.py --workdir results/my-tuning
-# Repeat the same command to resume.
+python -m flexo solve flexo/example.json --preset low --output results/schedule.json
+python -m experiments.playground --preset high
 ```
-
-Per-seed solves are committed to SQLite. Resuming requires the same dataset,
-optimizer, source code, and settings. Completed stages and compatible cached
-solves are reused. Don't run two processes against one work directory.
 
 After all sizes finish, profiles are atomically exported to `flexo/profiles.json`.
-Each size carries its own start count and proposal budget. Automatic selection
-uses the nearest movable-job count, larger on ties, clamping outside the range.
-Absent profiles use baseline defaults; explicit parameters override selection.
-A profile with more than four starts from an older campaign must be retuned.
+Automatic selection uses the nearest movable-job count, larger on ties. Medium
+is the default preset. Existing flat profiles remain readable; absent profiles
+use baseline defaults and explicit parameters override selection.
 
-For a quick integration run in separate directories:
-
-```powershell
-python -m flexo generate smac --replicas 1 --previous-evaluations 200 --directory tmp/smac
-python -m flexo tune --directory tmp/smac --reference-calls 4 --reduction-trials 4 --evaluations 100000 --workdir tmp/tuning --output tmp/profiles.json
-```
-
-Smoke profiles verify integration, not production quality. Three-seed tests offer
-an empirical quality check, not a guarantee for every future input.
+See [the tuning guide](docs/tuning.md) for scoring, presets, CPU scheduling,
+checkpoints and a small smoke-test command. The old results are preserved; their
+analysis is in [the completed-run report](docs/completed-tuning-report.md).
 
 ## Design and verification
 

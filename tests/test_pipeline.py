@@ -6,7 +6,7 @@ import pytest
 
 from flexo import optimize, prepare
 from flexo.instances import generate_smac, generate_validation
-from flexo.tuning import decode, load_dataset, normalized, tune
+from flexo.tuning import load_dataset, tune
 from flexo.validation import run_validation
 
 
@@ -52,32 +52,36 @@ def test_validation_generator_never_generates_n200(tmp_path):
     assert max(len(json.loads(p.read_text())["orders_data"]) for p in paths) == 100
 
 
-def test_tuning_smoke_exports_four_profiles_and_resumes(tmp_path):
+def test_pareto_smoke_exports_four_profiles_and_resumes(tmp_path):
     pytest.importorskip("smac")
-    generate_smac(tmp_path/"data", replicas=1, previous_evaluations=200)
-    settings = dict(reference_calls=4, reduction_trials=4, evaluations=200_000, num_threads=1)
+    generate_smac(tmp_path/"data", replicas=1, previous_evaluations=100)
+    settings = dict(trials=8, max_evaluations=200_000, workers=3)
     result = tune(tmp_path/"data", tmp_path/"profiles.json", tmp_path/"runs", **settings)
+    assert result["mode"] == "parego"
     assert set(result["profiles"]) == {"10", "30", "50", "100"}
     for n in (10, 30, 50, 100):
-        assert 0 < result["profiles"][str(n)]["parameters"]["evaluations"] <= 200_000
-        assert result["profiles"][str(n)]["parameters"]["evaluations"] % 100_000 == 0
-        assert not (tmp_path/f"runs/N{n}/pilot.json").exists()
-        assert 1 <= result["profiles"][str(n)]["parameters"]["starts"] <= 4
-        assert (tmp_path/f"runs/N{n}/reference-trials.jsonl").exists()
-        assert (tmp_path/f"runs/N{n}/reduction-trials.jsonl").exists()
+        profile = result["profiles"][str(n)]
+        assert set(profile["presets"]) == {"low", "medium", "high"}
+        for point in profile["frontier"]:
+            assert 100_000 <= point["parameters"]["evaluations"] <= 200_000
+            assert point["parameters"]["evaluations"] % 100_000 == 0
+            assert 1 <= point["parameters"]["starts"] <= 10
+            assert all(len(r["samples"]) == 3 for r in point["measurements"].values())
+        assert (tmp_path/f"runs/N{n}/frontier.png").exists()
+        assert (tmp_path/f"runs/N{n}/frontier.csv").exists()
+        history = json.loads((tmp_path/f"runs/N{n}/smac/pareto/42/runhistory.json").read_text())
+        assert any("Search" in origin for origin in history["config_origins"].values())
     snapshot = json.loads((tmp_path/"data/heldout/N30_carryover_00.json").read_text())
-    solved = optimize(snapshot, profiles=tmp_path/"profiles.json")
-    assert solved["profile_size"] == 30 and solved["evaluations"] <= 200_000
+    solved = optimize(snapshot, profiles=tmp_path/"profiles.json", preset="low")
+    assert solved["profile_size"] == 30 and solved["preset"] == "low"
     with pytest.raises(ValueError, match="already"):
         tune(tmp_path/"data", tmp_path/"profiles.json", tmp_path/"runs", **settings)
     resumed = tune(tmp_path/"data", tmp_path/"profiles.json", tmp_path/"runs", resume=True, **settings)
     assert resumed["profiles"] == result["profiles"]
     with pytest.raises(ValueError, match="differ"):
-        tune(tmp_path/"data", tmp_path/"profiles.json", tmp_path/"runs", resume=True, **{**settings, "evaluations": 300_000})
-
-
-def test_zero_baselines_and_valid_temperatures():
-    assert normalized({"a": {"fitness": 0.}}, {"a": {"fitness": 0.}}) == 0.
-    assert normalized({"a": {"fitness": 1.}}, {"a": {"fitness": 0.}}) == 1e12
-    config = dict(t_max=.01, temperature_ratio=.99, starts=2)
-    assert 0 < decode(config, 17)["t_min"] < decode(config, 17)["t_max"]
+        tune(tmp_path/"data", tmp_path/"profiles.json", tmp_path/"runs", resume=True, **{**settings, "trials": 9})
+    old = tmp_path/"old"
+    old.mkdir()
+    (old/"manifest.json").write_text(json.dumps(dict(schema_version=3)))
+    with pytest.raises(ValueError, match="older tuning format"):
+        tune(tmp_path/"data", tmp_path/"profiles.json", old, resume=True, **settings)

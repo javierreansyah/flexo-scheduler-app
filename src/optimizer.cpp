@@ -214,7 +214,7 @@ PYBIND11_MODULE(_core,m) {
             par.stage_length=config["stage_length"].cast<int>(); par.t_max=config["t_max"].cast<double>(); par.t_min=config["t_min"].cast<double>();
             par.rcl_alpha=config["rcl_alpha"].cast<double>(); par.p_inter=config["p_inter"].cast<double>();
             par.p_shift=config["p_shift"].cast<double>(); par.p_block=config["p_block"].cast<double>();
-            if (par.evaluations<0 || par.starts<1 || par.starts>4 || par.stage_length<1 || !(par.t_min>0 && par.t_max>par.t_min)
+            if (par.evaluations<0 || par.starts<1 || par.starts>10 || par.stage_length<1 || !(par.t_min>0 && par.t_max>par.t_min)
                 || !std::isfinite(par.t_max) || threads<0) throw std::invalid_argument("Invalid search parameters");
             for (double prob:{par.rcl_alpha,par.p_inter,par.p_shift,par.p_block})
                 if (!(prob>=0 && prob<=1)) throw std::invalid_argument("Probabilities must be between zero and one");

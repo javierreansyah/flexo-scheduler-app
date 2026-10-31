@@ -1,44 +1,68 @@
-"""Independent SMAC campaigns by movable-job count, using frozen snapshots."""
+"""Single-campaign ParEGO tuning with bounded native workers and persistent solves."""
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import csv
 import hashlib
 import json
+import os
 from pathlib import Path
-import statistics
-import time
 import sqlite3
+import statistics
+import threading
+import time
 
 from . import _core
-
-from .api import DEFAULT_PARAMETERS, optimize, prepare
+from .api import DEFAULT_PARAMETERS, integer, optimize, parameters_checked, prepare
 from .instances import SIZES, write_json
 
+EVALUATION_STEP = 100_000
+MAX_EVALUATIONS = 20_000_000
+PRESET_TOLERANCES = {"low": .02, "medium": .005, "high": 0.}
+PRIOR_PARAMETERS = dict(t_max=.1603194019, t_min=.0116169910, stage_length=4908,
+                        starts=4, rcl_alpha=.2746914740, p_inter=.6647498733,
+                        p_shift=.5008078735, p_block=.2693767726)
 
-def configuration_space(seed=42, reduction_budget=None):
+
+def fingerprint(value):
+    return hashlib.sha256(json.dumps(value, sort_keys=True, allow_nan=False).encode()).hexdigest()
+
+
+def budget_steps(evaluations):
+    evaluations = integer(evaluations, "evaluations", EVALUATION_STEP)
+    if evaluations % EVALUATION_STEP or evaluations > MAX_EVALUATIONS:
+        raise ValueError("Budget must be a multiple of 100,000 from 100k through 20m")
+    return evaluations // EVALUATION_STEP
+
+
+def configuration_space(seed=42, max_evaluations=MAX_EVALUATIONS):
     from ConfigSpace import ConfigurationSpace, Constant, Float, Integer
-    cs = ConfigurationSpace(seed=seed)
-    cs.add(Float("t_max", (.01, 100_000.), default=500., log=True),
-           Float("temperature_ratio", (1e-8, .99), default=.001/500, log=True),
-           Integer("stage_length", (1, 5000), default=1000),
-           Integer("starts", (1, 4), default=4), Float("rcl_alpha", (0., 1.), default=.5),
-           Float("p_inter", (0., 1.), default=.5), Float("p_shift", (0., 1.), default=.5),
-           Float("p_block", (0., 1.), default=.5))
-    if reduction_budget is not None:
-        steps = budget_steps(reduction_budget)
-        cs.add(Constant("evaluation_steps", 1) if steps == 1 else
-               Integer("evaluation_steps", (1, steps), default=steps, log=True))
-    return cs
+    steps = budget_steps(max_evaluations)
+    space = ConfigurationSpace(seed=seed)
+    space.add(Float("t_max", (.01, 100_000.), default=500., log=True),
+              Float("temperature_ratio", (1e-8, .99), default=.001/500, log=True),
+              Integer("stage_length", (1, 5000), default=1000),
+              Integer("starts", (1, 10), default=4), Float("rcl_alpha", (0., 1.), default=.5),
+              Float("p_inter", (0., 1.), default=.5), Float("p_shift", (0., 1.), default=.5),
+              Float("p_block", (0., 1.), default=.5),
+              Constant("evaluation_steps", 1) if steps == 1 else Integer("evaluation_steps", (1, steps), default=steps, log=True))
+    return space
 
 
-def decode(config, evaluations):
-    maximum = evaluations
-    params = dict(config)
-    if "evaluation_steps" in params:
-        from .api import integer
-        steps = integer(params.pop("evaluation_steps"), "evaluation_steps", 1)
-        evaluations = steps * EVALUATION_STEP
-        if evaluations > maximum:
-            raise ValueError("Efficiency budget exceeds reference budget")
-    params["t_min"] = params["t_max"] * params.pop("temperature_ratio")
-    return {**DEFAULT_PARAMETERS, **params, "evaluations": evaluations}
+def decode(config, max_evaluations=MAX_EVALUATIONS):
+    parameters = dict(config)
+    steps = integer(parameters.pop("evaluation_steps"), "evaluation_steps", 1)
+    parameters["evaluations"] = steps * EVALUATION_STEP
+    if parameters["evaluations"] > max_evaluations:
+        raise ValueError("Budget exceeds configured maximum")
+    parameters["t_min"] = parameters["t_max"] * parameters.pop("temperature_ratio")
+    return parameters_checked(parameters)
+
+
+def as_config(space, parameters):
+    from ConfigSpace import Configuration
+    values = {k: parameters[k] for k in ("t_max", "stage_length", "starts", "rcl_alpha", "p_inter", "p_shift", "p_block")}
+    values["temperature_ratio"] = parameters["t_min"]/parameters["t_max"]
+    values["evaluation_steps"] = budget_steps(parameters["evaluations"])
+    return Configuration(space, values)
 
 
 def load_dataset(directory):
@@ -75,267 +99,299 @@ def load_dataset(directory):
     return groups, digest.hexdigest()
 
 
-def normalized(measured, baseline):
-    return statistics.mean(row["fitness"]/max(baseline[name]["fitness"], 1e-12) for name, row in measured.items())
-
-
-REFERENCE_BUDGET = 10_000_000
-EVALUATION_STEP = 100_000
-
-
-def budget_steps(evaluations):
-    from .api import integer
-    evaluations = integer(evaluations, "evaluations", EVALUATION_STEP)
-    if evaluations % EVALUATION_STEP or evaluations > 2_000_000_000:
-        raise ValueError("Reference budget must be a multiple of 100,000 within the native integer limit")
-    return evaluations // EVALUATION_STEP
-PRIOR_PARAMETERS = dict(t_max=.1603194019, t_min=.0116169910, stage_length=4908,
-                        starts=4, rcl_alpha=.2746914740, p_inter=.6647498733,
-                        p_shift=.5008078735, p_block=.2693767726)
-
-
-def fingerprint(value):
-    return hashlib.sha256(json.dumps(value, sort_keys=True, allow_nan=False).encode()).hexdigest()
-
-
-def quality_failures(measured, reference):
-    failures = []
-    for name, row in measured.items():
-        expected = reference[name]["fitness"]
-        if row["fitness"] > expected + 1e-9*max(1., abs(expected)):
-            failures.append(dict(instance=name, reference=expected, candidate=row["fitness"],
-                                 relative_loss=(row["fitness"]-expected)/max(abs(expected), 1e-12)))
-    return failures
-
-
 class CachedEvaluator:
-    """Commit complete individual solves; interrupted panels can reuse them."""
-    def __init__(self, path, threads):
+    """One bounded pool; only its coordinator accesses SQLite or aggregates scores."""
+    def __init__(self, path, workers=0):
+        self.workers = integer(workers, "workers") or (os.cpu_count() or 1)
         self.db = sqlite3.connect(path)
         self.db.execute("CREATE TABLE IF NOT EXISTS solves (key TEXT PRIMARY KEY, value TEXT NOT NULL)")
-        self.threads = threads
-        self.hits = self.misses = 0
+        self.pool = ThreadPoolExecutor(max_workers=self.workers, thread_name_prefix="sa")
+        self.hits = self.misses = self.active = self.peak = 0
+        self.lock = threading.Lock()
+        self.last_panel_stats = {}
 
     def close(self):
+        self.pool.shutdown(wait=True, cancel_futures=True)
         self.db.close()
 
-    def measure(self, row, parameters, seeds):
-        name, kind, problem = row
-        identity = fingerprint(problem.snapshot)
-        values = []
-        for seed in seeds:
-            key = fingerprint([identity, parameters, seed])
-            record = self.db.execute("SELECT value FROM solves WHERE key=?", (key,)).fetchone()
-            if record is None:
-                result = optimize(problem, parameters, seed, self.threads)
-                value = dict(seed=seed, fitness=result["fitness"], seconds=result["total_runtime"])
-                with self.db:
-                    self.db.execute("INSERT INTO solves VALUES (?,?)", (key, json.dumps(value, allow_nan=False)))
-                self.misses += 1
-            else:
-                value = json.loads(record[0])
-                self.hits += 1
-            values.append(value)
-        return dict(kind=kind, fitness=statistics.mean(v["fitness"] for v in values),
-                    seconds=sum(v["seconds"] for v in values), samples=values)
+    def solve(self, problem, parameters, seed):
+        with self.lock:
+            self.active += 1
+            self.peak = max(self.peak, self.active)
+        try:
+            # Each task owns one CPU worker; its starts execute sequentially.
+            result = optimize(problem, parameters, seed, num_threads=1)
+            return dict(seed=seed, fitness=result["fitness"], seconds=result["total_runtime"])
+        finally:
+            with self.lock:
+                self.active -= 1
+
+    def store(self, key, value):
+        with self.db:
+            self.db.execute("INSERT OR IGNORE INTO solves VALUES (?,?)", (key, json.dumps(value, allow_nan=False)))
+        self.misses += 1
 
     def panel(self, rows, parameters, seeds):
-        return {row[0]: self.measure(row, parameters, seeds) for row in rows}
+        if not rows or not seeds:
+            raise ValueError("A panel needs instances and seeds")
+        begin, cpu_begin = time.perf_counter(), time.process_time()
+        hit_start, miss_start = self.hits, self.misses
+        self.peak = 0
+        values, pending = {}, {}
+        total = len(rows)*len(seeds)
+        last_display = 0.
+        def display(force=False):
+            nonlocal last_display
+            now = time.perf_counter()
+            if force or now-last_display >= .15:
+                print(f"Solves: {len(values)}/{total} cached={self.hits-hit_start} computed={self.misses-miss_start} active={self.active}/{self.workers}", flush=True)
+                last_display = now
+        try:
+            for name, kind, problem in rows:
+                identity = fingerprint(problem.snapshot)
+                for seed in seeds:
+                    key = fingerprint([identity, parameters, seed])
+                    record = self.db.execute("SELECT value FROM solves WHERE key=?", (key,)).fetchone()
+                    if record is not None:
+                        values[name, seed] = json.loads(record[0])
+                        self.hits += 1
+                    else:
+                        future = self.pool.submit(self.solve, problem, parameters, seed)
+                        pending[future] = (key, name, seed)
+            display(True)
+            for future in as_completed(list(pending)):
+                key, name, seed = pending.pop(future)
+                value = future.result()
+                self.store(key, value)
+                values[name, seed] = value
+                display()
+            display(True)
+        except BaseException:
+            # Cancel queued work, let active native calls finish, and checkpoint
+            # their results before propagating Ctrl+C or a worker failure.
+            for future in pending:
+                future.cancel()
+            self.pool.shutdown(wait=True, cancel_futures=True)
+            for future, (key, _, _) in pending.items():
+                if not future.cancelled() and future.done() and future.exception() is None:
+                    self.store(key, future.result())
+            raise
+        elapsed = time.perf_counter()-begin
+        self.last_panel_stats = dict(wall_seconds=elapsed, cpu_seconds=time.process_time()-cpu_begin,
+                                     computed=self.misses-miss_start, cached=self.hits-hit_start,
+                                     peak_workers=self.peak, workers=self.workers)
+        # Stable ordering is independent of which thread finished first.
+        return {name: dict(kind=kind, fitness=statistics.mean(values[name, s]["fitness"] for s in seeds),
+                           samples=[values[name, s] for s in seeds],
+                           seconds=sum(values[name, s]["seconds"] for s in seeds)) for name, kind, _ in rows}
 
 
-def as_config(space, parameters, reduction=False):
-    from ConfigSpace import Configuration
-    values = {k: parameters[k] for k in ("t_max", "stage_length", "starts", "rcl_alpha", "p_inter", "p_shift", "p_block")}
-    values["temperature_ratio"] = parameters["t_min"]/parameters["t_max"]
-    if reduction:
-        values["evaluation_steps"] = budget_steps(parameters["evaluations"])
-    return Configuration(space, values)
+def summarize(measured, baseline):
+    ratios = {name: row["fitness"]/max(baseline[name]["fitness"], 1e-12) for name, row in measured.items()}
+    by_kind = {kind: statistics.mean(ratios[name] for name, row in measured.items() if row["kind"] == kind)
+               for kind in ("clean", "carryover")}
+    seeds = [s["seed"] for s in next(iter(measured.values()))["samples"]]
+    per_seed = [statistics.mean(next(s["fitness"] for s in row["samples"] if s["seed"] == seed)
+                                /max(baseline[name]["fitness"], 1e-12) for name, row in measured.items()) for seed in seeds]
+    return dict(quality=statistics.mean(ratios.values()), by_kind=by_kind,
+                mean_fitness=statistics.mean(row["fitness"] for row in measured.values()),
+                seed_quality=per_seed, seed_std=statistics.stdev(per_seed) if len(seeds)>1 else 0.)
 
 
-def log_trial(path, row):
-    with Path(path).open("a", encoding="utf-8") as stream:
-        stream.write(json.dumps(row, allow_nan=False)+"\n")
+def pareto_front(points):
+    """Cheaper first; numerical objective ties keep the cheaper/fewer-start point."""
+    ordered = sorted(points, key=lambda p: (p["parameters"]["evaluations"], p["quality"], p["parameters"]["starts"], p["id"]))
+    frontier, best = [], float("inf")
+    for point in ordered:
+        if point["quality"] < best-1e-9:
+            frontier.append(point)
+            best = point["quality"]
+    return frontier
 
 
-def reference_tuning(rows, evaluator, seeds, budget, calls, seed, directory):
-    from smac import AlgorithmConfigurationFacade, HyperparameterOptimizationFacade, Scenario
-    path = directory/"reference.json"
-    if path.exists():
-        return json.loads(path.read_text())
-    default = {**DEFAULT_PARAMETERS, "evaluations": budget}
-    prior = {**default, **PRIOR_PARAMETERS}
-    baseline = evaluator.panel(rows, default, seeds)
-    lookup = {row[0]: row for row in rows}
-    space = configuration_space(seed)
-    scenario = Scenario(space, name="reference", output_directory=directory/"reference-smac",
-                        instances=list(lookup), deterministic=True, n_trials=calls, seed=seed,
-                        use_default_config=True, n_workers=1)
-    count = 0
-    def target(config, instance, seed=0):
-        nonlocal count
-        parameters = decode(config, budget)
-        result = evaluator.measure(lookup[instance], parameters, seeds)
-        score = result["fitness"]/max(baseline[instance]["fitness"], 1e-12)
-        count += 1
-        log_trial(directory/"reference-trials.jsonl", dict(instance=instance, parameters=parameters, result=result, score=score))
-        print(f"Reference instance evaluation {count}: {instance}, normalized fitness={score:.6f}", flush=True)
-        return score
-    design = HyperparameterOptimizationFacade.get_initial_design(
-        scenario, n_configs=min(32, max(1, calls//4)), additional_configs=[as_config(space, prior)] if calls >= 4 else [])
-    intensifier = AlgorithmConfigurationFacade.get_intensifier(scenario, max_config_calls=len(rows), max_incumbents=1)
-    smac = AlgorithmConfigurationFacade(scenario, target, initial_design=design, intensifier=intensifier,
-                                       overwrite=False, logging_level=30)
-    incumbent = smac.optimize()
-    configs = sorted(smac.runhistory.get_configs(), key=lambda c: smac.runhistory.average_cost(c))[:5]
-    candidates = [default, prior, decode(incumbent, budget)] + [decode(c, budget) for c in configs]
-    finalists = {}
-    for params in candidates:
-        key = fingerprint(params)
-        if key not in finalists:
-            measured = evaluator.panel(rows, params, seeds)
-            finalists[key] = dict(parameters=params, instances=measured, score=normalized(measured, baseline))
-    result = min(finalists.values(), key=lambda r: r["score"])
-    result = dict(result, baseline=baseline, finalists=[dict(parameters=r["parameters"], score=r["score"]) for r in finalists.values()])
-    write_json(path, result)
+def tolerance_failures(candidate, high, tolerance):
+    values = [("overall", candidate["quality"], high["quality"])]
+    values += [(kind, candidate["by_kind"][kind], high["by_kind"][kind]) for kind in ("clean", "carryover")]
+    return [name for name, value, reference in values if value > reference*(1+tolerance)+1e-9*max(1., abs(reference))]
+
+
+def select_presets(frontier):
+    high = min(frontier, key=lambda p: (p["quality"], p["parameters"]["evaluations"], p["parameters"]["starts"], p["id"]))
+    selected = {"high": high["id"]}
+    for name in ("low", "medium"):
+        eligible = [p for p in frontier if not tolerance_failures(p, high, PRESET_TOLERANCES[name])]
+        selected[name] = min(eligible, key=lambda p: (p["parameters"]["evaluations"], p["quality"], p["parameters"]["starts"], p["id"]))["id"]
+    return selected
+
+
+def validate_presets(frontier, selected, heldout, evaluator, seeds):
+    baseline_parameters = {**DEFAULT_PARAMETERS, **PRIOR_PARAMETERS, "evaluations": EVALUATION_STEP}
+    baseline = evaluator.panel(heldout, baseline_parameters, seeds)
+    points = {p["id"]: p for p in frontier}
+    results = {}
+    for point_id in dict.fromkeys(selected.values()):
+        measured = evaluator.panel(heldout, points[point_id]["parameters"], seeds)
+        results[point_id] = dict(summarize(measured, baseline), measurements=measured)
+    validated, failures = dict(selected), {}
+    for name in ("low", "medium"):
+        bad = tolerance_failures(results[selected[name]], results[selected["high"]], PRESET_TOLERANCES[name])
+        if bad:
+            failures[name] = bad
+            validated[name] = selected["high"]
+    return validated, dict(points=results, baseline=baseline, fallback_reasons=failures)
+
+
+def export_frontier(folder, frontier, candidates, presets):
+    write_json(folder/"frontier.json", dict(frontier=frontier, presets=presets))
+    with (folder/"frontier.csv").open("w", newline="", encoding="utf-8") as stream:
+        writer = csv.DictWriter(stream, fieldnames=["id", "proposals", "starts", "quality", "seed_std", "clean_quality", "carryover_quality", "parameters"])
+        writer.writeheader()
+        for p in frontier:
+            writer.writerow(dict(id=p["id"], proposals=p["parameters"]["evaluations"], starts=p["parameters"]["starts"],
+                                 quality=p["quality"], seed_std=p["seed_std"], clean_quality=p["by_kind"]["clean"],
+                                 carryover_quality=p["by_kind"]["carryover"], parameters=json.dumps(p["parameters"])))
+    from matplotlib.figure import Figure
+    from matplotlib.backends.backend_agg import FigureCanvasAgg
+    fig = Figure(figsize=(9, 5)); FigureCanvasAgg(fig)
+    ax = fig.subplots()
+    ax.scatter([p["parameters"]["evaluations"]/1e6 for p in candidates], [p["quality"] for p in candidates], alpha=.3, color="gray", label="Evaluated")
+    ax.plot([p["parameters"]["evaluations"]/1e6 for p in frontier], [p["quality"] for p in frontier], "o-", label="Training frontier")
+    lookup = {p["id"]: p for p in frontier}
+    for point_id in dict.fromkeys(presets.values()):
+        point = lookup[point_id]
+        names = "/".join(name for name in ("low", "medium", "high") if presets[name] == point_id)
+        right = point["parameters"]["evaluations"] == frontier[-1]["parameters"]["evaluations"]
+        ax.annotate(names, (point["parameters"]["evaluations"]/1e6, point["quality"]),
+                    xytext=(-5 if right else 5, 8), ha="right" if right else "left", textcoords="offset points")
+    ax.set(xscale="log", xlabel="Total proposals (millions, log scale)", ylabel="Normalized fitness (lower is better)", title="Cost / quality frontier")
+    ax.grid(alpha=.2); ax.legend(); fig.tight_layout()
+    fig.savefig(folder/"frontier.png", dpi=160)
+    fig.savefig(folder/"frontier.svg")
+
+
+def warm_parameters(path, max_evaluations):
+    """Legacy profiles supply proposals only, never certified Pareto measurements."""
+    data = json.loads(Path(path).read_text()) if Path(path).exists() else {}
+    result = {}
+    for n in SIZES:
+        entry = data.get("profiles", {}).get(str(n), {})
+        options = [entry["parameters"]] if "parameters" in entry else []
+        if "presets" in entry:
+            options += [p["parameters"] for p in entry["frontier"] if p["id"] in entry["presets"].values()]
+        valid = []
+        for raw in options:
+            parameters = parameters_checked(raw)
+            if EVALUATION_STEP <= parameters["evaluations"] <= max_evaluations and parameters["evaluations"] % EVALUATION_STEP == 0:
+                valid.append(parameters)
+        result[str(n)] = valid
     return result
 
 
-def reduce_budget(rows, heldout, evaluator, seeds, heldout_seeds, reference, trials, seed, directory):
+def campaign(rows, heldout, evaluator, seeds, heldout_seeds, trials, seed, max_evaluations, warm, folder):
     from smac import HyperparameterOptimizationFacade, Scenario
-    path = directory/"profile.json"
-    if path.exists():
-        return json.loads(path.read_text())
-    reference_parameters = reference["parameters"]
-    budget = reference_parameters["evaluations"]
-    history = directory/"reduction-trials.jsonl"
-    space = configuration_space(seed, reduction_budget=budget)
+    from smac.multi_objective.parego import ParEGO
+    profile_path = folder/"profile.json"
+    if profile_path.exists():
+        profile = json.loads(profile_path.read_text())
+        candidates = [json.loads(p.read_text()) for p in sorted((folder/"candidates").glob("*.json"))]
+        export_frontier(folder, profile["frontier"], candidates, profile["presets"])
+        return profile
+    baseline_parameters = {**DEFAULT_PARAMETERS, **PRIOR_PARAMETERS, "evaluations": EVALUATION_STEP}
+    print("Panel: baseline", flush=True)
+    baseline = evaluator.panel(rows, baseline_parameters, seeds)
+    candidates_path = folder/"candidates"
+    candidates_path.mkdir(exist_ok=True)
+    space = configuration_space(seed, max_evaluations)
+    scenario = Scenario(space, name="pareto", output_directory=folder/"smac", objectives=["quality", "proposal_cost"],
+                        n_trials=trials, seed=seed, deterministic=True, n_workers=1, use_default_config=True)
     count = 0
-    def assess(parameters):
-        measured = {}
-        for row in rows:
-            measured[row[0]] = evaluator.measure(row, parameters, seeds)
-            failures = quality_failures(measured, reference["instances"])
-            if failures:
-                return dict(parameters=parameters, feasible=False, complete=False, instances=measured,
-                            failures=failures, score=1.+failures[0]["relative_loss"])
-        return dict(parameters=parameters, feasible=True, complete=True, instances=measured, failures=[],
-                    score=parameters["evaluations"]/budget,
-                    normalized_fitness=normalized(measured, reference["instances"]))
     def target(config, seed=0):
         nonlocal count
-        row = assess(decode(config, budget))
-        log_trial(history, row)
+        parameters = decode(config, max_evaluations)
+        point_id = fingerprint(parameters)
+        path = candidates_path/f"{point_id}.json"
+        if path.exists():
+            point = json.loads(path.read_text())
+        else:
+            measured = evaluator.panel(rows, parameters, seeds)
+            point = dict(id=point_id, parameters=parameters, measurements=measured,
+                         **summarize(measured, baseline), execution=dict(evaluator.last_panel_stats))
+            write_json(path, point)
         count += 1
-        print(f"Reduction trial {count}: budget={row['parameters']['evaluations']:,}, starts={row['parameters']['starts']}, passed={row['feasible']}, instances={len(row['instances'])}", flush=True)
-        return row["score"]
-    scenario = Scenario(space, name="reduction", output_directory=directory/"reduction-smac",
-                        n_trials=trials, seed=seed, deterministic=True, n_workers=1)
-    warm = [as_config(space, reference_parameters, True)]
-    design = HyperparameterOptimizationFacade.get_initial_design(
-        scenario, n_configs=min(24, max(1, trials//4)), additional_configs=warm if trials >= 4 else [])
-    smac = HyperparameterOptimizationFacade(scenario, target, initial_design=design, overwrite=False, logging_level=30)
+        print(f"Pareto trial {count}: proposals={parameters['evaluations']:,} starts={parameters['starts']} quality={point['quality']:.6f}", flush=True)
+        return dict(quality=point["quality"], proposal_cost=parameters["evaluations"]/max_evaluations)
+    anchors = [baseline_parameters, {**baseline_parameters, "evaluations": max_evaluations}, *warm]
+    unique = {fingerprint(p): p for p in anchors}
+    additional = [as_config(space, p) for p in unique.values()][:max(0, trials-2)]
+    design = HyperparameterOptimizationFacade.get_initial_design(scenario, n_configs=min(64, max(1, trials//4)), additional_configs=additional)
+    intensifier = HyperparameterOptimizationFacade.get_intensifier(scenario, max_config_calls=1, max_incumbents=budget_steps(max_evaluations))
+    smac = HyperparameterOptimizationFacade(scenario, target, initial_design=design, intensifier=intensifier,
+                                           multi_objective_algorithm=ParEGO(scenario, rho=.05, seed=seed),
+                                           overwrite=False, logging_level=30)
     smac.optimize()
-    # Always retain the exact reference as a feasible fallback.
-    feasible = [dict(parameters=reference_parameters, instances=reference["instances"], normalized_fitness=1.)]
-    if history.exists():
-        for line in history.read_text(encoding="utf-8").splitlines():
-            try:
-                trial = json.loads(line)
-            except json.JSONDecodeError:
-                continue  # A killed process can leave an incomplete final log line.
-            if trial["feasible"] and trial["complete"]:
-                feasible.append(trial)
-    # Re-evaluate SMAC's configurations using the solve cache if a crash occurred
-    # between SMAC persistence and appending a completed trial record.
-    for config in smac.runhistory.get_configs():
-        params = decode(config, budget)
-        if not any(r["parameters"] == params for r in feasible):
-            row = assess(params)
-            if row["feasible"]:
-                feasible.append(row)
-    winner = min(feasible, key=lambda r: (r["parameters"]["evaluations"], r["normalized_fitness"]))
-    heldout_reference = evaluator.panel(heldout, reference_parameters, heldout_seeds)
-    heldout_candidate = evaluator.panel(heldout, winner["parameters"], heldout_seeds)
-    failures = quality_failures(heldout_candidate, heldout_reference)
-    selected = reference_parameters if failures else winner["parameters"]
-    report = dict(parameters=selected, reference_parameters=reference_parameters,
-                  candidate_parameters=winner["parameters"], accepted_reduction=not failures and selected["evaluations"] < budget,
-                  heldout_failures=failures, training_reference=reference["instances"],
-                  training_candidate=winner["instances"], heldout_reference=heldout_reference,
-                  heldout_candidate=heldout_candidate, heldout_selected=heldout_reference if failures else heldout_candidate,
-                  proposal_reduction=1.-selected["evaluations"]/budget)
-    report["heldout_by_kind"] = {
-        kind: dict(reference_fitness=statistics.mean(r["fitness"] for r in heldout_reference.values() if r["kind"] == kind),
-                   candidate_fitness=statistics.mean(r["fitness"] for r in heldout_candidate.values() if r["kind"] == kind),
-                   reference_seconds=sum(r["seconds"] for r in heldout_reference.values() if r["kind"] == kind),
-                   selected_seconds=sum(r["seconds"] for r in report["heldout_selected"].values() if r["kind"] == kind))
-        for kind in ("clean", "carryover")}
-    write_json(path, report)
-    return report
+    candidates = [json.loads(p.read_text()) for p in sorted(candidates_path.glob("*.json"))]
+    if not candidates:
+        raise RuntimeError("No successful complete candidate evaluations")
+    frontier = pareto_front(candidates)
+    training_presets = select_presets(frontier)
+    print("Panel: heldout verification", flush=True)
+    presets, validation = validate_presets(frontier, training_presets, heldout, evaluator, heldout_seeds)
+    medium = next(p["parameters"] for p in frontier if p["id"] == presets["medium"])
+    profile = dict(parameters=medium, frontier=frontier, presets=presets, training_presets=training_presets,
+                   validation=validation, baseline_parameters=baseline_parameters, normalization=baseline,
+                   candidates_evaluated=len(candidates), tolerances=PRESET_TOLERANCES)
+    export_frontier(folder, frontier, candidates, presets)
+    write_json(profile_path, profile)
+    return profile
 
 
-def tune(directory="instances/smac", output="flexo/profiles.json", workdir="results/tuning-10m-100k", *,
-         reference_calls=1000, reduction_trials=100, evaluations=None, seeds=(42, 43, 44),
-         heldout_seeds=(142, 143, 144), seed=42, num_threads=0, stage="all", resume=False):
-    from .api import integer
-    if stage not in ("reference", "reduce", "all"):
-        raise ValueError("Unknown tuning stage")
-    reference_calls = integer(reference_calls, "reference_calls", 1)
-    reduction_trials = integer(reduction_trials, "reduction_trials", 1)
-    if len(seeds) != 3 or len(set(seeds)) != 3 or len(heldout_seeds) != 3 or len(set(heldout_seeds)) != 3:
-        raise ValueError("Training and heldout seed panels must each contain three distinct seeds")
+def tune(directory="instances/smac", output="flexo/profiles.json", workdir="results/pareto-tuning", *,
+         trials=400, workers=0, max_evaluations=MAX_EVALUATIONS, seeds=(42, 43, 44),
+         heldout_seeds=(142, 143, 144), seed=42, resume=False):
+    trials = integer(trials, "trials", 1)
+    workers = integer(workers, "workers") or (os.cpu_count() or 1)
+    budget_steps(max_evaluations)
+    seed = integer(seed, "seed")
+    if len(seeds)!=3 or len(set(seeds))!=3 or len(heldout_seeds)!=3 or len(set(heldout_seeds))!=3:
+        raise ValueError("Training and heldout panels need three distinct seeds each")
     seeds = [integer(s, "seed") for s in seeds]
     heldout_seeds = [integer(s, "heldout_seed") for s in heldout_seeds]
     if set(seeds) & set(heldout_seeds):
         raise ValueError("Training and heldout seeds must be disjoint")
-    reference_budget = REFERENCE_BUDGET if evaluations is None else evaluations
-    reference_budget = budget_steps(reference_budget) * EVALUATION_STEP
-    budgets = {n: reference_budget for n in SIZES}
     dataset, identity = load_dataset(directory)
-    manifest = dict(schema_version=3, evaluation_step=EVALUATION_STEP, dataset_sha256=identity,
-                    core_sha256=hashlib.sha256(Path(_core.__file__).read_bytes()).hexdigest(),
-                    source_sha256=fingerprint([Path(__file__).read_text(), Path(__file__).with_name("api.py").read_text()]),
-                    reference_budgets=budgets, seeds=seeds, heldout_seeds=heldout_seeds,
-                    reference_calls=reference_calls, reduction_trials=reduction_trials, smac_seed=seed,
-                    num_threads=integer(num_threads, "num_threads"))
-    # JSON roundtrip makes integer-keyed dictionaries comparable after restart.
-    manifest = json.loads(json.dumps(manifest))
     workdir = Path(workdir)
     manifest_path = workdir/"manifest.json"
-    if manifest_path.exists():
+    previous = json.loads(manifest_path.read_text()) if manifest_path.exists() else None
+    if previous is not None and (previous.get("schema_version") != 4 or previous.get("mode") != "parego"):
+        raise ValueError("This work directory uses an older tuning format; choose a new --workdir")
+    warm = previous["warm_starts"] if previous is not None else warm_parameters(output, max_evaluations)
+    manifest = dict(schema_version=4, mode="parego", dataset_sha256=identity,
+                    core_sha256=hashlib.sha256(Path(_core.__file__).read_bytes()).hexdigest(),
+                    source_sha256=fingerprint([Path(__file__).read_text(), Path(__file__).with_name("api.py").read_text()]),
+                    evaluation_step=EVALUATION_STEP, max_evaluations=max_evaluations, max_starts=10,
+                    trials=trials, workers=workers, seeds=seeds, heldout_seeds=heldout_seeds,
+                    smac_seed=seed, warm_starts=warm, tolerances=PRESET_TOLERANCES)
+    if previous is not None:
         if not resume:
             raise ValueError("Campaign already exists; use --resume")
-        if json.loads(manifest_path.read_text()) != manifest:
+        if previous != manifest:
             raise ValueError("Resume settings, optimizer, or dataset differ from the saved campaign")
     else:
         if any(workdir.glob("*")):
-            raise ValueError("Nonempty workdir has no compatible campaign manifest")
+            raise ValueError("Nonempty work directory has no compatible manifest")
         workdir.mkdir(parents=True, exist_ok=True)
         write_json(manifest_path, manifest)
-    evaluator = CachedEvaluator(workdir/"solves.sqlite3", num_threads)
+    evaluator = CachedEvaluator(workdir/"solves.sqlite3", workers)
     exported = dict(manifest, profiles={})
     try:
         for n in SIZES:
-            folder = workdir/f"N{n}"
-            folder.mkdir(exist_ok=True)
-            # Interleave case types so early rejection does not always begin on
-            # the same type of production state.
-            groups = [[row for row in dataset["train"][n] if row[1] == kind] for kind in ("clean", "carryover")]
-            rows = [row for pair in zip(*groups) for row in pair]
-            print(f"N{n}: stage={stage}, reference={budgets[n]:,}, training={len(rows)} x 3 seeds", flush=True)
-            if stage == "reduce" and not (folder/"reference.json").exists():
-                raise ValueError(f"N{n}: reduction requires a completed reference stage")
-            reference = reference_tuning(rows, evaluator, seeds, budgets[n], reference_calls, seed, folder)
-            print(f"N{n}: reference complete, starts={reference['parameters']['starts']}, score={reference['score']:.6f}", flush=True)
-            if stage == "reference":
-                continue
-            exported["profiles"][str(n)] = reduce_budget(rows, dataset["heldout"][n], evaluator, seeds,
-                                                       heldout_seeds, reference, reduction_trials, seed, folder)
-            profile = exported["profiles"][str(n)]
-            print(f"N{n}: selected {profile['parameters']['evaluations']:,} proposals, starts={profile['parameters']['starts']}, reduced={profile['accepted_reduction']}", flush=True)
-        if stage in ("all", "reduce"):
-            write_json(output, exported)
-        write_json(workdir/"progress.json", dict(stage=stage, profiles=list(exported["profiles"]), cache_hits=evaluator.hits, solves=evaluator.misses))
+            folder = workdir/f"N{n}"; folder.mkdir(exist_ok=True)
+            print(f"N{n}: pareto search, trials={trials}, workers={workers}, instances={len(dataset['train'][n])} x 3 seeds", flush=True)
+            exported["profiles"][str(n)] = campaign(dataset["train"][n], dataset["heldout"][n], evaluator,
+                                                   seeds, heldout_seeds, trials, seed, max_evaluations, warm[str(n)], folder)
+            print(f"N{n}: presets ready, frontier={len(exported['profiles'][str(n)]['frontier'])}", flush=True)
+        write_json(output, exported)
+        write_json(workdir/"progress.json", dict(complete=True, cache_hits=evaluator.hits, computed=evaluator.misses))
         return exported
     finally:
         evaluator.close()

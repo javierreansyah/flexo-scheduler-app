@@ -4,7 +4,7 @@ from copy import deepcopy
 from .api import optimize
 
 
-def run_validation(instance, parameters=None, seed=42, num_threads=0, profiles=None):
+def run_validation(instance, parameters=None, seed=42, num_threads=0, profiles=None, preset="medium"):
     if len(instance["orders_data"]) > 100:
         raise ValueError("Validation instances are capped at 100 jobs")
     lookup = {str(o["id"]): o for o in instance["orders_data"]}
@@ -27,11 +27,11 @@ def run_validation(instance, parameters=None, seed=42, num_threads=0, profiles=N
             m: [deepcopy(j) for j in entries if j["setup_start"] <= now]
             for m, entries in previous["schedule"].items()}
         snapshot = dict(now=now, machines=instance["machine_rates"], jobs=jobs, locked=locked)
-        previous = optimize(snapshot, parameters, seed=seed, num_threads=num_threads, profiles=profiles)
+        previous = optimize(snapshot, parameters, seed=seed, num_threads=num_threads, profiles=profiles, preset=preset)
         trace.append(dict(now=now, fitness=previous["fitness"], movable_jobs=previous["movable_jobs"],
                           profile_size=previous["profile_size"], runtime=previous["total_runtime"]))
     if previous is None:
-        previous = optimize(dict(now=0, machines=instance["machine_rates"], jobs=[]), parameters, seed, num_threads, profiles)
+        previous = optimize(dict(now=0, machines=instance["machine_rates"], jobs=[]), parameters, seed, num_threads, profiles, preset=preset)
     previous["horizons"] = trace
     previous["total_runtime"] = sum(row["runtime"] for row in trace)
     return previous

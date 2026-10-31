@@ -30,9 +30,11 @@ def ink_pattern(inks):
     return tuple(sorted(integer(ink, "ink id", 1) for ink in inks))
 
 
-def select_parameters(job_count, profiles=None):
+def select_parameters(job_count, profiles=None, preset="medium"):
     """Nearest movable-job count; ties choose the larger profile."""
     job_count = integer(job_count, "job_count")
+    if preset not in ("low", "medium", "high"):
+        raise ValueError("preset must be low, medium, or high")
     if profiles is None:
         path = Path("flexo/profiles.json")
         if not path.exists():
@@ -44,7 +46,12 @@ def select_parameters(job_count, profiles=None):
     if not entries:
         return dict(DEFAULT_PARAMETERS), None
     size = min((int(k) for k in entries), key=lambda k: (abs(k-job_count), -k))
-    return {**DEFAULT_PARAMETERS, **entries[str(size)]["parameters"]}, size
+    entry = entries[str(size)]
+    parameters = entry["parameters"]
+    if "presets" in entry:
+        point_id = entry["presets"][preset]
+        parameters = next(point["parameters"] for point in entry["frontier"] if point["id"] == point_id)
+    return {**DEFAULT_PARAMETERS, **parameters}, size
 
 
 def parameters_checked(parameters):
@@ -56,8 +63,8 @@ def parameters_checked(parameters):
         out[key] = integer(out[key], key, 0 if key == "evaluations" else 1)
         if out[key] > 2_000_000_000:
             raise ValueError(f"{key} exceeds the native integer limit")
-    if out["starts"] > 4:
-        raise ValueError("starts must be between 1 and 4")
+    if out["starts"] > 10:
+        raise ValueError("starts must be between 1 and 10")
     for key in ("t_max", "t_min", "rcl_alpha", "p_inter", "p_shift", "p_block"):
         out[key] = number(out[key], key)
     if not 0 < out["t_min"] < out["t_max"]:
@@ -216,17 +223,20 @@ def _format(p, result):
     return result
 
 
-def optimize(snapshot, parameters=None, seed=42, num_threads=0, profiles=None, debug=False):
+def optimize(snapshot, parameters=None, seed=42, num_threads=0, profiles=None, debug=False, preset="medium"):
     begin = time.perf_counter()
     p = prepare(snapshot)
-    selected, size = select_parameters(len(p.movable), profiles) if parameters is None else (parameters, None)
+    if preset not in ("low", "medium", "high"):
+        raise ValueError("preset must be low, medium, or high")
+    selected, size = select_parameters(len(p.movable), profiles, preset) if parameters is None else (parameters, None)
     params = parameters_checked(selected)
     seed = integer(seed, "seed")
     if seed > 2**64-1:
         raise ValueError("seed must fit in an unsigned 64-bit integer")
     num_threads = integer(num_threads, "num_threads")
     result = _format(p, p.core.solve(params, seed, num_threads, bool(debug)))
-    result.update(profile_size=size, parameters=params, seed=seed, movable_jobs=len(p.movable),
+    result.update(profile_size=size, preset=preset if parameters is None else None,
+                  parameters=params, seed=seed, movable_jobs=len(p.movable),
                   total_runtime=time.perf_counter()-begin)
     return result
 

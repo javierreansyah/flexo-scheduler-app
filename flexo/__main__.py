@@ -24,21 +24,20 @@ def main():
         command.add_argument("--output", type=Path)
         command.add_argument("--parameters", type=Path)
         command.add_argument("--profiles", type=Path)
+        command.add_argument("--preset", choices=["low", "medium", "high"], default="medium")
         command.add_argument("--seed", type=int, default=42)
         command.add_argument("--threads", type=int, default=0)
     tuning = commands.add_parser("tune")
     tuning.add_argument("--directory", default="instances/smac")
     tuning.add_argument("--output", default="flexo/profiles.json")
-    tuning.add_argument("--workdir", default="results/tuning-10m-100k")
-    tuning.add_argument("--reference-calls", type=int, default=1000)
-    tuning.add_argument("--reduction-trials", type=int, default=100)
-    tuning.add_argument("--evaluations", type=int, help="Override reference budget for smoke tests (default: 10m; multiples of 100k)")
+    tuning.add_argument("--workdir", default="results/pareto-tuning")
+    tuning.add_argument("--trials", type=int, default=400)
+    tuning.add_argument("--workers", type=int, default=0, help="Global solve workers; 0 uses available logical CPUs")
+    tuning.add_argument("--max-evaluations", type=int, default=20_000_000, help="Upper proposal budget; multiples of 100k")
     tuning.add_argument("--seeds", type=int, nargs=3, default=[42, 43, 44])
     tuning.add_argument("--heldout-seeds", type=int, nargs=3, default=[142, 143, 144])
-    tuning.add_argument("--stage", choices=["reference", "reduce", "all"], default="all")
     tuning.add_argument("--resume", action="store_true")
     tuning.add_argument("--seed", type=int, default=42)
-    tuning.add_argument("--threads", type=int, default=0)
     args = parser.parse_args()
     if args.command == "generate":
         kwargs = dict(directory=args.directory or f"instances/{args.kind}", replicas=args.replicas,
@@ -50,15 +49,14 @@ def main():
         print(f"Generated {len(paths)} instances")
     elif args.command == "tune":
         from .tuning import tune
-        tune(args.directory, args.output, args.workdir, reference_calls=args.reference_calls,
-             reduction_trials=args.reduction_trials, evaluations=args.evaluations, seeds=args.seeds,
-             heldout_seeds=args.heldout_seeds, seed=args.seed, num_threads=args.threads,
-             stage=args.stage, resume=args.resume)
+        tune(args.directory, args.output, args.workdir, trials=args.trials,
+             workers=args.workers, max_evaluations=args.max_evaluations, seeds=args.seeds,
+             heldout_seeds=args.heldout_seeds, seed=args.seed, resume=args.resume)
     else:
         data = json.loads(args.input.read_text(encoding="utf-8"))
         params = json.loads(args.parameters.read_text(encoding="utf-8")) if args.parameters else None
         result = (optimize if args.command == "solve" else run_validation)(
-            data, params, args.seed, args.threads, args.profiles)
+            data, params, args.seed, args.threads, args.profiles, preset=args.preset)
         if args.output:
             write_json(args.output, result)
         else:

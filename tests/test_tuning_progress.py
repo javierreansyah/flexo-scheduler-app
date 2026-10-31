@@ -1,33 +1,36 @@
 import io
 import json
 
-from experiments.run_tuning import TerminalProgress, repair_smac_warning
+from experiments.run_tuning import TerminalProgress
 
 
 def test_progress_continues_at_saved_checkpoint(tmp_path):
-    path = tmp_path/"N10/reference-smac/reference/42/runhistory.json"
+    path = tmp_path/"N10/smac/pareto/42/runhistory.json"
     path.parent.mkdir(parents=True)
-    path.write_text(json.dumps(dict(stats=dict(finished=856))))
+    path.write_text(json.dumps(dict(stats=dict(finished=86))))
     output = io.StringIO()
     progress = TerminalProgress(tmp_path, stream=output, bar_stream=io.StringIO())
     try:
-        progress.write("N10: stage=all, reference=5,000,000, training=20 x 3 seeds\n")
-        assert progress.base == progress.phase.n == 856
-        progress.write("Reference instance evaluation 1: example, normalized fitness=1.0\n")
-        assert progress.phase.n == 857
-        progress.write("N10: reference complete, starts=4, score=1.0\n")
-        assert progress.base == 0
-        progress.write("Reduction trial 1: budget=1000, starts=4, passed=True, instances=20\n")
-        progress.write("N10: selected 1000 proposals, starts=4, reduced=True\n")
+        progress.write("N10: pareto search, trials=400, workers=20, instances=20 x 3 seeds\n")
+        assert progress.base == progress.phase.n == 86
+        progress.write("Solves: 30/60 cached=0 computed=30 active=20/20\n")
+        assert progress.solves.n == 30
+        progress.write("Solves: 60/60 cached=0 computed=60 active=0/20\n")
+        progress.write("Pareto trial 1: proposals=100000 starts=4 quality=1.0\n")
+        assert progress.phase.n == 87
+        progress.write("Solves: 0/60 cached=0 computed=0 active=20/20\n")
+        assert progress.solves.n == 0
+        progress.write("Panel: heldout verification\n")
+        progress.write("N10: presets ready, frontier=3\n")
         assert progress.completed == {10}
-        assert "reference complete" in output.getvalue()
+        assert "presets ready" in output.getvalue()
     finally:
         progress.finish(False)
 
 
 def test_progress_never_counts_interrupted_size_as_complete(tmp_path):
     progress = TerminalProgress(tmp_path, stream=io.StringIO(), disable=True)
-    progress.write("N10: stage=all, reference=100, training=2 x 3 seeds\n")
+    progress.write("N10: pareto search, trials=400\n")
     progress.finish(False)
     assert progress.completed == set()
 
@@ -40,32 +43,14 @@ def test_runner_help_and_small_campaign(tmp_path):
     root = Path(__file__).resolve().parents[1]
     runner = root/"experiments/run_tuning.py"
     help_result = subprocess.run([sys.executable, str(runner), "--help"], capture_output=True, text=True, check=True)
-    assert "--reference-calls" in help_result.stdout
+    assert "--trials" in help_result.stdout and "--workers" in help_result.stdout
     generate_smac(tmp_path/"data", replicas=1, previous_evaluations=100)
     command = [sys.executable, str(runner), "--directory", str(tmp_path/"data"),
                "--workdir", str(tmp_path/"run"), "--output", str(tmp_path/"profiles.json"),
-               "--evaluations", "100000", "--reference-calls", "4", "--reduction-trials", "4", "--threads", "1"]
+               "--max-evaluations", "100000", "--trials", "4", "--workers", "2"]
     first = subprocess.run(command, capture_output=True, text=True, check=True)
-    assert "Job sizes" in first.stderr and "reference" in first.stderr and "reduction" in first.stderr
+    assert "Job sizes" in first.stderr and "Pareto" in first.stderr and "Panel solves" in first.stderr
     assert "--- Logging error ---" not in first.stderr
     assert len(json.loads((tmp_path/"profiles.json").read_text())["profiles"]) == 4
     resumed = subprocess.run(command, capture_output=True, text=True, check=True)
-    assert "Resuming tuning" in resumed.stdout
-
-
-def test_smac_warning_is_formatted_without_hiding_other_logs():
-    import logging
-    logger = logging.getLogger("smac.runhistory.encoder.abstract_encoder")
-    stream = io.StringIO()
-    handler = logging.StreamHandler(stream)
-    logger.addHandler(handler)
-    try:
-        with repair_smac_warning():
-            logger.warning("We strongly encourage to use instance features when using instances.", "Consider instance indices.")
-            logger.warning("Other warning: %s", "visible")
-        output = stream.getvalue()
-        assert "Consider instance indices." in output
-        assert "Other warning: visible" in output
-        assert "--- Logging error ---" not in output
-    finally:
-        logger.removeHandler(handler)
+    assert "Resuming Pareto tuning" in resumed.stdout

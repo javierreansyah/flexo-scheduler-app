@@ -1,95 +1,125 @@
-# Quality-preserving tuning
+# Cost / quality Pareto tuning
 
-## Run in your terminal
-
-```powershell
-python experiments/run_tuning.py
-```
-
-The runner starts or resumes `results/tuning-10m-100k` in the foreground with
-`tqdm` progress bars. Press **Ctrl+C** to stop, then run the same command again
-to resume. All normal `flexo tune` options are supported. For a separate run:
+Install and rebuild before starting a new campaign:
 
 ```powershell
-python experiments/run_tuning.py --workdir results/another-run
-```
-
-Install dependencies with `python -m pip install -e ".[tuning]"`. The display
-is separate from the engine, so progress-display changes do not invalidate
-checkpoints. The older `results/quality-budget-run` is preserved, but its budget
-settings are incompatible with this workflow. No campaign is launched for you.
-
-## Exactly two tuning stages
-
-Each size (10, 30, 50, 100 movable jobs) receives its own profile. Starts are
-editable/tunable from **1 through 4**, defaulting to four. Each evaluated instance
-runs three optimizer seeds. **There is no pilot stage.**
-
-1. **Reference:** every candidate uses exactly **10,000,000 total proposals**,
-   shared across its starts. Tune starts, temperatures, stage length, GRASP
-   greediness and move probabilities. SMAC races candidates across training
-   instances, always running all three seeds for an evaluated instance. Fully
-   score the incumbent, up to five leading configurations, baseline and prior
-   settings before selecting the reference by mean normalized training fitness.
-2. **Efficiency:** jointly retune parameters and starts, choosing total proposals
-   from **100,000, 200,000, ..., 10,000,000**. SMAC searches an integer number of
-   100k units rather than rounding arbitrary iteration counts afterward. Budgets
-   stay exact even with three starts: the core distributes remainder proposals
-   across starts. Reject a candidate after any training instance's three-seed
-   mean regresses. Choose the smallest feasible budget, breaking ties by fitness.
-
-Finally, evaluate that winner and the reference on every untouched held-out
-snapshot using paired seeds 142/143/144. A regression on any instance exports
-the full 10m reference instead. Do not test successive candidates against held-out
-results after a failure. Report clean/carryover quality and runtime separately.
-
-An instance passes when candidate mean fitness is at most
-`reference + 1e-9 * max(1, abs(reference))`. Improvements elsewhere cannot hide a
-regression. This is an empirical check over the tested cases and seeds, not a
-proof of a globally minimal budget or a guarantee for every future input.
-
-## Settings and cost
-
-- `--reference-calls 1000`: at most 1,000 instance-level SMAC evaluations per size,
-  each with three optimizer solves. With 20 training instances this is 50 full
-  panels. Baseline and finalist verification are additional work; repeated solves
-  reuse the cache.
-- `--reduction-trials 100`: at most 100 proposed configurations per size. Rejected
-  configurations usually stop before reaching the full training panel.
-- Training seeds: `--seeds 42 43 44`. Held-out seeds:
-  `--heldout-seeds 142 143 144`. Exactly three distinct seeds per panel, with no
-  overlap between training and held-out panels.
-- `--threads 0`: parallelize SA starts across available CPUs, at most four workers.
-  SMAC trials remain sequential.
-- `--stage reference`, `--stage reduce`, or `--stage all` (default). Efficiency-only
-  runs require completed reference results in the same work directory.
-- `--evaluations N`: explicit uniform reference override for smoke tests; it must
-  be a multiple of 100k, at least 100k. Normal runs omit it and use 10m for every
-  size. The efficiency grid stops at the overridden reference when supplied.
-
-Shorter SA budgets are rerun with their own cooling schedules; a prefix of a
-longer solve is not substituted for an actual shorter run. The ordinary optimizer
-API still permits arbitrary budgets for experiments; quantization applies to the
-SMAC efficiency search and its exported profiles.
-
-## Save and resume
-
-```powershell
+python -m pip install -e ".[tuning]"
 python -m flexo generate smac
-python experiments/run_tuning.py
-# After Ctrl+C, run the same command again.
+python experiments/run_tuning.py --workers 20
 ```
 
-Resume with the same inputs and settings. A manifest fingerprints the dataset,
-optimizer binary, tuning/API source, seed panels and campaign settings. Mismatches
-are refused. Rebuilding can change the binary fingerprint even with unchanged
-source. Run only one process per work directory.
+The foreground runner shows job sizes, completed configurations, and panel solves
+with cached/computed counts and active workers. It starts or automatically resumes
+`results/pareto-tuning`. Press **Ctrl+C** to cancel queued tasks, wait for active
+native solves to finish and save them, then rerun the same command to resume.
+Use `--workdir results/my-pareto-run` for a separate campaign. A full campaign is
+never launched by installation or tests.
 
-Each completed instance/seed solve is committed to `solves.sqlite3`. Interruption
-loses only unfinished solves. Native SMAC history resumes searches, while
-completed `reference.json` and `profile.json` stages are reused. Logs record
-reference evaluations and efficiency trials, including partial rejected trials.
+## One campaign per job size
 
-All four accepted profiles are atomically published to `flexo/profiles.json`
-after completion. Old campaigns and their measurements are retained as history;
-changing to the 10m reference and 100k grid starts a new campaign.
+Each size (10, 30, 50, 100 movable jobs) gets one SMAC **ParEGO** multiobjective
+campaign. There are no reference/reduction stages. Each candidate jointly tunes:
+
+- Total proposals: **100,000 through 20,000,000**, in exact **100,000** steps.
+- Starts: **1 through 10** (ordinary API default remains four).
+- Initial/final temperatures, cooling stage length, GRASP greediness, and
+  inter-machine, insertion/swap, and block move probabilities.
+
+`evaluations` is the **total** proposal budget across starts, equivalent to
+starts times iterations per start, with remainder proposals distributed exactly.
+It is never multiplied by starts again. Starts execute serially within each
+tuning task. Shorter budgets use their own cooling schedule, not a prefix of a
+longer run. The ordinary optimizer still permits arbitrary proposal counts.
+
+Two objectives are minimized: normalized fitness and total proposals. Per-instance
+mean fitness across three seeds is divided by that instance's fixed baseline
+mean, then averaged equally over training instances. The baseline uses the prior
+SA parameters, four starts and 100k proposals; it supplies normalization, not a
+quality gate. SMAC receives proposal cost scaled by the configured maximum.
+Raw fitness, clean/carryover means, three seed-panel means and their standard
+deviation are recorded too.
+
+Defaults are **400 candidate configurations per size**, each fully evaluated on
+20 training snapshots (10 clean, 10 carryover) and seeds **42/43/44**. That is up
+to 24,000 training solves per size, plus normalization and heldout verification;
+cached repeats are free. Existing profiles supply warm-start configurations,
+which are measured afresh. Their old scores are never imported. Initial design
+also includes the prior 100k and maximum-budget settings when the trial allowance
+permits. Pareto points are recomputed from all completed candidate panels rather
+than relying only on SMAC's final incumbent list.
+
+## Presets and heldout verification
+
+The training frontier contains candidates where improving fitness requires more
+proposals. Select presets relative to the best observed training quality:
+
+| Preset | Selection |
+| --- | --- |
+| high | Best normalized fitness; cheaper wins quality ties |
+| medium | Cheapest point within 0.5% of high |
+| low | Cheapest point within 2% of high |
+
+The medium/low limits must hold for the overall mean **and separately for clean
+and carryover means**. Presets may share a configuration when no cheaper point
+qualifies. These are empirical quality tolerances, not confidence bounds or a
+proof that the search found the global optimum.
+
+Only the unique selected configurations and normalization baseline are evaluated
+on untouched heldout snapshots with seeds **142/143/144**. If low or medium fails
+its corresponding overall or case-type limit against high on that panel, it maps
+to high. No replacement search uses heldout scores. Three distinct seeds are
+required for each panel, with no overlap; five-seed evaluation is not enabled.
+
+After all sizes finish, `flexo/profiles.json` is atomically replaced. Selection
+uses the nearest movable-job count, larger on ties, clamping outside the range.
+Legacy flat profiles remain readable and give identical settings for all presets
+until a new campaign exports presets. Explicit parameters override profiles.
+
+```powershell
+python -m flexo solve flexo/example.json --preset low --output results/schedule.json
+python -m flexo validate instances/validation/N100_K3_rho1.5_rep00.json --preset high --output results/validation.json
+python -m experiments.playground --preset medium
+```
+
+Python callers use `optimize(snapshot, preset="low")` or
+`run_validation(instance, preset="high")`. Playground notebooks can call
+`experiments.playground.run(..., preset="medium")`; existing calls still work.
+
+## CPU scheduling and saved files
+
+`--workers 0` (default) uses the available logical CPU count. One shared bounded
+thread pool schedules independent instance/seed solves as workers become free.
+Native SA releases the Python GIL; every task uses `num_threads=1` to avoid
+nested start pools. Only the coordinator reads/writes SQLite and aggregates
+results. With the normal dataset, each candidate supplies 60 independent tasks.
+SMAC chooses the next candidate sequentially: fitting its model, short panels,
+cached panels, and the final tail can leave CPUs idle. Twenty logical processors
+also do not imply a 20x throughput improvement.
+
+The work directory contains a manifest, `solves.sqlite3`, SMAC checkpoints, and
+per-size `candidates/*.json`, `profile.json`, plus `frontier.json`, `.csv`, `.png`
+and `.svg`. Charts show the training frontier and final preset mappings; the
+profile includes heldout measurements and fallback reasons.
+
+Resume requires the same dataset, optimizer binary, tuning/API source, settings
+and seed panels. Rebuilding may change the binary fingerprint. Old two-stage
+work directories are incompatible and remain untouched. Only one process may
+write a work directory. Completed solves survive interruptions, including those
+that finish while stopping; unfinished or failed solves are rerun. Workers may
+need time to finish long active solves after Ctrl+C.
+
+For a small integration run in separate directories:
+
+```powershell
+python -m flexo generate smac --replicas 1 --previous-evaluations 100 --directory tmp/smac
+python experiments/run_tuning.py --directory tmp/smac --trials 4 --max-evaluations 200000 --workers 4 --workdir tmp/pareto-check --output tmp/pareto-profiles.json
+```
+
+Smoke profiles verify integration, not production quality. For the five-case
+serial/parallel throughput comparison, run
+`python -m experiments.benchmark_parallel --workers 20 --output results/my-workers`.
+It retains the original four-start, 833,333-proposal-per-start parameters,
+compares exact schedules/scores and saves wall/CPU times.
+
+See [the completed old campaign report](completed-tuning-report.md) for the
+results that motivated replacing the strict two-stage budget gate.
