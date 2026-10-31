@@ -1,7 +1,7 @@
 import io
 import json
 
-from experiments.run_tuning import TerminalProgress
+from experiments.run_tuning import TerminalProgress, repair_smac_warning
 
 
 def test_progress_continues_at_saved_checkpoint(tmp_path):
@@ -47,6 +47,25 @@ def test_runner_help_and_small_campaign(tmp_path):
                "--evaluations", "100000", "--reference-calls", "4", "--reduction-trials", "4", "--threads", "1"]
     first = subprocess.run(command, capture_output=True, text=True, check=True)
     assert "Job sizes" in first.stderr and "reference" in first.stderr and "reduction" in first.stderr
+    assert "--- Logging error ---" not in first.stderr
     assert len(json.loads((tmp_path/"profiles.json").read_text())["profiles"]) == 4
     resumed = subprocess.run(command, capture_output=True, text=True, check=True)
     assert "Resuming tuning" in resumed.stdout
+
+
+def test_smac_warning_is_formatted_without_hiding_other_logs():
+    import logging
+    logger = logging.getLogger("smac.runhistory.encoder.abstract_encoder")
+    stream = io.StringIO()
+    handler = logging.StreamHandler(stream)
+    logger.addHandler(handler)
+    try:
+        with repair_smac_warning():
+            logger.warning("We strongly encourage to use instance features when using instances.", "Consider instance indices.")
+            logger.warning("Other warning: %s", "visible")
+        output = stream.getvalue()
+        assert "Consider instance indices." in output
+        assert "Other warning: visible" in output
+        assert "--- Logging error ---" not in output
+    finally:
+        logger.removeHandler(handler)

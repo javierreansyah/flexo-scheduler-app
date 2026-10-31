@@ -4,15 +4,38 @@ From the repository root: python experiments/run_tuning.py
 All flexo tune options are supported. Existing work directories resume by default.
 """
 import argparse
-from contextlib import redirect_stdout
+from contextlib import contextmanager, redirect_stdout
 import io
 import json
+import logging
 import os
 from pathlib import Path
 import re
 import sys
 
 from tqdm import tqdm
+
+
+class SMACWarningFilter(logging.Filter):
+    """Repair SMAC 2.3.1's two-string warning without hiding the advice."""
+    def filter(self, record):
+        if (record.msg == "We strongly encourage to use instance features when using instances."
+                and isinstance(record.args, tuple) and len(record.args) == 1
+                and isinstance(record.args[0], str)):
+            record.msg += " " + record.args[0]
+            record.args = ()
+        return True
+
+
+@contextmanager
+def repair_smac_warning():
+    logger = logging.getLogger("smac.runhistory.encoder.abstract_encoder")
+    repair = SMACWarningFilter()
+    logger.addFilter(repair)
+    try:
+        yield
+    finally:
+        logger.removeFilter(repair)
 
 
 class TerminalProgress(io.TextIOBase):
@@ -74,7 +97,11 @@ class TerminalProgress(io.TextIOBase):
             self.start_phase("reduction")
         if re.match(r"N\d+: selected", line):
             self.complete_size()
-        tqdm.write(line, file=self.stream)
+        # stdout is redirected to this object; explicitly clear the stderr bars
+        # before writing a normal message to the original stdout stream.
+        with tqdm.external_write_mode(file=self.bar_stream):
+            self.stream.write(line + "\n")
+            self.stream.flush()
 
     def write(self, value):
         self.buffer += value
@@ -122,13 +149,13 @@ def main():
         tune_main()
         return
     print(f"{'Resuming' if resume else 'Starting'} tuning in {Path(args.workdir).resolve()}")
-    print("Ctrl+C stops the run. Run this command again to resume. Starts: 1â€“4; seeds per instance: 3.")
+    print("Ctrl+C stops the run. Run this command again to resume. Starts: 1-4; seeds per instance: 3.")
     progress = TerminalProgress(args.workdir, args.seed, args.reference_calls, args.reduction_trials, stage=args.stage)
     success = False
     try:
         from flexo.__main__ import main as tune_main
         sys.argv[1:] = command
-        with redirect_stdout(progress):
+        with repair_smac_warning(), redirect_stdout(progress):
             tune_main()
         success = True
     except KeyboardInterrupt:
