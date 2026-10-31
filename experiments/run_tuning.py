@@ -59,7 +59,7 @@ class TerminalProgress(io.TextIOBase):
         if match:
             self.complete_size()
             self.current = int(match[1])
-            self.start_phase("pilot" if match[2] == "pilot" else "reference" if match[2] != "reduce" else "reduction")
+            self.start_phase("reference" if match[2] != "reduce" else "reduction")
         match = re.match(r"Reference instance evaluation (\d+): (.*)", line)
         if match and self.phase is not None:
             self.phase.update(self.base+int(match[1])-self.phase.n)
@@ -104,11 +104,11 @@ def main():
         sys.path.insert(0, str(root))
     # Consume only display settings; let the main CLI validate all tuning options.
     parser = argparse.ArgumentParser(add_help=False)
-    parser.add_argument("--workdir", default="results/quality-budget-run")
+    parser.add_argument("--workdir", default="results/tuning-10m-100k")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--reference-calls", type=int, default=1000)
     parser.add_argument("--reduction-trials", type=int, default=100)
-    parser.add_argument("--stage", choices=["pilot", "reference", "reduce", "all"], default="all")
+    parser.add_argument("--stage", choices=["reference", "reduce", "all"], default="all")
     args, remaining = parser.parse_known_args()
     resume = (Path(args.workdir)/"manifest.json").exists()
     command = ["tune", "--workdir", args.workdir, "--seed", str(args.seed),
@@ -122,7 +122,7 @@ def main():
         tune_main()
         return
     print(f"{'Resuming' if resume else 'Starting'} tuning in {Path(args.workdir).resolve()}")
-    print("Ctrl+C stops the run. Run this command again to resume. Starts: 1–4; seeds per instance: 3.")
+    print("Ctrl+C stops the run. Run this command again to resume. Starts: 1â€“4; seeds per instance: 3.")
     progress = TerminalProgress(args.workdir, args.seed, args.reference_calls, args.reduction_trials, stage=args.stage)
     success = False
     try:

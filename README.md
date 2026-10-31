@@ -132,16 +132,17 @@ Runs in your terminal with tqdm progress and automatically resumes the saved
 campaign. Press Ctrl+C to stop; repeat the command to continue. Use
 `--workdir results/my-tuning` to start a separate campaign.
 
-See [the tuning guide](docs/tuning.md) for stage details, quality gates, pilot
-budgets, cost, and resuming an interrupted campaign.
+See [the tuning guide](docs/tuning.md) for stages, quality gates, budget
+quantization, cost, and resuming an interrupted campaign.
 
-The workflow runs budget pilots, tunes a high-budget reference, then jointly
-reduces proposals and retunes parameters. Starts are editable/tunable from **1
+The workflow tunes a fixed-budget reference, then jointly reduces proposals and
+retunes parameters. There is no pilot stage. Starts are editable/tunable from **1
 through 4**, defaulting to four; larger values are rejected in Python and C++.
-Every evaluated instance uses three optimizer seeds. Reference budgets are 5m
-for N10/N30/N50 and 8m for N100. Stage two requires every training instance to
+Every evaluated instance uses three optimizer seeds. Reference budgets are exactly 10m
+total proposals for every size. Efficiency budgets use exact 100k steps from 100k
+through 10m. Stage two requires every training instance to
 match reference mean quality; a regression on any held-out instance selects the
-full-budget reference instead. SA budgets stay positive.
+full-budget reference instead. Efficiency search never uses fewer than 100k proposals.
 
 Defaults: `--reference-calls 1000`, `--reduction-trials 100`, training seeds
 42/43/44, held-out seeds 142/143/144. These replace the old `--trials` and
@@ -150,8 +151,8 @@ reference budget, mainly for smoke tests. `--threads 0` parallelizes starts whil
 SMAC itself remains sequential.
 
 ```powershell
-python -m flexo tune --stage pilot --workdir results/my-tuning
-python -u -m flexo tune --resume --workdir results/my-tuning
+python experiments/run_tuning.py --workdir results/my-tuning
+# Repeat the same command to resume.
 ```
 
 Per-seed solves are committed to SQLite. Resuming requires the same dataset,
@@ -168,7 +169,7 @@ For a quick integration run in separate directories:
 
 ```powershell
 python -m flexo generate smac --replicas 1 --previous-evaluations 200 --directory tmp/smac
-python -m flexo tune --directory tmp/smac --reference-calls 4 --reduction-trials 4 --evaluations 200 --workdir tmp/tuning --output tmp/profiles.json
+python -m flexo tune --directory tmp/smac --reference-calls 4 --reduction-trials 4 --evaluations 100000 --workdir tmp/tuning --output tmp/profiles.json
 ```
 
 Smoke profiles verify integration, not production quality. Three-seed tests offer

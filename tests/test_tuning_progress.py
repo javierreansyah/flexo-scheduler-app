@@ -44,7 +44,7 @@ def test_runner_help_and_small_campaign(tmp_path):
     generate_smac(tmp_path/"data", replicas=1, previous_evaluations=100)
     command = [sys.executable, str(runner), "--directory", str(tmp_path/"data"),
                "--workdir", str(tmp_path/"run"), "--output", str(tmp_path/"profiles.json"),
-               "--evaluations", "100", "--reference-calls", "4", "--reduction-trials", "4", "--threads", "1"]
+               "--evaluations", "100000", "--reference-calls", "4", "--reduction-trials", "4", "--threads", "1"]
     first = subprocess.run(command, capture_output=True, text=True, check=True)
     assert "Job sizes" in first.stderr and "reference" in first.stderr and "reduction" in first.stderr
     assert len(json.loads((tmp_path/"profiles.json").read_text())["profiles"]) == 4

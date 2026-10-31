@@ -13,7 +13,7 @@ from .instances import SIZES, write_json
 
 
 def configuration_space(seed=42, reduction_budget=None):
-    from ConfigSpace import ConfigurationSpace, Float, Integer
+    from ConfigSpace import ConfigurationSpace, Constant, Float, Integer
     cs = ConfigurationSpace(seed=seed)
     cs.add(Float("t_max", (.01, 100_000.), default=500., log=True),
            Float("temperature_ratio", (1e-8, .99), default=.001/500, log=True),
@@ -22,15 +22,21 @@ def configuration_space(seed=42, reduction_budget=None):
            Float("p_inter", (0., 1.), default=.5), Float("p_shift", (0., 1.), default=.5),
            Float("p_block", (0., 1.), default=.5))
     if reduction_budget is not None:
-        cs.add(Integer("evaluation_budget", (1, reduction_budget), default=reduction_budget, log=True))
+        steps = budget_steps(reduction_budget)
+        cs.add(Constant("evaluation_steps", 1) if steps == 1 else
+               Integer("evaluation_steps", (1, steps), default=steps, log=True))
     return cs
 
 
 def decode(config, evaluations):
+    maximum = evaluations
     params = dict(config)
-    if "evaluation_budget" in params:
-        proposed = int(params.pop("evaluation_budget"))
-        evaluations = max(1, proposed // int(params["starts"])) * int(params["starts"])
+    if "evaluation_steps" in params:
+        from .api import integer
+        steps = integer(params.pop("evaluation_steps"), "evaluation_steps", 1)
+        evaluations = steps * EVALUATION_STEP
+        if evaluations > maximum:
+            raise ValueError("Efficiency budget exceeds reference budget")
     params["t_min"] = params["t_max"] * params.pop("temperature_ratio")
     return {**DEFAULT_PARAMETERS, **params, "evaluations": evaluations}
 
@@ -73,8 +79,16 @@ def normalized(measured, baseline):
     return statistics.mean(row["fitness"]/max(baseline[name]["fitness"], 1e-12) for name, row in measured.items())
 
 
-REFERENCE_BUDGETS = {10: 5_000_000, 30: 5_000_000, 50: 5_000_000, 100: 8_000_000}
-PILOT_PROBES = {10: 400_000, 30: 1_000_000, 50: 4_000_000, 100: 8_000_000}
+REFERENCE_BUDGET = 10_000_000
+EVALUATION_STEP = 100_000
+
+
+def budget_steps(evaluations):
+    from .api import integer
+    evaluations = integer(evaluations, "evaluations", EVALUATION_STEP)
+    if evaluations % EVALUATION_STEP or evaluations > 2_000_000_000:
+        raise ValueError("Reference budget must be a multiple of 100,000 within the native integer limit")
+    return evaluations // EVALUATION_STEP
 PRIOR_PARAMETERS = dict(t_max=.1603194019, t_min=.0116169910, stage_length=4908,
                         starts=4, rcl_alpha=.2746914740, p_inter=.6647498733,
                         p_shift=.5008078735, p_block=.2693767726)
@@ -134,33 +148,13 @@ def as_config(space, parameters, reduction=False):
     values = {k: parameters[k] for k in ("t_max", "stage_length", "starts", "rcl_alpha", "p_inter", "p_shift", "p_block")}
     values["temperature_ratio"] = parameters["t_min"]/parameters["t_max"]
     if reduction:
-        values["evaluation_budget"] = parameters["evaluations"]
+        values["evaluation_steps"] = budget_steps(parameters["evaluations"])
     return Configuration(space, values)
 
 
 def log_trial(path, row):
     with Path(path).open("a", encoding="utf-8") as stream:
         stream.write(json.dumps(row, allow_nan=False)+"\n")
-
-
-def pilot(rows, evaluator, seeds, budget, n, directory):
-    selected = [row for kind in ("clean", "carryover") for row in [r for r in rows if r[1] == kind][:2]]
-    probes = sorted({budget, *(max(4, min(budget, int(PILOT_PROBES[n]*scale))) for scale in (.25, .5, 1., 2.))})
-    results = []
-    for proposals in probes:
-        params = {**DEFAULT_PARAMETERS, **PRIOR_PARAMETERS, "evaluations": proposals}
-        measured = evaluator.panel(selected, params, seeds)
-        print(f"N{n} pilot: {proposals:,} proposals, mean fitness={statistics.mean(r['fitness'] for r in measured.values()):.6f}", flush=True)
-        results.append(dict(evaluations=proposals, parameters=params, instances=measured))
-    reference = results[-1]["instances"]
-    for row in results:
-        row["quality_failures"] = quality_failures(row["instances"], reference)
-    suggested = min(r["evaluations"] for r in results if not r["quality_failures"])
-    print(f"N{n} pilot: smallest tested budget matching every probe instance = {suggested:,}", flush=True)
-    result = dict(probes=results, suggested_budget=suggested,
-                  note="Probes guide warm starts; they do not restrict the reduction search.")
-    write_json(directory/"pilot.json", result)
-    return result
 
 
 def reference_tuning(rows, evaluator, seeds, budget, calls, seed, directory):
@@ -206,7 +200,7 @@ def reference_tuning(rows, evaluator, seeds, budget, calls, seed, directory):
     return result
 
 
-def reduce_budget(rows, heldout, evaluator, seeds, heldout_seeds, reference, probes, trials, seed, directory):
+def reduce_budget(rows, heldout, evaluator, seeds, heldout_seeds, reference, trials, seed, directory):
     from smac import HyperparameterOptimizationFacade, Scenario
     path = directory/"profile.json"
     if path.exists():
@@ -237,15 +231,11 @@ def reduce_budget(rows, heldout, evaluator, seeds, heldout_seeds, reference, pro
     scenario = Scenario(space, name="reduction", output_directory=directory/"reduction-smac",
                         n_trials=trials, seed=seed, deterministic=True, n_workers=1)
     warm = [as_config(space, reference_parameters, True)]
-    if probes:
-        probe = min((r for r in probes["probes"] if not r["quality_failures"]), key=lambda r: r["evaluations"])
-        warm.append(as_config(space, {**reference_parameters, "evaluations": probe["evaluations"]}, True))
     design = HyperparameterOptimizationFacade.get_initial_design(
         scenario, n_configs=min(24, max(1, trials//4)), additional_configs=warm if trials >= 4 else [])
     smac = HyperparameterOptimizationFacade(scenario, target, initial_design=design, overwrite=False, logging_level=30)
     smac.optimize()
-    # The reference is always a feasible fallback, independently of its encoding
-    # as an equal-iterations-per-start candidate in the reduction search.
+    # Always retain the exact reference as a feasible fallback.
     feasible = [dict(parameters=reference_parameters, instances=reference["instances"], normalized_fitness=1.)]
     if history.exists():
         for line in history.read_text(encoding="utf-8").splitlines():
@@ -284,11 +274,11 @@ def reduce_budget(rows, heldout, evaluator, seeds, heldout_seeds, reference, pro
     return report
 
 
-def tune(directory="instances/smac", output="flexo/profiles.json", workdir="results/tuning-v2", *,
+def tune(directory="instances/smac", output="flexo/profiles.json", workdir="results/tuning-10m-100k", *,
          reference_calls=1000, reduction_trials=100, evaluations=None, seeds=(42, 43, 44),
          heldout_seeds=(142, 143, 144), seed=42, num_threads=0, stage="all", resume=False):
     from .api import integer
-    if stage not in ("pilot", "reference", "reduce", "all"):
+    if stage not in ("reference", "reduce", "all"):
         raise ValueError("Unknown tuning stage")
     reference_calls = integer(reference_calls, "reference_calls", 1)
     reduction_trials = integer(reduction_trials, "reduction_trials", 1)
@@ -298,9 +288,11 @@ def tune(directory="instances/smac", output="flexo/profiles.json", workdir="resu
     heldout_seeds = [integer(s, "heldout_seed") for s in heldout_seeds]
     if set(seeds) & set(heldout_seeds):
         raise ValueError("Training and heldout seeds must be disjoint")
-    budgets = {n: integer(evaluations, "evaluations", 4) if evaluations is not None else REFERENCE_BUDGETS[n] for n in SIZES}
+    reference_budget = REFERENCE_BUDGET if evaluations is None else evaluations
+    reference_budget = budget_steps(reference_budget) * EVALUATION_STEP
+    budgets = {n: reference_budget for n in SIZES}
     dataset, identity = load_dataset(directory)
-    manifest = dict(schema_version=2, dataset_sha256=identity,
+    manifest = dict(schema_version=3, evaluation_step=EVALUATION_STEP, dataset_sha256=identity,
                     core_sha256=hashlib.sha256(Path(_core.__file__).read_bytes()).hexdigest(),
                     source_sha256=fingerprint([Path(__file__).read_text(), Path(__file__).with_name("api.py").read_text()]),
                     reference_budgets=budgets, seeds=seeds, heldout_seeds=heldout_seeds,
@@ -331,12 +323,6 @@ def tune(directory="instances/smac", output="flexo/profiles.json", workdir="resu
             groups = [[row for row in dataset["train"][n] if row[1] == kind] for kind in ("clean", "carryover")]
             rows = [row for pair in zip(*groups) for row in pair]
             print(f"N{n}: stage={stage}, reference={budgets[n]:,}, training={len(rows)} x 3 seeds", flush=True)
-            pilot_path = folder/"pilot.json"
-            probes = json.loads(pilot_path.read_text()) if pilot_path.exists() else None
-            if stage != "reduce" and probes is None:
-                probes = pilot(rows, evaluator, seeds, budgets[n], n, folder)
-            if stage == "pilot":
-                continue
             if stage == "reduce" and not (folder/"reference.json").exists():
                 raise ValueError(f"N{n}: reduction requires a completed reference stage")
             reference = reference_tuning(rows, evaluator, seeds, budgets[n], reference_calls, seed, folder)
@@ -344,7 +330,7 @@ def tune(directory="instances/smac", output="flexo/profiles.json", workdir="resu
             if stage == "reference":
                 continue
             exported["profiles"][str(n)] = reduce_budget(rows, dataset["heldout"][n], evaluator, seeds,
-                                                       heldout_seeds, reference, probes, reduction_trials, seed, folder)
+                                                       heldout_seeds, reference, reduction_trials, seed, folder)
             profile = exported["profiles"][str(n)]
             print(f"N{n}: selected {profile['parameters']['evaluations']:,} proposals, starts={profile['parameters']['starts']}, reduced={profile['accepted_reduction']}", flush=True)
         if stage in ("all", "reduce"):
