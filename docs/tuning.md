@@ -1,5 +1,29 @@
 # Quality-preserving tuning
 
+## Run in your terminal
+
+```powershell
+python experiments/run_tuning.py
+```
+
+This runner defaults to `results/quality-budget-run` and automatically resumes
+its existing campaign. It runs in the foreground with tqdm bars for job sizes,
+reference instance evaluations, and reduction trials, showing counts, elapsed
+time, estimated remaining time, rate, and the latest result. Reference progress
+starts at the saved SMAC checkpoint rather than zero.
+
+Press **Ctrl+C** to stop; run the same command again to continue. All normal
+`flexo tune` options are supported. For a new campaign:
+
+```powershell
+python experiments/run_tuning.py --workdir results/another-run
+```
+
+Run from the repository root, or pass the absolute runner path from elsewhere.
+Install the optional dependencies with `python -m pip install -e ".[tuning]"`.
+Progress presentation is separate from the tuning engine, so adding/changing
+the terminal display doesn't invalidate existing tuning fingerprints.
+
 Each size (10, 30, 50, 100 movable jobs) receives its own profile. Starts are tuned
 from 1 to 4. All reference candidates share the same total proposal budget for
 fairness, regardless of start count. Every evaluated instance runs three paired

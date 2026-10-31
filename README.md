@@ -125,8 +125,12 @@ python -m flexo validate instances/validation/N100_K3_rho1.5_rep00.json --output
 ## Quality-preserving parameter and budget tuning
 
 ```powershell
-python -u -m flexo tune --workdir results/my-tuning
+python experiments/run_tuning.py
 ```
+
+Runs in your terminal with tqdm progress and automatically resumes the saved
+campaign. Press Ctrl+C to stop; repeat the command to continue. Use
+`--workdir results/my-tuning` to start a separate campaign.
 
 See [the tuning guide](docs/tuning.md) for stage details, quality gates, pilot
 budgets, cost, and resuming an interrupted campaign.

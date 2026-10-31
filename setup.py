@@ -16,7 +16,7 @@ setup(
         extra_link_args=[] if sys.platform == "win32" else ["-pthread"],
     )],
     cmdclass={"build_ext": build_ext},
-    extras_require={"tuning": ["smac==2.3.1", "ConfigSpace==1.2.2"], "test": ["pytest>=8"],
+    extras_require={"tuning": ["smac==2.3.1", "ConfigSpace==1.2.2", "tqdm>=4.66"], "test": ["pytest>=8"],
                     "experiments": ["matplotlib>=3.6", "jupyterlab>=4"]},
     entry_points={"console_scripts": ["flexo=flexo.__main__:main"]},
 )
