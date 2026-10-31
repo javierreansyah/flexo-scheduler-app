@@ -869,3 +869,162 @@ input[type="checkbox"]:checked {
   width: 100px;
   min-width: 100px;
 }
+
+/* Portfolio case-study header and footer. */
+.masthead {
+  border: 0;
+  background: transparent;
+  padding: 4rem var(--gutter) 16rem;
+  margin-bottom: 4rem;
+}
+.hero {
+  display: block;
+  margin: 0;
+}
+.hero h1 {
+  margin: 0;
+  font-size: clamp(2.4883rem, 1.9699rem + 2.3041vw, 4.7348rem);
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: -0.05em;
+}
+.portfolio-footer {
+  display: block;
+  padding: 0;
+  margin: 4rem 0 0;
+  border: 0;
+  color: inherit;
+  font-size: inherit;
+  letter-spacing: normal;
+}
+.portfolio-footer-content {
+  width: 100%;
+  max-width: 120rem;
+  margin-inline: auto;
+  padding: 16rem var(--gutter) 5rem;
+  display: grid;
+  align-items: end;
+  gap: 3rem;
+}
+.portfolio-footer-content h2 {
+  margin: 0;
+  font-size: clamp(2.4883rem, 1.9699rem + 2.3041vw, 4.7348rem);
+  line-height: 0.8;
+  font-weight: 700;
+  letter-spacing: -0.05em;
+}
+.portfolio-footer .contact-links {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.portfolio-footer .contact-links li + li {
+  border-top: 1px solid #262626;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+}
+.portfolio-footer .contact-links a {
+  color: #e5e5e5;
+}
+.portfolio-footer .contact-links a:hover {
+  color: #fafafa;
+}
+.portfolio-footer .contact-links a span:last-child {
+  color: #a3a3a3;
+}
+@media (min-width: 768px) {
+  .portfolio-footer-content {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1024px) {
+  .portfolio-footer-content {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .portfolio-footer-content h2 {
+    grid-column: span 2;
+  }
+}
+/* Open sections use horizontal rules to organize the workspace. */
+.panel {
+  border: 0;
+  background: transparent;
+}
+.tabs button[aria-pressed="true"] {
+  background: transparent;
+  color: #fff;
+  border-bottom: 2px solid #fafafa;
+}
+.tabs button {
+  margin-bottom: -1px;
+  border-bottom: 2px solid transparent;
+}
+.presets {
+  border: 0;
+  border-top: 1px solid #292929;
+  border-bottom: 1px solid #292929;
+}
+.presets button {
+  border: 0;
+  border-bottom: 2px solid transparent;
+}
+.presets button[aria-pressed="true"] {
+  background: transparent;
+  border-bottom-color: #fafafa;
+}
+.section-head {
+  padding-inline: 0;
+}
+.inset {
+  padding-inline: 0;
+}
+.table-toolbar {
+  padding-inline: 0;
+}
+.settings {
+  padding-inline: 0;
+}
+.optimizer {
+  padding: 0 0 0 1rem;
+}
+.metrics {
+  border: 0;
+  border-top: 1px solid #292929;
+  border-bottom: 1px solid #292929;
+  gap: 1rem;
+}
+.metrics > div {
+  border: 0;
+  padding: 1.3rem 0;
+}
+.timeline {
+  border: 0;
+}
+.timeline-scroll {
+  padding-inline: 0;
+}
+.legend {
+  padding-inline: 0;
+}
+.schedule-details {
+  border: 0;
+  border-top: 1px solid #292929;
+  padding: 1rem 0;
+}
+th {
+  background: #000;
+}
+.lane > strong {
+  background: #000;
+}
+@media (max-width: 1000px) {
+  .optimizer {
+    padding: 1.5rem 0 0;
+    border-top: 1px solid #292929;
+  }
+}
+@media (max-width: 600px) {
+  .masthead {
+    padding: 4rem var(--gutter) 12rem;
+  }
+}

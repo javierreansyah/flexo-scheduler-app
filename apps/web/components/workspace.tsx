@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import GridBackground from "./background-effect";
+import ContactLinks from "./contact-links";
 import { DataGrid } from "./data-grid";
 import { Timeline } from "./timeline";
 import {
@@ -218,33 +219,26 @@ export default function Workspace() {
           enabled={!busy}
           className="masthead"
           config={{
-            noiseBrightness: 0.16,
-            noiseContrast: 16,
-            zoom: 100,
-            cameraX: 11,
-            cameraY: 297,
+            seed: 2,
+            cameraX: 10,
+            cameraY: 4,
+            noiseBrightness: 0.36,
+            noiseContrast: 24,
           }}
+          gradation={{ rowCount: 2, direction: "down" }}
+          initialEvents={[
+            {
+              property: "noiseBrightness",
+              stepSize: 0.002,
+              keyframes: [
+                { target: 0, duration: 0 },
+                { target: 0.36, duration: 1000, ease: "easeOut" },
+              ],
+            },
+          ]}
         >
-          <nav>
-            <a href="#workspace" className="wordmark">
-              FLEXO<span> / PRODUCTION LAB</span>
-            </a>
-            <span className="local-badge">LOCAL COMPUTE · NO UPLOADS</span>
-          </nav>
           <div className="hero">
-            <div>
-              <p className="eyebrow">A clearer production rhythm</p>
-              <h1>
-                Make room
-                <br />
-                for better work.
-              </h1>
-            </div>
-            <p>
-              Shape your machines. Add your orders.
-              <br />
-              Find a schedule, entirely in your browser.
-            </p>
+            <h1>Flexo Scheduler</h1>
           </div>
         </GridBackground>
       </header>
@@ -1187,12 +1181,27 @@ export default function Workspace() {
             </details>
           </>
         )}
-        <footer>
-          <span>FLEXO / PRODUCTION LAB</span>
-          <span>Simulated annealing. Deliberate decisions.</span>
-          <span>Eight-hour production shifts.</span>
-        </footer>
       </div>
+      <footer className="portfolio-footer">
+        <GridBackground
+          enabled={!busy}
+          config={{
+            seed: 7,
+            cameraY: 0,
+            cameraX: 0,
+            noiseBrightness: 0.36,
+            noiseContrast: 24,
+          }}
+          gradation={{ rowCount: 2, direction: "up" }}
+        >
+          <div className="portfolio-footer-content">
+            <h2>
+              Javier <br /> Reansyah
+            </h2>
+            <ContactLinks />
+          </div>
+        </GridBackground>
+      </footer>
     </main>
   );
 }
