@@ -153,3 +153,52 @@ test("matrix adds new inks without overwriting existing cells", async ({
   await page.getByRole("button", { name: "Restore industry defaults" }).click();
   await expect(cost).toHaveValue("1");
 });
+
+test("portfolio typography and stable header during edits and search", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    const original = HTMLCanvasElement.prototype.getContext;
+    (window as any).headerContexts = 0;
+    (HTMLCanvasElement.prototype as any).getContext = function (
+      ...args: any[]
+    ) {
+      if (
+        this.parentElement?.classList.contains("masthead") &&
+        args[0] === "webgl2"
+      )
+        (window as any).headerContexts++;
+      return (original as any).apply(this, args);
+    };
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await expect
+    .poll(() => page.evaluate(() => (window as any).headerContexts))
+    .toBeGreaterThan(0);
+  const initial = await page.evaluate(() => (window as any).headerContexts);
+  const sizes = await page.evaluate(() => ({
+    body: parseFloat(getComputedStyle(document.body).fontSize),
+    header: parseFloat(
+      getComputedStyle(document.querySelector(".hero h1")!).fontSize,
+    ),
+    weight: getComputedStyle(document.querySelector(".hero h1")!).fontWeight,
+  }));
+  expect(sizes.body).toBeCloseTo(0.9712 * 16 + 0.1282 * 3.9, 1);
+  expect(sizes.header).toBeCloseTo(1.9699 * 16 + 2.3041 * 3.9, 1);
+  expect(sizes.weight).toBe("500");
+  await page.getByRole("button", { name: "Industry example" }).click();
+  await page.getByRole("button", { name: "Custom", exact: true }).click();
+  await page.getByLabel("evaluations", { exact: true }).fill("1000000000");
+  await page.getByRole("button", { name: "Optimize schedule" }).click();
+  await page.getByRole("button", { name: "Cancel", exact: true }).click();
+  await page.waitForTimeout(300);
+  expect(await page.evaluate(() => (window as any).headerContexts)).toBe(
+    initial,
+  );
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+});

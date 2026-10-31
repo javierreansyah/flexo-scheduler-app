@@ -31,6 +31,34 @@ import {
   Job,
 } from "@/lib/model";
 import { run } from "@/lib/runner";
+const HEADER_CONFIG = {
+  seed: 2,
+  cameraX: 10,
+  cameraY: 4,
+  noiseBrightness: 0.36,
+  noiseContrast: 24,
+};
+const HEADER_GRADATION = { rowCount: 2, direction: "down" } as const;
+const HEADER_EVENTS: NonNullable<
+  import("./background-effect/types").GridBackgroundProps["initialEvents"]
+> = [
+  {
+    property: "noiseBrightness",
+    stepSize: 0.002,
+    keyframes: [
+      { target: 0, duration: 0 },
+      { target: 0.36, duration: 1000, ease: "easeOut" },
+    ],
+  },
+];
+const FOOTER_CONFIG = {
+  seed: 7,
+  cameraY: 0,
+  cameraX: 0,
+  noiseBrightness: 0.36,
+  noiseContrast: 24,
+};
+const FOOTER_GRADATION = { rowCount: 2, direction: "up" } as const;
 const jobColumns = [
   { key: "id", label: "Job ID" },
   { key: "quantity", label: "Quantity" },
@@ -216,26 +244,10 @@ export default function Workspace() {
     <main>
       <header>
         <GridBackground
-          enabled={!busy}
           className="masthead"
-          config={{
-            seed: 2,
-            cameraX: 10,
-            cameraY: 4,
-            noiseBrightness: 0.36,
-            noiseContrast: 24,
-          }}
-          gradation={{ rowCount: 2, direction: "down" }}
-          initialEvents={[
-            {
-              property: "noiseBrightness",
-              stepSize: 0.002,
-              keyframes: [
-                { target: 0, duration: 0 },
-                { target: 0.36, duration: 1000, ease: "easeOut" },
-              ],
-            },
-          ]}
+          config={HEADER_CONFIG}
+          gradation={HEADER_GRADATION}
+          initialEvents={HEADER_EVENTS}
         >
           <div className="hero">
             <h1>Flexo Scheduler</h1>
@@ -1183,17 +1195,7 @@ export default function Workspace() {
         )}
       </div>
       <footer className="portfolio-footer">
-        <GridBackground
-          enabled={!busy}
-          config={{
-            seed: 7,
-            cameraY: 0,
-            cameraX: 0,
-            noiseBrightness: 0.36,
-            noiseContrast: 24,
-          }}
-          gradation={{ rowCount: 2, direction: "up" }}
-        >
+        <GridBackground config={FOOTER_CONFIG} gradation={FOOTER_GRADATION}>
           <div className="portfolio-footer-content">
             <h2>
               Javier <br /> Reansyah

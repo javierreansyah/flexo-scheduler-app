@@ -1028,3 +1028,108 @@ th {
     padding: 4rem var(--gutter) 12rem;
   }
 }
+
+:root {
+  --text-xs: clamp(0.6331rem, 0.7086rem + -0.0629vw, 0.6944rem);
+  --text-sm: clamp(0.8333rem, 0.8309rem + 0.0109vw, 0.844rem);
+  --text-base: clamp(1rem, 0.9712rem + 0.1282vw, 1.125rem);
+  --text-lg: clamp(1.2rem, 1.1309rem + 0.3073vw, 1.4996rem);
+  --text-xl: clamp(1.44rem, 1.311rem + 0.5733vw, 1.999rem);
+  --text-2xl: clamp(1.728rem, 1.5118rem + 0.9607vw, 2.6647rem);
+  --text-3xl: clamp(2.0736rem, 1.7324rem + 1.5163vw, 3.552rem);
+  --text-4xl: clamp(2.4883rem, 1.9699rem + 2.3041vw, 4.7348rem);
+  --text-5xl: clamp(2.986rem, 2.2186rem + 3.4108vw, 6.3115rem);
+  --text-6xl: clamp(3.5832rem, 2.4686rem + 4.9539vw, 8.4132rem);
+  --text-7xl: clamp(4.2998rem, 2.704rem + 7.0923vw, 11.2149rem);
+  --text-8xl: clamp(5.1598rem, 2.9006rem + 10.0406vw, 14.9494rem);
+  --text-9xl: clamp(6.1917rem, 3.0219rem + 14.088vw, 19.9276rem);
+
+  --spacing: calc(var(--text-base) / 4);
+  --gutter: clamp(1rem, -0.1538rem + 5.1282vw, 6rem);
+}
+@theme inline {
+  --text-xs: clamp(0.6331rem, 0.7086rem + -0.0629vw, 0.6944rem);
+  --text-sm: clamp(0.8333rem, 0.8309rem + 0.0109vw, 0.844rem);
+  --text-base: clamp(1rem, 0.9712rem + 0.1282vw, 1.125rem);
+  --text-lg: clamp(1.2rem, 1.1309rem + 0.3073vw, 1.4996rem);
+  --text-xl: clamp(1.44rem, 1.311rem + 0.5733vw, 1.999rem);
+  --text-2xl: clamp(1.728rem, 1.5118rem + 0.9607vw, 2.6647rem);
+  --text-3xl: clamp(2.0736rem, 1.7324rem + 1.5163vw, 3.552rem);
+  --text-4xl: clamp(2.4883rem, 1.9699rem + 2.3041vw, 4.7348rem);
+  --text-5xl: clamp(2.986rem, 2.2186rem + 3.4108vw, 6.3115rem);
+  --text-6xl: clamp(3.5832rem, 2.4686rem + 4.9539vw, 8.4132rem);
+  --text-7xl: clamp(4.2998rem, 2.704rem + 7.0923vw, 11.2149rem);
+  --text-8xl: clamp(5.1598rem, 2.9006rem + 10.0406vw, 14.9494rem);
+  --text-9xl: clamp(6.1917rem, 3.0219rem + 14.088vw, 19.9276rem);
+
+  --spacing: calc(var(--text-base) / 4);
+}
+body {
+  font-size: var(--text-base);
+  font-optical-sizing: auto;
+}
+.hero h1 {
+  font-size: var(--text-4xl);
+  font-weight: 500;
+  letter-spacing: -0.025em;
+  line-height: 1.111111;
+}
+.masthead {
+  padding: calc(var(--text-base) * 4) var(--gutter) calc(var(--text-base) * 16);
+}
+.workspace h2 {
+  font-size: var(--text-2xl);
+  font-weight: 500;
+  letter-spacing: -0.025em;
+}
+.section-head h3,
+.optimizer h3,
+.settings h3,
+.arrival h3 {
+  font-size: var(--text-xl);
+  font-weight: 500;
+  letter-spacing: -0.025em;
+}
+.portfolio-footer-content {
+  gap: calc(var(--text-base) * 3);
+  padding: calc(var(--text-base) * 16) var(--gutter) calc(var(--text-base) * 5);
+}
+.portfolio-footer-content h2 {
+  font-size: var(--text-4xl);
+}
+.metrics strong {
+  font-size: var(--text-lg);
+}
+.eyebrow {
+  font-size: var(--text-xs);
+}
+table,
+label,
+.actions button,
+.section-head p,
+.arrival p,
+.settings p,
+.settings h4,
+.note,
+.warning,
+.transition,
+.settings pre,
+.error,
+.metrics span,
+.timeline .actions button,
+.lane > strong,
+.axis,
+.job-bar,
+.legend,
+.schedule-details summary,
+.presets button,
+.table-toolbar input,
+.table-toolbar span {
+  font-size: var(--text-sm);
+}
+@media (max-width: 600px) {
+  .masthead {
+    padding: calc(var(--text-base) * 4) var(--gutter)
+      calc(var(--text-base) * 16);
+  }
+}
