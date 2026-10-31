@@ -8,7 +8,7 @@ import time
 
 from . import _core
 
-DEFAULT_PARAMETERS = dict(evaluations=5_000_000, starts=10, stage_length=1000,
+DEFAULT_PARAMETERS = dict(evaluations=5_000_000, starts=4, stage_length=1000,
                           t_max=500.0, t_min=.001, rcl_alpha=.5,
                           p_inter=.5, p_shift=.5, p_block=.5)
 
@@ -56,6 +56,8 @@ def parameters_checked(parameters):
         out[key] = integer(out[key], key, 0 if key == "evaluations" else 1)
         if out[key] > 2_000_000_000:
             raise ValueError(f"{key} exceeds the native integer limit")
+    if out["starts"] > 4:
+        raise ValueError("starts must be between 1 and 4")
     for key in ("t_max", "t_min", "rcl_alpha", "p_inter", "p_shift", "p_block"):
         out[key] = number(out[key], key)
     if not 0 < out["t_min"] < out["t_max"]:

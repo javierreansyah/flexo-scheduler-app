@@ -82,7 +82,7 @@ def test_every_move_family_and_undo(inter, shift, block):
 
 def test_multithreading_and_budget_are_deterministic():
     data = production_example()
-    params = {**FAST, "evaluations": 1001, "starts": 7}
+    params = {**FAST, "evaluations": 1001, "starts": 4}
     single = optimize(data, params, seed=123, num_threads=1)
     parallel = optimize(data, params, seed=123, num_threads=4)
     assert single["schedule"] == parallel["schedule"]

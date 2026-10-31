@@ -46,7 +46,7 @@ def test_benchmark_uses_five_cases_and_original_parameters(tmp_path, monkeypatch
     sweep(data, tmp_path/"b")
     assert [c[0] for c in calls[:5]] == [10, 50, 100, 50, 100]
     assert all(p == ORIGINAL_PARAMETERS and threads == 0 for _, p, threads in calls)
-    assert ORIGINAL_PARAMETERS["evaluations"] == 833333*6
+    assert ORIGINAL_PARAMETERS["evaluations"] == 833333*4
     assert a["iterations_per_start"] == 833333
     compare(tmp_path/"a/report.json", tmp_path/"b/report.json")
     repeated = sweep(data, tmp_path/"repeated", repeats=2)

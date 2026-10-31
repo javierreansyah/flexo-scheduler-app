@@ -13,10 +13,10 @@ jobs, then 50 jobs with two horizons and 100 jobs with three horizons (rho=1.5,
 replica 00). N10 is derived from the first ten orders of N15 static replica 00;
 the checked-in instance is unchanged.
 
-The benchmark uses the original tuned `industry.py` settings: **833,333 proposals
-per start, six starts** (4,999,998 total proposals per horizon), original cooling,
-GRASP and move probabilities. Automatic profiles are bypassed. Six starts run
-on up to six CPU workers; no additional parallelism across cases competes with
+The benchmark uses the original tuned `industry.py` SA settings with the new four-start cap: **833,333 proposals
+per start, four starts** (3,333,332 total proposals per horizon), original cooling,
+GRASP and move probabilities. Automatic profiles are bypassed. Four starts run
+on up to four CPU workers; no additional parallelism across cases competes with
 the starts. Seed defaults to 42. Each output directory must be fresh.
 
 `runs.csv` and `report.json` record wall time, quality metrics, schedule hashes,

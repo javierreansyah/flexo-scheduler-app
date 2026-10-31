@@ -78,7 +78,7 @@ inline Step advance(double time, double arrival, double proc, double cost, doubl
     return {earliest,earliest+duration,earliest+duration+proc,cost,0};
 }
 struct Parameters {
-    int evaluations=5000000, starts=10, stage_length=1000;
+    int evaluations=5000000, starts=4, stage_length=1000;
     double t_max=500, t_min=.001, rcl_alpha=.5;
     double p_inter=.5, p_shift=.5, p_block=.5;
 };

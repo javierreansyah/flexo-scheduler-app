@@ -15,7 +15,7 @@ from flexo.validation import run_validation
 
 # Original industry.py SA_OPT_PARAMS, preserved in commit 81fb1fc.
 # The native API takes a total budget rather than iterations per start.
-ORIGINAL_PARAMETERS = dict(evaluations=833333*6, starts=6, t_max=.1603194019,
+ORIGINAL_PARAMETERS = dict(evaluations=833333*4, starts=4, t_max=.1603194019,
                            t_min=.0116169910, stage_length=4908, rcl_alpha=.2746914740,
                            p_inter=.6647498733, p_shift=.5008078735, p_block=.2693767726)
 
@@ -46,7 +46,7 @@ def sweep(directory="instances/validation", output="results/benchmark", seed=42,
     for path, data in inputs:
         digest.update(path.name.encode()+json.dumps(data, sort_keys=True).encode())
     metadata = dict(parameters=ORIGINAL_PARAMETERS, iterations_per_start=833333, seed=seed,
-                    threads=0, max_workers=min(6, os.cpu_count() or 1), cpu_count=os.cpu_count(),
+                    threads=0, max_workers=min(4, os.cpu_count() or 1), cpu_count=os.cpu_count(),
                     platform=platform.platform(), python=platform.python_version(),
                     core_sha256=hashlib.sha256(Path(_core.__file__).read_bytes()).hexdigest(),
                     dataset_sha256=digest.hexdigest(), instances=len(inputs), repeats=repeats, rows=[])

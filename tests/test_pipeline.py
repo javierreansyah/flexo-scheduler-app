@@ -12,7 +12,7 @@ from flexo.validation import run_validation
 
 def test_generated_snapshots_have_exact_sizes_and_no_future(tmp_path):
     paths = generate_smac(tmp_path/"smac", replicas=2, previous_evaluations=300)
-    assert len(paths) == 24
+    assert len(paths) == 32
     for path in paths:
         data = json.loads(path.read_text())
         p = prepare(data)
@@ -52,20 +52,26 @@ def test_validation_generator_never_generates_n200(tmp_path):
     assert max(len(json.loads(p.read_text())["orders_data"]) for p in paths) == 100
 
 
-def test_tuning_smoke_exports_three_profiles(tmp_path):
+def test_tuning_smoke_exports_four_profiles_and_resumes(tmp_path):
     pytest.importorskip("smac")
     generate_smac(tmp_path/"data", replicas=1, previous_evaluations=200)
-    result = tune(tmp_path/"data", tmp_path/"profiles.json", tmp_path/"runs", trials=2,
-                  evaluations=200, seeds=[42], num_threads=1)
-    assert set(result["profiles"]) == {"10", "30", "50"}
-    for n in (10, 30, 50):
-        assert result["profiles"][str(n)]["parameters"]["evaluations"] == 200
-        assert (tmp_path/f"runs/N{n}/evaluations.jsonl").exists()
+    settings = dict(reference_calls=4, reduction_trials=4, evaluations=200, num_threads=1)
+    result = tune(tmp_path/"data", tmp_path/"profiles.json", tmp_path/"runs", **settings)
+    assert set(result["profiles"]) == {"10", "30", "50", "100"}
+    for n in (10, 30, 50, 100):
+        assert 0 < result["profiles"][str(n)]["parameters"]["evaluations"] <= 200
+        assert 1 <= result["profiles"][str(n)]["parameters"]["starts"] <= 4
+        assert (tmp_path/f"runs/N{n}/reference-trials.jsonl").exists()
+        assert (tmp_path/f"runs/N{n}/reduction-trials.jsonl").exists()
     snapshot = json.loads((tmp_path/"data/heldout/N30_carryover_00.json").read_text())
     solved = optimize(snapshot, profiles=tmp_path/"profiles.json")
-    assert solved["profile_size"] == 30 and solved["evaluations"] == 200
+    assert solved["profile_size"] == 30 and solved["evaluations"] <= 200
     with pytest.raises(ValueError, match="already"):
-        tune(tmp_path/"data", tmp_path/"profiles.json", tmp_path/"runs", trials=1, evaluations=100, seeds=[42])
+        tune(tmp_path/"data", tmp_path/"profiles.json", tmp_path/"runs", **settings)
+    resumed = tune(tmp_path/"data", tmp_path/"profiles.json", tmp_path/"runs", resume=True, **settings)
+    assert resumed["profiles"] == result["profiles"]
+    with pytest.raises(ValueError, match="differ"):
+        tune(tmp_path/"data", tmp_path/"profiles.json", tmp_path/"runs", resume=True, **{**settings, "evaluations": 204})
 
 
 def test_zero_baselines_and_valid_temperatures():

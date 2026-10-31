@@ -6,7 +6,7 @@ import random
 
 from .api import optimize
 
-SIZES = (10, 30, 50)
+SIZES = (10, 30, 50, 100)
 VALIDATION_SIZES = (15, 30, 50, 100)
 
 
@@ -31,18 +31,22 @@ def production_example(path=None):
     return json.loads(Path(path or Path(__file__).with_name("example.json")).read_text(encoding="utf-8"))
 
 
-def generate_smac(directory="instances/smac", replicas=10, seed=42, previous_evaluations=50_000, template_path=None):
+def generate_smac(directory="instances/smac", replicas=10, seed=42, previous_evaluations=50_000, template_path=None, overwrite=False):
     if replicas < 1 or previous_evaluations < 0:
         raise ValueError("replicas must be positive and previous_evaluations nonnegative")
     example = production_example(template_path)
     if len(example["machines"]) != 3:
         raise ValueError("SMAC generation requires exactly three machines")
     written = []
-    baseline = dict(evaluations=previous_evaluations, starts=3, t_max=500., t_min=.001,
+    baseline = dict(evaluations=previous_evaluations, starts=4, t_max=500., t_min=.001,
                     stage_length=1000, rcl_alpha=.5, p_inter=.5, p_shift=.5, p_block=.5)
     for split_index, split in enumerate(("train", "heldout")):
         for n in SIZES:
             for rep in range(replicas):
+                paths = [Path(directory)/split/f"N{n}_{kind}_{rep:02d}.json" for kind in ("clean", "carryover")]
+                if not overwrite and all(p.exists() for p in paths):
+                    written.extend(paths)
+                    continue
                 instance_seed = seed + split_index*1_000_000 + n*1000 + rep
                 rng = random.Random(instance_seed)
                 previous_jobs = [dict(j, arrival_time=0.) for j in orders(n, rng, example["jobs"], "old-")]
@@ -67,7 +71,8 @@ def generate_smac(directory="instances/smac", replicas=10, seed=42, previous_eva
                     snapshot["meta"] = dict(kind=kind, split=split, movable_jobs=n, replica=rep,
                                             seed=instance_seed, previous_parameters=baseline if kind == "carryover" else None)
                     path = Path(directory)/split/f"N{n}_{kind}_{rep:02d}.json"
-                    write_json(path, snapshot)
+                    if overwrite or not path.exists():
+                        write_json(path, snapshot)
                     written.append(path)
     return written
 
