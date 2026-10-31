@@ -1,0 +1,5 @@
+{
+  "name": "@flexo/optimizer-wasm",
+  "private": true,
+  "type": "module"
+}

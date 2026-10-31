@@ -65,15 +65,18 @@ inline double changeover(std::vector<int> a, std::vector<int> b,
 }
 
 struct Step { double setup_start, start, completion, cost; int pattern; };
-inline Step advance(double time, double arrival, double proc, double cost, double empty_cost, double setup) {
+inline Step advance(double time, double arrival, double proc, double cost, double empty_cost, double setup, double empty_setup=-1) {
+    bool explicit_duration=empty_setup>=0;
+    double initial_duration=explicit_duration ? setup : (cost>0 ? setup:0);
+    double reset_duration=explicit_duration ? empty_setup : (empty_cost>0 ? setup:0);
     double earliest=std::max(time,arrival);
     double shift=std::floor(earliest/8);
     // For time <= earliest, this tests every crossed/exact shift boundary
     // without a floating-point remainder or a second floor operation.
-    if (earliest>=8 && time<=shift*8) cost=empty_cost;
-    double duration=cost>0 ? setup:0;
+    if (earliest>=8 && time<=shift*8) { cost=empty_cost; initial_duration=reset_duration; }
+    double duration=initial_duration;
     double end=(shift+1)*8;
-    if (earliest+duration+proc>end+1e-10) { earliest=end; cost=empty_cost; duration=cost>0 ? setup:0; }
+    if (earliest+duration+proc>end+1e-10) { earliest=end; cost=empty_cost; duration=reset_duration; }
     if (duration+proc>8+1e-10) return {earliest,earliest,std::numeric_limits<double>::infinity(),cost,0};
     return {earliest,earliest+duration,earliest+duration+proc,cost,0};
 }
@@ -90,7 +93,7 @@ struct Cache {
 struct Problem {
     int n, m, b, patterns;
     double setup, ink_weight, flow_weight;
-    std::vector<double> arrivals, batch_arrivals, processing, transitions;
+    std::vector<double> arrivals, batch_arrivals, processing, transitions, durations;
     std::vector<int> job_pattern, job_batch, initial_pattern;
     std::vector<double> initial_time, initial_ink, initial_batches;
 
@@ -98,7 +101,7 @@ struct Problem {
         int next=job_pattern[job];
         double cost=transitions[prev*patterns+next];
         double proc=processing[machine*n+job];
-        auto result=advance(time,arrivals[job],proc,cost,transitions[next],setup);
+        auto result=durations.empty() ? advance(time,arrivals[job],proc,cost,transitions[next],setup) : advance(time,arrivals[job],proc,cost,transitions[next],durations[prev*patterns+next],durations[next]);
         result.pattern=next; return result;
     }
 

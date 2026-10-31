@@ -10,3 +10,16 @@ dist/
 tmp/
 results/
 instances/smac/
+
+node_modules/
+.next/
+out/
+.toolchains/
+.wrangler/
+packages/optimizer/instances/smac/
+apps/web/public/optimizer/
+packages/optimizer-wasm/dist/
+*.tsbuildinfo
+
+test-results/
+playwright-report/

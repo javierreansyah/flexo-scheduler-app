@@ -1,0 +1,20 @@
+{
+  "name": "flexo-workspace",
+  "private": true,
+  "packageManager": "pnpm@10.33.2",
+  "scripts": {
+    "dev": "pnpm wasm:build && pnpm --filter @flexo/web dev",
+    "wasm:setup": "node scripts/wasm-setup.mjs",
+    "wasm:build": "node scripts/build-wasm.mjs",
+    "build": "pnpm wasm:build && pnpm --filter @flexo/web build",
+    "preview": "pnpm --filter @flexo/web preview",
+    "test": "pnpm --filter @flexo/web test",
+    "lint": "pnpm --filter @flexo/web lint",
+    "test:e2e": "pnpm --filter @flexo/web test:e2e",
+    "benchmark:browser": "node scripts/benchmark-browser.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "prettier": "^3.9.10"
+  }
+}

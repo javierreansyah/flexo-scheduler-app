@@ -11,7 +11,7 @@ setup(
     python_requires=">=3.10",
     ext_modules=[Pybind11Extension(
         "flexo._core", ["src/optimizer.cpp"], cxx_std=17,
-        depends=["src/engine.h", "src/moves.h"],
+        depends=["src/engine.h", "src/moves.h", "src/solver.h"],
         extra_compile_args=["/O2", "/fp:precise"] if sys.platform == "win32" else ["-O3", "-pthread"],
         extra_link_args=[] if sys.platform == "win32" else ["-pthread"],
     )],

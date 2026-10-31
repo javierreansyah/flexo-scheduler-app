@@ -90,7 +90,7 @@ def prepare(snapshot):
         return snapshot
     d = deepcopy(snapshot)
     allowed = {"now", "machines", "jobs", "locked", "machine_states", "setup_time",
-               "ink_weight", "batch_flow_time_weight", "ink_costs", "meta"}
+               "ink_weight", "batch_flow_time_weight", "ink_costs", "setup_durations", "meta"}
     unknown = d.keys() - allowed
     if unknown:
         raise ValueError(f"Unknown snapshot fields: {sorted(unknown)}")
@@ -152,6 +152,12 @@ def prepare(snapshot):
     indexed = [[label_index[str(ink)] for ink in p] for p in patterns]
     transitions = [_core.changeover(a, b, costs) for a in indexed for b in indexed]
     npat = len(patterns)
+    keys = [",".join(map(str, p)) or "empty" for p in patterns]
+    overrides = d.get("setup_durations", {})
+    if set(overrides)-set(keys) or any(set(row)-set(keys) for row in overrides.values()):
+        raise ValueError("Unknown setup duration pattern")
+    durations = [number(overrides.get(a, {}).get(b, setup if transitions[i*npat+j]>0 else 0), "setup duration") for i,a in enumerate(keys) for j,b in enumerate(keys)]
+    if any(x>8 for x in durations): raise ValueError("Setup durations cannot exceed 8 hours")
     arrivals = sorted({j["arrival_time"] for j in jobs.values()})
     batch_index = {a: i for i, a in enumerate(arrivals)}
     initial_time, initial_pattern, initial_ink, initial_batches = [], [], [], []
@@ -174,8 +180,8 @@ def prepare(snapshot):
             if earliest > now or earliest < max(clock, job["arrival_time"]) - 1e-9:
                 raise ValueError(f"Locked job {job_id} has not started or overlaps earlier work")
             nxt = pattern_index[tuple(job["inks"])]
-            result = _core.step(clock, max(job["arrival_time"], earliest), job["quantity"]/rates[m]/60,
-                                transitions[pat*npat+nxt], transitions[nxt], setup)
+            result = _core.step_duration(clock, max(job["arrival_time"], earliest), job["quantity"]/rates[m]/60,
+                                transitions[pat*npat+nxt], transitions[nxt], durations[pat*npat+nxt], durations[nxt])
             if any(not math.isclose(a, b, abs_tol=1e-8) for a, b in zip(result[:3], [earliest, start, completion])):
                 raise ValueError(f"Locked job {job_id} has inconsistent timestamps or crosses a shift")
             cost = result[3]
@@ -196,7 +202,7 @@ def prepare(snapshot):
     for job_id in movable:
         job = jobs[job_id]
         nxt = pattern_index[tuple(job["inks"])]
-        fresh_setup = setup if transitions[nxt] > 0 else 0
+        fresh_setup = durations[nxt]
         if all(job["quantity"]/rate/60 + fresh_setup > 8 + 1e-10 for rate in rates.values()):
             raise ValueError(f"Job {job_id} cannot fit within a fresh 8-hour shift on any machine")
     core = _core.Problem(dict(
@@ -204,7 +210,7 @@ def prepare(snapshot):
         initial_time=initial_time, initial_pattern=initial_pattern, initial_ink=initial_ink,
         initial_batches=initial_batches, patterns=npat, setup=setup, ink_weight=iw, flow_weight=fw,
         processing=[jobs[j]["quantity"]/rates[m]/60 for m in machines for j in movable],
-        transitions=transitions, job_pattern=[pattern_index[tuple(jobs[j]["inks"])] for j in movable],
+        transitions=transitions, durations=durations, job_pattern=[pattern_index[tuple(jobs[j]["inks"])] for j in movable],
         job_batch=[batch_index[jobs[j]["arrival_time"]] for j in movable]))
     return PreparedSnapshot(core, machines, movable, jobs, fixed, d)
 
