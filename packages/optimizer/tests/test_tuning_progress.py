@@ -45,7 +45,7 @@ def test_runner_help_and_small_campaign(tmp_path):
     help_result = subprocess.run([sys.executable, str(runner), "--help"], capture_output=True, text=True, check=True)
     assert "--trials" in help_result.stdout and "--workers" in help_result.stdout
     generate_smac(tmp_path/"data", replicas=1, previous_evaluations=100)
-    command = [sys.executable, str(runner), "--directory", str(tmp_path/"data"),
+    command = [sys.executable, str(runner), "--mode", "pareto", "--directory", str(tmp_path/"data"),
                "--workdir", str(tmp_path/"run"), "--output", str(tmp_path/"profiles.json"),
                "--max-evaluations", "100000", "--trials", "4", "--workers", "2"]
     first = subprocess.run(command, capture_output=True, text=True, check=True)

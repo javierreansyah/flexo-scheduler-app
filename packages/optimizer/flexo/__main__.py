@@ -39,6 +39,17 @@ def main():
     tuning.add_argument("--heldout-seeds", type=int, nargs=3, default=[142, 143, 144])
     tuning.add_argument("--resume", action="store_true")
     tuning.add_argument("--seed", type=int, default=42)
+    fixed = commands.add_parser("tune-fixed", help="Tune quality independently at fixed preset compute budgets")
+    fixed.add_argument("--directory", default="instances/smac")
+    fixed.add_argument("--output", type=Path, help="Default: <workdir>/profiles.json; existing app profiles are preserved")
+    fixed.add_argument("--workdir", default="results/fixed-budget-tuning")
+    fixed.add_argument("--trials", type=int, default=400, help="Additional trials per distinct size/budget beyond exact imported observations")
+    fixed.add_argument("--workers", type=int, default=0, help="0 uses available logical CPUs")
+    fixed.add_argument("--reuse-from", type=Path, help="Compatible prior Pareto campaign; solve cache is opened read-only")
+    fixed.add_argument("--seeds", type=int, nargs=3, default=[42,43,44])
+    fixed.add_argument("--heldout-seeds", type=int, nargs=3, default=[142,143,144])
+    fixed.add_argument("--seed", type=int, default=42)
+    fixed.add_argument("--resume", action="store_true")
     args = parser.parse_args()
     if args.command == "generate":
         kwargs = dict(directory=args.directory or f"instances/{args.kind}", replicas=args.replicas,
@@ -48,6 +59,11 @@ def main():
         else:
             paths = generate_validation(**kwargs)
         print(f"Generated {len(paths)} instances")
+    elif args.command == "tune-fixed":
+        from .fixed_tuning import tune_fixed
+        tune_fixed(args.directory, args.output, args.workdir, trials=args.trials,
+                   workers=args.workers, seed=args.seed, seeds=args.seeds,
+                   heldout_seeds=args.heldout_seeds, reuse_from=args.reuse_from, resume=args.resume)
     elif args.command == "tune":
         from .tuning import tune
         tune(args.directory, args.output, args.workdir, trials=args.trials,

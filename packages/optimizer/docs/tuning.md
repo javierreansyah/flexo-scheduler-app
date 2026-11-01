@@ -1,11 +1,84 @@
-# Cost / quality Pareto tuning
+# Fixed-budget preset tuning
+
+From `packages/optimizer`, run `python experiments/run_tuning.py` in your terminal.
+The play button (Run Python File in Terminal) works with no arguments. The runner
+defaults to fixed-budget mode, all logical CPU workers and three independent
+training seeds per instance. It does not start during installation.
+
+| Jobs | Quick / low | Balanced / medium | High |
+| ---: | ---: | ---: | ---: |
+| 10 | 100k | 100k | 100k |
+| 30 | 600k | 10m | 100m |
+| 50 | 3m | 20m | 100m |
+| 100 | 10m | 20m | 100m |
+
+Budgets are total proposals shared across starts. SMAC minimizes normalized
+training fitness separately at each budget, tuning all other SA parameters,
+including 1-20 starts. The budget is a ConfigSpace constant, so the optimizer
+cannot spend extra proposals to improve its objective. Equal budgets at the same
+size share one search; this makes ten searches rather than twelve.
+
+Default allowance is **400 additional trials per distinct size/budget**, beyond
+exact-budget imported observations. This can cost more overall than the previous
+400-trial-per-size multiobjective search, especially for the 100m tiers. N10 also
+gets one focused search; it is not run three times. Configure `--trials` before
+starting. Resume checks reject changed settings or optimizer builds.
+
+## Reuse, progress and outputs
+
+The runner automatically uses `results/pareto-tuning-100m-20starts` when available.
+It checks matching native binary, dataset, and seed panels. Exact-budget candidate
+scores initialize SMAC's model without consuming the additional trial allowance.
+Strong and nearby-budget parameters provide warm proposals; their budgets are
+changed and their old scores are never reused at those different budgets.
+
+Each solve first checks the new SQLite cache, then the previous campaign cache
+opened read-only. A key includes the exact snapshot, parameters (including total
+proposals and starts), and seed. Exact hits avoid SA entirely. Misses add only
+indexed lookups; source-cache reuse does not change search quality. A different
+cooling trajectory or parameter value must be computed. Previous results are not
+copied or modified. Do not delete/move the source while using it for resume.
+
+The terminal shows size/budget, completed/imported configurations, panel progress,
+cache hits and active workers. Ctrl+C cancels queued tasks, waits for active
+native tasks, and saves completed solves. Restarting the same file resumes,
+including a trial interrupted before SMAC received its score.
+
+```powershell
+python experiments/run_tuning.py --trials 400 --workers 20
+python experiments/run_tuning.py --workdir results/my-fixed-run --reuse-from results/pareto-tuning-100m-20starts
+python -m flexo tune-fixed --workdir results/my-fixed-run --reuse-from results/pareto-tuning-100m-20starts
+```
+
+The module CLI requires `--resume` on subsequent invocations; the foreground
+runner adds it automatically. It also auto-detects the previous campaign, whereas
+the module CLI uses only explicitly supplied `--reuse-from`.
+
+Outputs default to `results/fixed-budget-tuning`: manifest, local solve cache,
+`N<size>/budget-<proposals>/` candidates/SMAC checkpoints/winner, per-size profiles,
+and final `profiles.json`. Existing native and browser application profiles stay
+unchanged unless `--output` explicitly targets them. The export remains readable
+by `select_parameters` and the app build. Its `frontier` retains all preset points
+for ID lookup; `pareto_frontier` contains the actual nondominated subset.
+Before promoting results, also check browser support: current browser input and
+worker validation cap starts at ten, while this native tuning permits twenty.
+Any winner above ten starts needs that browser limit updated and tested first.
+
+Training chooses winners; heldout seeds 142/143/144 only measure selected winners.
+The exported validation records include overall, clean and carryover gaps to
+high. There are **no quality-gate fallbacks**: these are compute tiers. A cheaper
+tier may beat a more expensive one on sampled data; gaps can be negative. This
+is reported, not used to search/reselect on heldout. Repeated use of this heldout
+set is exploratory; reserve new instances for final acceptance.
+
+## Legacy cost / quality Pareto tuning
 
 Install and rebuild before starting a new campaign:
 
 ```powershell
 python -m pip install -e ".[tuning]"
 python -m flexo generate smac
-python experiments/run_tuning.py --workers 20
+python experiments/run_tuning.py --mode pareto --workers 20
 ```
 
 The foreground runner shows job sizes, completed configurations, and panel solves
@@ -56,7 +129,7 @@ than relying only on SMAC's final incumbent list.
 For an explicit import, use a new directory:
 
 ```powershell
-python experiments/run_tuning.py --workdir results/expanded --reuse-from results/pareto-tuning --trials 400
+python experiments/run_tuning.py --mode pareto --workdir results/expanded --reuse-from results/pareto-tuning --trials 400
 ```
 
 Imports require identical datasets, seed panels, normalization steps, and quality
@@ -132,7 +205,7 @@ For a small integration run in separate directories:
 
 ```powershell
 python -m flexo generate smac --replicas 1 --previous-evaluations 100 --directory tmp/smac
-python experiments/run_tuning.py --directory tmp/smac --trials 4 --max-evaluations 200000 --workers 4 --workdir tmp/pareto-check --output tmp/pareto-profiles.json
+python experiments/run_tuning.py --mode pareto --directory tmp/smac --trials 4 --max-evaluations 200000 --workers 4 --workdir tmp/pareto-check --output tmp/pareto-profiles.json
 ```
 
 Smoke profiles verify integration, not production quality. For the five-case

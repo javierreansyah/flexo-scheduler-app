@@ -101,10 +101,12 @@ def load_dataset(directory):
 
 class CachedEvaluator:
     """One bounded pool; only its coordinator accesses SQLite or aggregates scores."""
-    def __init__(self, path, workers=0):
+    def __init__(self, path, workers=0, read_cache=None):
         self.workers = integer(workers, "workers") or (os.cpu_count() or 1)
         self.db = sqlite3.connect(path)
         self.db.execute("CREATE TABLE IF NOT EXISTS solves (key TEXT PRIMARY KEY, value TEXT NOT NULL)")
+        self.previous = (sqlite3.connect(Path(read_cache).resolve().as_uri()+"?mode=ro", uri=True)
+                         if read_cache is not None else None)
         self.pool = ThreadPoolExecutor(max_workers=self.workers, thread_name_prefix="sa")
         self.hits = self.misses = self.active = self.peak = 0
         self.lock = threading.Lock()
@@ -113,6 +115,8 @@ class CachedEvaluator:
     def close(self):
         self.pool.shutdown(wait=True, cancel_futures=True)
         self.db.close()
+        if self.previous is not None:
+            self.previous.close()
 
     def solve(self, problem, parameters, seed):
         with self.lock:
@@ -152,6 +156,8 @@ class CachedEvaluator:
                 for seed in seeds:
                     key = fingerprint([identity, parameters, seed])
                     record = self.db.execute("SELECT value FROM solves WHERE key=?", (key,)).fetchone()
+                    if record is None and self.previous is not None:
+                        record = self.previous.execute("SELECT value FROM solves WHERE key=?", (key,)).fetchone()
                     if record is not None:
                         values[name, seed] = json.loads(record[0])
                         self.hits += 1

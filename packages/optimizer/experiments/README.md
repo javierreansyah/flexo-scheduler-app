@@ -76,6 +76,17 @@ For notebook exploration, open `experiments/playground.ipynb`. Edit the input,
 seed panel and parameters in its first code cell, run the experiment, then display
 the chart inline. It runs with an ordinary Python Jupyter kernel.
 
+## Tuning preset parameters at fixed costs
+
+Run `experiments/run_tuning.py` with Run Python File in Terminal, or run
+`python experiments/run_tuning.py` from the optimizer directory. It defaults to
+the agreed fixed budgets, 400 additional trials per distinct size/budget, three
+training seeds, all logical CPU workers, previous-cache reuse and tqdm progress.
+It auto-resumes `results/fixed-budget-tuning` and saves profiles there for review.
+Existing app profiles are preserved. For the legacy Pareto search, add
+`--mode pareto`. See [the tuning guide](../docs/tuning.md) for the budgets and
+cache/checkpoint behavior. No tuning has to be launched to open the playground.
+
 ## Pareto presets and worker throughput
 
 After Pareto tuning exports profiles, select `--preset low`, `medium` (default),

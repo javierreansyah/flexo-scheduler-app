@@ -122,10 +122,45 @@ replays visible arrivals and rejects inputs over 100 jobs.
 python -m flexo validate instances/validation/N100_K3_rho1.5_rep00.json --output results/validation.json
 ```
 
-## Pareto parameter and budget tuning
+## Fixed-budget preset tuning
+
+Run this file directly with Python's Run File in Terminal button, or:
 
 ```powershell
-python experiments/run_tuning.py --workers 20
+python experiments/run_tuning.py
+```
+
+It tunes starts (1-20), temperatures, cooling, greediness and move probabilities
+for quality independently at these **total** proposal budgets:
+
+| Jobs | Quick / low | Balanced / medium | High |
+| ---: | ---: | ---: | ---: |
+| 10 | 100k | 100k | 100k |
+| 30 | 600k | 10m | 100m |
+| 50 | 3m | 20m | 100m |
+| 100 | 10m | 20m | 100m |
+
+N10 shares one search across its three labels. Default: 400 additional trials
+per distinct size/budget (ten searches), three training seeds per instance, all
+available logical CPU workers, tqdm progress, and automatic resume. Ctrl+C waits
+for active native tasks and checkpoints completed solves. Heldout results report
+gaps; they do not collapse compute tiers or enforce the old 0.5%/2% preset gates.
+
+When present, `results/pareto-tuning-100m-20starts` supplies exact-budget model
+observations and a read-only solve-cache fallback. Other-budget configurations
+are warm proposals only and must be reevaluated at the new budget. Source native
+binary, dataset and seed panels must match. New solves/checkpoints/results go to
+`results/fixed-budget-tuning`; final profiles are written there, preserving
+existing application presets. Review results before promoting them.
+
+Use `--trials`, `--workers`, `--workdir`, `--reuse-from`, or `--output` to override
+defaults. The budget table is in `flexo/fixed_tuning.py`. Read
+[the tuning guide](docs/tuning.md) before changing a checkpoint's settings.
+
+## Legacy Pareto parameter and budget tuning
+
+```powershell
+python experiments/run_tuning.py --mode pareto --workers 20
 ```
 
 Runs in your terminal with tqdm progress and automatically resumes
