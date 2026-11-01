@@ -1,217 +1,201 @@
-# Completed Pareto tuning: results and web app readiness
+# Expanded Pareto tuning: results and next steps
 
-**Recommendation: start building the web app prototype now.** The optimizer has
-useful measured cost/quality tradeoffs and promising local latency. Further
-blanket tuning is less valuable than testing the frozen presets on fresh inputs
-and building the scheduling workflow. The current data supports a prototype
-within the tested problem family; it does not establish production readiness or
-guaranteed quality percentages for arbitrary schedules.
+**The additional 400 trials per size were useful. Another blanket increase to
+1,000-1,200 additional trials is not the next priority.** High improved mean
+normalized held-out fitness by only 0.140-0.440% for N30/N50/N100, at roughly five
+times the old high proposal cost. Cheaper configurations improved too, especially
+at N100. Medium now shares high at all three sizes under the current quality gates.
 
-This report analyzes `results/pareto-tuning` and the exported
-`flexo/profiles.json`. The accompanying [numeric snapshot](pareto-tuning-summary.json)
-preserves parameters, metrics, fingerprints, uncertainty estimates and timing
-samples. Source measurements remain in the campaign directory.
+This report supersedes the [original 20m report](pareto-tuning-report-20m.md).
+It compares `results/pareto-tuning-100m-20starts` with `results/pareto-tuning`.
+The [numeric snapshot](pareto-tuning-summary.json) contains selected parameters,
+preset metrics, bootstrap intervals, fixed-budget curves, and convergence data.
+The [old numeric snapshot](pareto-tuning-summary-20m.json) is retained separately.
+Fitness improvements are not equivalent to reductions in makespan or ink use
+individually, and proposal savings are not measured browser speedups.
 
-## Campaign integrity and scope
+## Integrity and scope
 
-All four sizes completed **400 successful configurations**, with no running or
-failed SMAC evaluations in the saved histories. Every candidate has all **20
-training snapshots x three seeds**: 96,000 candidate solves altogether. The
-SQLite cache contains **97,080 unique completed solves**, including normalization
-and heldout verification. Final progress counters report 97,021 computed and 59
-cached solves for that invocation; these counters are not lifetime totals across
-resumes.
+All four sizes finished **800 successful observations each**: 400 imported and
+400 additional configurations. Histories have no running or failed evaluations.
+All 1,600 imported candidate records are unchanged. The 3,200 candidate panels
+each contain 20 training snapshots and three seeds: **192,000 candidate solves
+represented**, including 96,000 from the original campaign.
 
-Checks performed for this report:
+The SQLite cache grew from 97,080 to **193,560 unique completed solves**: a net
+addition of 96,480, including baseline/held-out work. Final progress reports
+95,979 computed and 501 cached solves for the final invocation; these are not
+lifetime counters and exclude work saved before the interrupted session resumed.
 
-- Recomputed every frontier and training preset mapping from the 1,600 candidate files.
-- Checked history scores/costs against candidate records and complete seed panels.
-- Checked exported profiles match per-size results and all exported preset gates pass.
-- Verified the current dataset and native binary fingerprints match the campaign.
-- Independently rescored 16 newly timed schedules and checked exact proposal budgets.
+Checks performed without further optimization:
 
-The campaign used 20 solve workers, training seeds 42/43/44 and heldout seeds
-142/143/144. Training panels averaged about **16.3 CPU-seconds per wall-second**,
-showing substantial parallel work. The first-to-last SMAC evaluation timestamp
-span was **84.3 minutes**; this excludes initial normalization before the first
-trial and final verification after the last, and is not total campaign runtime.
+- Matched dataset and current native binary fingerprints to the manifest.
+- Confirmed the exported `flexo/profiles.json` equals the four per-size profiles.
+- Checked all candidate instance/seed panels, recomputed training summaries,
+  and matched all 3,200 SMAC objective pairs to candidate records.
+- Recomputed frontiers and training preset selections; all exported held-out
+  presets pass their applicable overall and case-type quality gates.
+- Confirmed old and new normalization means agree.
+
+Bounds were **1-20 starts** and **100k-100m total proposals in 100k steps**.
+The total budget is shared across starts, not multiplied by starts. The same
+three-machine datasets and objective were used, with balanced clean/carryover
+snapshots, training seeds 42/43/44, and held-out seeds 142/143/144.
 
 ## Exported presets
 
-Lower fitness is better. Gaps below compare the **mean normalized heldout
-fitness** with that size's high preset. A zero gap can mean two presets use the
-same configuration. Proposal counts are totals across starts.
+Lower fitness is better. Held-out gaps compare mean normalized fitness with the
+expanded high for that size. Gates apply separately to overall, clean, and
+carryover means: 2% for low and 0.5% for medium.
 
-| Movable jobs | Preset | Total proposals | Starts | Heldout gap to high | Proposal saving vs high |
+| Jobs | Preset | Total proposals | Starts | Held-out gap to high | Proposal saving vs high |
 | ---: | --- | ---: | ---: | ---: | ---: |
 | 10 | low / medium / high | 100,000 | 1 | 0.000% | 0% |
-| 30 | low / high | 19,000,000 | 6 | 0.000% | 0% |
-| 30 | medium | 6,500,000 | 7 | +0.366% | 65.8% |
-| 50 | low | 2,800,000 | 2 | +1.048% | 86.0% |
-| 50 | medium / high | 20,000,000 | 4 | 0.000% | 0% |
-| 100 | low | 9,700,000 | 3 | +0.503% | 51.5% |
-| 100 | medium | 18,800,000 | 4 | -0.014% | 6.0% |
-| 100 | high | 20,000,000 | 4 | 0.000% | 0% |
+| 30 | low | 600,000 | 3 | +1.843% | 99.4% |
+| 30 | medium / high | 100,000,000 | 4 | 0.000% | 0% |
+| 50 | low | 3,000,000 | 3 | +1.231% | 97.0% |
+| 50 | medium / high | 100,000,000 | 4 | 0.000% | 0% |
+| 100 | low | 10,000,000 | 4 | +0.804% | 90.0% |
+| 100 | medium / high | 100,000,000 | 4 | 0.000% | 0% |
 
-![Training frontiers and exported preset mappings](pareto-tuning-frontiers.png)
+![Original and expanded training frontiers](pareto-tuning-frontiers.png)
 
-**N10 is the clearest win.** Its sole frontier point uses 100k proposals and one
-start, matching all measured training and heldout baseline means. That is 94.1%
-fewer proposals than the previous 1.7m export. This does not prove optimality or
-that every possible ten-job instance is equally easy.
+Low supplies the useful interactive tradeoffs. N30 now has a valid inexpensive
+low preset, avoiding the original fallback that made low costlier than medium.
+These are mean-based empirical results, not per-schedule guarantees.
 
-**N30 medium and N50 low are useful practical tradeoffs.** N100 medium is almost
-the same cost as high, while low provides the meaningful speed/quality choice.
-Its slightly better heldout medium mean does not establish superiority over high;
-high was selected on training data.
+### Why medium became high
 
-At N50 and N100, high is the prior SA parameter set at 20m proposals, introduced
-in the initial design. SMAC found better efficiency points but did not beat that
-anchor's training quality. The run does not show that those parameters are
-globally optimal, or that 20m is necessary for good schedules.
+**N30:** training selected a 9.4m, six-start medium candidate. Its held-out overall
+gap was 0.493%, but carryover was **0.510%**, narrowly exceeding the 0.5% gate;
+clean was 0.476%. The policy correctly fell back to high. This is a borderline
+generalization failure, not a logging or calculation error.
 
-### Fallbacks reveal a preset policy issue
+**N50/N100:** medium already equaled high during training selection. Their old
+20m high points are only 0.432%/0.445% behind the expanded high overall on
+training, but carryover gaps are **0.705%/0.800%**. They fail the separate
+carryover gate. No cheaper frontier point meets all medium training gates.
 
-- **N30 low:** the proposed 500k setting regressed 2.031% overall and 2.337% on
-  carryover, exceeding its 2% gate. It correctly fell back to high. Consequently,
-  exported **low costs 19m while medium costs 6.5m**. This violates the expected
-  ordering of a low/medium/high product control.
-- **N50 medium:** the proposed 10m setting regressed only 0.311% overall, but
-  0.557% on carryover, exceeding its 0.5% gate. It fell back to high, so these two
-  labels currently produce identical schedules for the same seed.
+Raising the quality reference makes the same tolerance harder to satisfy.
+The collapse is consistent with the policy, but gives little product
+differentiation. Do not silently loosen gates or search for replacements on
+this held-out set.
 
-Keep the conservative exported results for analysis. Before exposing presets in
-the UI, make their cost ordering consistent: a failed low tier can share the
-already-approved medium configuration, rather than becoming more expensive.
-Do not search for new replacement candidates using heldout scores. Confirm the
-final policy on a fresh test set. Show only distinct options when tiers coincide.
+## What did the extra compute buy?
 
-## How reliable are the quality differences?
-
-Preset gates apply to overall and clean/carryover **means**, not every instance.
-For example:
-
-| Preset | Overall gap | Clean mean gap | Carryover mean gap | Worst instance mean gap |
-| --- | ---: | ---: | ---: | ---: |
-| N30 medium | +0.366% | +0.317% | +0.414% | +3.229% |
-| N50 low | +1.048% | +0.396% | +1.729% | +4.322% |
-| N100 low | +0.503% | -0.169% | +1.239% | +2.233% |
-| N100 medium | -0.014% | -0.197% | +0.187% | +0.906% |
-
-Each instance mean uses three seeds. The worst individual seeded solve may differ
-more; this table is not a per-request guarantee. Carryover remains the more
-sensitive group for these cheaper presets.
-
-A descriptive paired-replica bootstrap gives approximately these 95% intervals
-for the overall normalized gap: N30 medium **[0.121%, 0.723%]**, N50 low
-**[0.661%, 1.495%]**, N100 low **[0.326%, 0.677%]**, N100 medium
-**[-0.146%, 0.117%]**. The N30 medium interval extends above its nominal 0.5%
-tolerance. These gates are empirical point estimates, not confidence guarantees.
-
-Method: 5,000 resamples, fixed RNG seed 20261101, resampling the ten generation
-replicas with their clean/carryover pair kept together. Three-seed means remain
-fixed; intervals do not account for configuration selection or all seed noise.
-
-## Was 400 enough?
-
-Enough to provide useful prototype presets, but not to certify search convergence.
-High quality stopped improving early for N30/N50/N100; the efficiency frontier
-continued changing, especially at N100.
-
-| Jobs | Frontier points | First trial with exported high configuration | Final frontier points discovered in trials 301-400 | Frontier area gain, 300 to 400 |
+| Jobs | Old high proposals | Expanded high proposals | Training improvement | Held-out improvement |
 | ---: | ---: | ---: | ---: | ---: |
-| 10 | 1 | 373 | 1 | 0.000% |
-| 30 | 13 | 119 | 5 | 0.136% |
-| 50 | 18 | 66 | 4 | 0.076% |
-| 100 | 20 | 66 | 10 | 1.028% |
+| 10 | 100,000 | 100,000 | 0.000% | -0.048% |
+| 30 | 19,000,000 | 100,000,000 | 0.186% | 0.140% |
+| 50 | 20,000,000 | 100,000,000 | 0.430% | 0.337% |
+| 100 | 20,000,000 | 100,000,000 | 0.443% | 0.440% |
 
-N10 already had the same best quality and proposal cost by trial 100; its late
-exported configuration improves the starts tie-break, not either Pareto objective.
-Area is two-objective dominated hypervolume with a fixed reference of normalized
-fitness 1.05 and 20.1m proposals; it measures coverage of this cost/quality region,
-not a percentage improvement in schedule quality.
+For N30/N50/N100, high uses the **prior SA parameter family, four starts, and the
+maximum 100m budget**, included as an initial anchor. New parameter combinations
+did not beat that anchor on training. Final best quality was already available
+within the first 100 additional observations at each size. This suggests
+diminishing returns; it does not prove those parameters globally optimal.
 
-Do not automatically rerun all sizes at 1,000 trials. If later latency tests show
-N100 needs a cheaper middle preset, target that efficiency region. Additional
-search needs fresh final validation; simply increasing `--trials` in the completed
-work directory is refused by the current manifest compatibility check.
+N10's best training quality and budget stayed unchanged. A different parameter
+combination won the training tie-break and regressed held-out quality by 0.048%.
+The new tied combination is not demonstrated to be better. More tuning offered
+no measured training benefit for this size.
 
-## Speed and historical comparison
+Descriptive paired-replica bootstrap intervals for held-out fitness change
+`expanded high / old high - 1`:
 
-Saved tuning timings include contention from 20 concurrent single-thread solves.
-They should not be presented as interactive user latency. For a small sanity
-check, I ran requests sequentially with `num_threads=0`, allowing each solve to
-parallelize its starts, on heldout clean/carryover replica 00 with seed 142:
+| Jobs | Change | Approximate 95% interval |
+| ---: | ---: | ---: |
+| 10 | +0.048% | [0.000%, +0.113%] |
+| 30 | -0.140% | [-0.228%, -0.065%] |
+| 50 | -0.337% | [-0.448%, -0.232%] |
+| 100 | -0.440% | [-0.636%, -0.267%] |
 
-| Jobs | Preset | Observed isolated request time |
-| ---: | --- | ---: |
-| 10 | all | 0.009-0.010 s |
-| 30 | medium | 0.188-0.244 s |
-| 30 | low / high | 0.715-0.903 s |
-| 50 | low | 0.332-0.417 s |
-| 50 | medium / high | 1.257-1.635 s |
-| 100 | low | 1.165-1.317 s |
-| 100 | medium | 1.859-2.176 s |
-| 100 | high | 1.954-2.381 s |
+Larger-size gains appear consistent within this sampled family, but small in
+practical magnitude. These intervals do not establish independent post-selection
+significance: the held-out collection has been reused across campaigns.
 
-These are two inputs per configuration on this Windows machine, including input
-preparation, not a latency distribution, rolling-horizon timing, server load test
-or browser/WASM benchmark. All 16 schedules passed independent rescoring.
+### Fixed-budget efficiency
 
-For context, heldout raw mean fitness of high changed from the previous campaign:
-N10 **3.45328 -> 3.45328**, N30 **7.32456 -> 7.30625**, N50
-**12.00200 -> 11.96622**, N100 **24.54357 -> 24.44813**. Improvements for the
-larger sizes are about 0.25-0.39%, partly purchased with more proposals. The two
-campaigns share the same dataset and seed panels but have different binary
-fingerprints, so this is historical context, not a controlled algorithm comparison.
+Best observed training improvement over the old campaign at the same proposal
+cap; positive means lower fitness. This isolates efficiency from spending more.
 
-## Web app readiness and next steps
+| Jobs | At 100k | At 1m | At 3m | At 5m | At 20m |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 10 | 0.000% | 0.000% | 0.000% | 0.000% | 0.000% |
+| 30 | 0.000% | 0.289% | 0.201% | 0.116% | 0.000% |
+| 50 | 0.000% | 0.000% | 0.163% | 0.124% | 0.000% |
+| 100 | 2.829% | 0.000% | 0.749% | 0.642% | 0.000% |
 
-The data is adequate to start the scheduling UI and optimizer integration. It is
-too narrow to claim broad production quality:
+N100 has the clearest efficiency gains at small/intermediate budgets. No size
+improved the best training quality available at 20m. The high-quality gain comes
+from extending the budget. These fixed-budget candidates have not all been
+checked on held-out data; they are not certified replacement presets.
 
-- All snapshots use the same three machine rates (112/224/175) and sample from
-  15 original job templates, with quantity multipliers from 0.85 to 1.15.
-- Sizes are 10/30/50/100 movable jobs. Intermediate sizes use nearest-profile
-  selection and have not been certified by this campaign.
-- Every snapshot uses default ink transition costs, setup time and objective
-  weights. Custom matrices, other machine counts, unusual loads and substantially
-  different objective weights have no tuning evidence here.
-- Carryover is one previous horizon. The campaign does not test whole rolling
-  sequences or establish long-run scheduling quality.
-- The heldout collection was also used by the previous campaign, and old selected
-  profiles supplied warm starts. It was excluded from this campaign's SMAC
-  objective, but is not a fresh, untouched final test for the project as a whole.
+### Did allowing 20 starts help?
 
-Recommended order:
+The new search evaluated **390 configurations above ten starts** across all sizes.
+Only one survives on the final frontiers: N30 at 300k total proposals with 12
+starts. Every exported preset uses at most four starts. Retaining the option is
+reasonable, but the data does not support defaulting browser requests to 20 starts.
 
-1. **Freeze this result and build the prototype.** Archive the campaign and
-   version the exported profiles with their dataset/binary identifiers. The
-   current `flexo/profiles.json` is untracked and `results/` is Git-ignored; a fresh
-   clone otherwise falls back to untuned defaults. Keep three seeds for now.
-2. **Fix the preset ordering before adding the quality selector.** Share duplicate
-   choices and show their actual budget. Do not promise a per-schedule percentage
-   loss from these mean-based gates.
-3. **Run frozen presets on a fresh acceptance collection.** Prioritize new
-   instance diversity over increasing seeds alone: intermediate job counts,
-   near-capacity jobs, skewed machines, ink patterns/custom matrices, varied
-   objective weights, and different amounts of locked work. Include realistic
-   user schedules when available. Treat any later tuning as consuming that set
-   and reserve another fresh set for final acceptance.
-4. **Verify rolling behavior and actual latency.** Start with the existing five
-   representative validation cases, then the 200-instance collection if the
-   quick pass is sound. Compare fitness, ink cost, flow time, preserved locked
-   work and runtime against the prior frozen settings on the same build/seeds.
-   Measure request latency and concurrency on the intended deployment hardware.
-5. **Build a thin end-to-end slice:** input jobs and transitions, optimize the
-   current horizon, display the existing timeline/metrics, lock started jobs,
-   change inputs and reschedule. Keep the request's inputs, seed, profile version
-   and result for reproducibility. Bound concurrent optimizer workers globally
-   for multiple users; giving every simultaneous request all CPUs oversubscribes
-   the machine.
+## Is more tuning worthwhile?
 
-A Python-backed prototype can reuse the measured native engine. A browser/WASM
-deployment needs its own build, threading and timing checks; this campaign does
-not validate that route. No additional tuning or app implementation was launched
-as part of this report. The remaining priority is validation and product behavior,
-not finding a universally optimal SA configuration before building anything.
+| Jobs | Original to expanded frontier points | Frontier area gain in last 100 additional observations |
+| ---: | ---: | ---: |
+| 10 | 1 to 1 | 0.000% |
+| 30 | 13 to 19 | 0.031% |
+| 50 | 18 to 22 | 0.014% |
+| 100 | 20 to 25 | 0.020% |
+
+Area is dominated hypervolume with a fixed reference of normalized fitness 1.05
+and 100.1m proposals at every checkpoint. It measures frontier coverage, not
+schedule-quality improvement. Additional observations follow saved SMAC history
+order, excluding the 400 imports. Even the original frontier uses this expanded
+reference for comparison.
+
+Late refinements continued, but gains are small and high was flat after the
+first 100 additional observations. **Stop blanket tuning here.** Next steps:
+
+1. Freeze these results and make coincident presets clear in the UI. Under this
+   policy, medium/high are identical at N30/N50/N100.
+2. If a useful middle tier is required, test a fixed-parameter budget ladder
+   around 10m/20m/30m/50m/75m/100m, prioritizing N50/N100 carryover. The sparse
+   global search has not located the 0.5% boundary between 20m and 100m. Select
+   using training data and accept using a fresh final test collection.
+3. Decide whether product presets represent strict mean-quality tolerances or
+   explicit latency/compute budgets. For the latter, define budgets first and
+   select within them. Neither policy should promise per-schedule percentages.
+4. Validate frozen settings on new instance diversity: intermediate sizes,
+   machine rates/counts, objective weights, custom matrices, locked-work levels,
+   and rolling sequences. More search on this family cannot replace coverage.
+
+## Browser rollout and limitations
+
+`packages/optimizer/flexo/profiles.json` contains the expanded export.
+**The checked-in browser `apps/web/lib/profiles.json` still contains the previous
+presets.** The WASM build script regenerates browser profiles from the native
+export and enforces monotone low/medium proposal cost. The next full WASM build
+can therefore introduce 100m medium/high settings. Review this before deployment.
+
+Do not adopt 100m as the browser default from native tuning alone. Benchmark the
+exact WASM build on desktop/mobile hardware, including cancellation,
+responsiveness, and runtime/battery tradeoffs. Native timings under 20-worker
+contention are not interactive latency measurements. New training panels averaged
+15.1/18.5/19.0/19.1 CPU-seconds per wall-second for N10/N30/N50/N100, showing strong
+pool use. Summed new-panel wall time was 242 minutes, excluding model fitting and
+held-out work; this is not a total campaign stopwatch.
+
+Scope remains the original three machine rates (112/224/175), jobs sampled from
+15 industry templates with quantity jitter, default transitions/setup/weights,
+and one preceding horizon for carryover. Held-out cases were excluded from the
+SMAC objective but are no longer a fresh project-level acceptance collection.
+Gates protect sampled means, not each schedule. The worst held-out instance-mean
+low/high gaps were **4.621% at N30, 4.941% at N50, and 2.878% at N100**. Low's
+overall gap intervals were [1.447%, 2.273%], [0.744%, 1.800%], and [0.526%, 1.098%].
+
+Bootstrap method: 5,000 resamples, RNG seed 20261101, sampling ten generation
+replicas with clean/carryover pairs kept together; three-seed means remain fixed.
+Intervals omit selection uncertainty and do not fully model seed noise. Ratios
+use tuning's per-instance normalization. No new tuning, app preset changes, or
+runtime benchmarks were performed for this report.
