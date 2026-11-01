@@ -63,8 +63,8 @@ def parameters_checked(parameters):
         out[key] = integer(out[key], key, 0 if key == "evaluations" else 1)
         if out[key] > 2_000_000_000:
             raise ValueError(f"{key} exceeds the native integer limit")
-    if out["starts"] > 10:
-        raise ValueError("starts must be between 1 and 10")
+    if out["starts"] > 20:
+        raise ValueError("starts must be between 1 and 20")
     for key in ("t_max", "t_min", "rcl_alpha", "p_inter", "p_shift", "p_block"):
         out[key] = number(out[key], key)
     if not 0 < out["t_min"] < out["t_max"]:

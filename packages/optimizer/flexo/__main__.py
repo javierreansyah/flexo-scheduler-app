@@ -33,7 +33,8 @@ def main():
     tuning.add_argument("--workdir", default="results/pareto-tuning")
     tuning.add_argument("--trials", type=int, default=400)
     tuning.add_argument("--workers", type=int, default=0, help="Global solve workers; 0 uses available logical CPUs")
-    tuning.add_argument("--max-evaluations", type=int, default=20_000_000, help="Upper proposal budget; multiples of 100k")
+    tuning.add_argument("--max-evaluations", type=int, default=100_000_000, help="Upper total proposal budget; multiples of 100k, up to 100m")
+    tuning.add_argument("--reuse-from", type=Path, help="Import completed Pareto observations and verified solve cache into a new workdir")
     tuning.add_argument("--seeds", type=int, nargs=3, default=[42, 43, 44])
     tuning.add_argument("--heldout-seeds", type=int, nargs=3, default=[142, 143, 144])
     tuning.add_argument("--resume", action="store_true")
@@ -51,7 +52,7 @@ def main():
         from .tuning import tune
         tune(args.directory, args.output, args.workdir, trials=args.trials,
              workers=args.workers, max_evaluations=args.max_evaluations, seeds=args.seeds,
-             heldout_seeds=args.heldout_seeds, seed=args.seed, resume=args.resume)
+             heldout_seeds=args.heldout_seeds, seed=args.seed, resume=args.resume, reuse_from=args.reuse_from)
     else:
         data = json.loads(args.input.read_text(encoding="utf-8"))
         params = json.loads(args.parameters.read_text(encoding="utf-8")) if args.parameters else None

@@ -65,7 +65,7 @@ def test_pareto_smoke_exports_four_profiles_and_resumes(tmp_path):
         for point in profile["frontier"]:
             assert 100_000 <= point["parameters"]["evaluations"] <= 200_000
             assert point["parameters"]["evaluations"] % 100_000 == 0
-            assert 1 <= point["parameters"]["starts"] <= 10
+            assert 1 <= point["parameters"]["starts"] <= 20
             assert all(len(r["samples"]) == 3 for r in point["measurements"].values())
         assert (tmp_path/f"runs/N{n}/frontier.png").exists()
         assert (tmp_path/f"runs/N{n}/frontier.csv").exists()

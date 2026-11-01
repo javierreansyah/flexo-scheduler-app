@@ -10,7 +10,9 @@ python experiments/run_tuning.py --workers 20
 
 The foreground runner shows job sizes, completed configurations, and panel solves
 with cached/computed counts and active workers. It starts or automatically resumes
-`results/pareto-tuning`. Press **Ctrl+C** to cancel queued tasks, wait for active
+`results/pareto-tuning-100m-20starts`. If the original `results/pareto-tuning`
+exists, its completed observations and solve cache are imported automatically.
+The source directory is kept unchanged. Press **Ctrl+C** to cancel queued tasks, wait for active
 native solves to finish and save them, then rerun the same command to resume.
 Use `--workdir results/my-pareto-run` for a separate campaign. A full campaign is
 never launched by installation or tests.
@@ -20,8 +22,8 @@ never launched by installation or tests.
 Each size (10, 30, 50, 100 movable jobs) gets one SMAC **ParEGO** multiobjective
 campaign. There are no reference/reduction stages. Each candidate jointly tunes:
 
-- Total proposals: **100,000 through 20,000,000**, in exact **100,000** steps.
-- Starts: **1 through 10** (ordinary API default remains four).
+- Total proposals: **100,000 through 100,000,000**, in exact **100,000** steps.
+- Starts: **1 through 20** (ordinary API default remains four).
 - Initial/final temperatures, cooling stage length, GRASP greediness, and
   inter-machine, insertion/swap, and block move probabilities.
 
@@ -39,14 +41,32 @@ quality gate. SMAC receives proposal cost scaled by the configured maximum.
 Raw fitness, clean/carryover means, three seed-panel means and their standard
 deviation are recorded too.
 
-Defaults are **400 candidate configurations per size**, each fully evaluated on
+Defaults are **400 additional trials per size** when importing an earlier campaign
+(800 total observations when importing 400), or 400 for a fresh campaign, each fully evaluated on
 20 training snapshots (10 clean, 10 carryover) and seeds **42/43/44**. That is up
 to 24,000 training solves per size, plus normalization and heldout verification;
 cached repeats are free. Existing profiles supply warm-start configurations,
 which are measured afresh. Their old scores are never imported. Initial design
 also includes the prior 100k and maximum-budget settings when the trial allowance
-permits. Pareto points are recomputed from all completed candidate panels rather
+permits. Imported candidates are supplied to the new SMAC model as observations,
+with proposal costs rescaled to the new maximum. They do not consume the additional
+trial allowance. Pareto points are recomputed from all completed candidate panels rather
 than relying only on SMAC's final incumbent list.
+
+For an explicit import, use a new directory:
+
+```powershell
+python experiments/run_tuning.py --workdir results/expanded --reuse-from results/pareto-tuning --trials 400
+```
+
+Imports require identical datasets, seed panels, normalization steps, and quality
+tolerances. Before copying the SQLite cache, the current solver recomputes every
+training baseline solve and short/long frontier samples for each size. A fitness
+mismatch rejects reuse. These checks provide regression evidence across native
+rebuilds, not a proof of equivalence for every cached trajectory. Exact repeated
+snapshot/parameter/seed keys then hit the cache; different budgets are new solves,
+because they use different cooling schedules. The old SMAC checkpoint itself is
+not resumed across a changed search space. New checkpoints resume normally.
 
 ## Presets and heldout verification
 

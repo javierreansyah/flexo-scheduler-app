@@ -129,12 +129,14 @@ python experiments/run_tuning.py --workers 20
 ```
 
 Runs in your terminal with tqdm progress and automatically resumes
-`results/pareto-tuning`. Press Ctrl+C to checkpoint and stop; repeat the command
-to continue. Use a new `--workdir` for a separate campaign.
+`results/pareto-tuning-100m-20starts`. Completed observations and verified cached
+solves from `results/pareto-tuning` are imported automatically when present.
+Press Ctrl+C to checkpoint and stop; repeat the command to continue.
+Use a new `--workdir` and `--reuse-from results/pareto-tuning` for an explicit import.
 
-One SMAC ParEGO campaign per size jointly tunes SA parameters, **1-10 starts**,
-and **100k-20m total proposals in 100k steps**. Defaults are 400 configurations
-per size, three training seeds (42/43/44), and three heldout seeds (142/143/144).
+One SMAC ParEGO campaign per size jointly tunes SA parameters, **1-20 starts**,
+and **100k-100m total proposals in 100k steps**. Defaults are 400 additional trials
+per size beyond imported observations, three training seeds (42/43/44), and three heldout seeds (142/143/144).
 Each full training panel supplies 60 independent solves to a shared worker pool;
 `--workers 0` uses available logical CPUs. Each solve runs its starts serially.
 SMAC model fitting and panel tails can still leave CPUs idle.

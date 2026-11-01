@@ -38,7 +38,11 @@ class TerminalProgress(io.TextIOBase):
             self.current = int(match[1])
             path = self.workdir/f"N{self.current}"/"smac/pareto"/str(self.seed)/"runhistory.json"
             self.base = int(json.loads(path.read_text())["stats"]["finished"]) if path.exists() else 0
-            self.phase = tqdm(total=self.trials, initial=self.base, desc=f"N{self.current} Pareto",
+            total = re.search(r"trials=(\d+)", line)
+            inherited = re.search(r"reused=(\d+)", line)
+            if not path.exists() and inherited:
+                self.base = int(inherited[1])
+            self.phase = tqdm(total=int(total[1]) if total else self.trials, initial=self.base, desc=f"N{self.current} Pareto",
                               unit="config", position=1, file=self.bar_stream, disable=self.disable, dynamic_ncols=True)
         match = re.match(r"Solves: (\d+)/(\d+) (.*)", line)
         if match:
@@ -87,19 +91,24 @@ def main():
     os.chdir(root)
     if str(root) not in sys.path: sys.path.insert(0, str(root))
     parser = argparse.ArgumentParser(add_help=False)
-    parser.add_argument("--workdir", default="results/pareto-tuning")
+    parser.add_argument("--workdir", default="results/pareto-tuning-100m-20starts")
+    parser.add_argument("--reuse-from")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--trials", type=int, default=400)
     args, remaining = parser.parse_known_args()
     resume = (Path(args.workdir)/"manifest.json").exists()
     command = ["tune", "--workdir", args.workdir, "--seed", str(args.seed), "--trials", str(args.trials), *remaining]
+    source = args.reuse_from
+    if source is None and args.workdir == "results/pareto-tuning-100m-20starts" and Path("results/pareto-tuning/manifest.json").exists():
+        source = "results/pareto-tuning"
+    if source is not None: command.extend(["--reuse-from", source])
     if resume and "--resume" not in command: command.append("--resume")
     from flexo.__main__ import main as tune_main
     sys.argv[1:] = command
     if "--help" in command or "-h" in command:
         tune_main(); return
     print(f"{'Resuming' if resume else 'Starting'} Pareto tuning in {Path(args.workdir).resolve()}")
-    print("Ctrl+C cancels queued tasks and checkpoints active solves before stopping. Starts: 1-10; seeds per instance: 3.")
+    print("Ctrl+C cancels queued tasks and checkpoints active solves before stopping. Starts: 1-20; seeds per instance: 3.")
     progress = TerminalProgress(args.workdir, args.seed, args.trials)
     success = False
     try:

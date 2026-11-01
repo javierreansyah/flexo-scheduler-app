@@ -15,7 +15,7 @@ from .api import DEFAULT_PARAMETERS, integer, optimize, parameters_checked, prep
 from .instances import SIZES, write_json
 
 EVALUATION_STEP = 100_000
-MAX_EVALUATIONS = 20_000_000
+MAX_EVALUATIONS = 100_000_000
 PRESET_TOLERANCES = {"low": .02, "medium": .005, "high": 0.}
 PRIOR_PARAMETERS = dict(t_max=.1603194019, t_min=.0116169910, stage_length=4908,
                         starts=4, rcl_alpha=.2746914740, p_inter=.6647498733,
@@ -29,7 +29,7 @@ def fingerprint(value):
 def budget_steps(evaluations):
     evaluations = integer(evaluations, "evaluations", EVALUATION_STEP)
     if evaluations % EVALUATION_STEP or evaluations > MAX_EVALUATIONS:
-        raise ValueError("Budget must be a multiple of 100,000 from 100k through 20m")
+        raise ValueError("Budget must be a multiple of 100,000 from 100k through 100m")
     return evaluations // EVALUATION_STEP
 
 
@@ -40,7 +40,7 @@ def configuration_space(seed=42, max_evaluations=MAX_EVALUATIONS):
     space.add(Float("t_max", (.01, 100_000.), default=500., log=True),
               Float("temperature_ratio", (1e-8, .99), default=.001/500, log=True),
               Integer("stage_length", (1, 5000), default=1000),
-              Integer("starts", (1, 10), default=4), Float("rcl_alpha", (0., 1.), default=.5),
+              Integer("starts", (1, 20), default=4), Float("rcl_alpha", (0., 1.), default=.5),
               Float("p_inter", (0., 1.), default=.5), Float("p_shift", (0., 1.), default=.5),
               Float("p_block", (0., 1.), default=.5),
               Constant("evaluation_steps", 1) if steps == 1 else Integer("evaluation_steps", (1, steps), default=steps, log=True))
@@ -287,9 +287,52 @@ def warm_parameters(path, max_evaluations):
     return result
 
 
+def reuse_campaign(source, workdir, dataset, manifest, workers):
+    """Copy exact solves only after checking old fitness against today's solver."""
+    source = Path(source).resolve()
+    old = json.loads((source/"manifest.json").read_text())
+    for key in ("schema_version", "mode", "dataset_sha256", "evaluation_step", "seeds", "heldout_seeds", "tolerances"):
+        if old.get(key) != manifest[key]:
+            raise ValueError(f"Cannot reuse campaign: {key} differs")
+    if source == workdir.resolve():
+        raise ValueError("Reuse needs a new work directory; the source is kept unchanged")
+    points = {}
+    verifier = CachedEvaluator(":memory:", workers)
+    try:
+        for n in SIZES:
+            profile = json.loads((source/f"N{n}/profile.json").read_text())
+            rows = dataset["train"][n]
+            print(f"N{n}: checking cached baseline against current solver", flush=True)
+            measured = verifier.panel(rows, profile["baseline_parameters"], manifest["seeds"])
+            checks = [(measured, profile["normalization"])]
+            # Include long-run trajectories, not just the 100k normalization panel.
+            for point in (profile["frontier"][0], profile["frontier"][-1]):
+                sample = [next(row for row in rows if row[1] == kind) for kind in ("clean", "carryover")]
+                checks.append((verifier.panel(sample, point["parameters"], manifest["seeds"][:1]), point["measurements"]))
+            for actual, expected in checks:
+                for name, row in actual.items():
+                    saved = {s["seed"]: s["fitness"] for s in expected[name]["samples"]}
+                    if any(abs(s["fitness"]-saved[s["seed"]]) > 1e-12 for s in row["samples"]):
+                        raise ValueError(f"Cached fitness differs from current solver: N{n}/{name}; reuse refused")
+            points[n] = [json.loads(p.read_text()) for p in sorted((source/f"N{n}/candidates").glob("*.json"))]
+            for point in points[n]:
+                as_config(configuration_space(max_evaluations=manifest["max_evaluations"]), point["parameters"])
+    finally:
+        verifier.close()
+    workdir.mkdir(parents=True, exist_ok=True)
+    with sqlite3.connect(f"{(source/'solves.sqlite3').as_uri()}?mode=ro", uri=True) as src, sqlite3.connect(workdir/"solves.sqlite3") as dst:
+        src.backup(dst)
+    for n, candidates in points.items():
+        for point in candidates:
+            write_json(workdir/f"N{n}/candidates/{point['id']}.json", point)
+    return dict(source=str(source), manifest_sha256=fingerprint(old),
+                verified_current_solver=True, candidates={str(n): len(p) for n, p in points.items()})
+
+
 def campaign(rows, heldout, evaluator, seeds, heldout_seeds, trials, seed, max_evaluations, warm, folder):
     from smac import HyperparameterOptimizationFacade, Scenario
     from smac.multi_objective.parego import ParEGO
+    from smac.runhistory.dataclasses import TrialInfo, TrialValue
     profile_path = folder/"profile.json"
     if profile_path.exists():
         profile = json.loads(profile_path.read_text())
@@ -328,6 +371,14 @@ def campaign(rows, heldout, evaluator, seeds, heldout_seeds, trials, seed, max_e
     smac = HyperparameterOptimizationFacade(scenario, target, initial_design=design, intensifier=intensifier,
                                            multi_objective_algorithm=ParEGO(scenario, rho=.05, seed=seed),
                                            overwrite=False, logging_level=30)
+    # A changed search space gets a fresh SMAC state, seeded with old observations.
+    # Reconstruct from the saved candidate panels; never reuse scaled old costs.
+    for path in sorted(candidates_path.glob("*.json")):
+        point = json.loads(path.read_text())
+        config = as_config(space, point["parameters"])
+        if not smac.runhistory.has_config(config):
+            smac.tell(TrialInfo(config, seed=seed),
+                      TrialValue(cost=[point["quality"], point["parameters"]["evaluations"]/max_evaluations]))
     smac.optimize()
     candidates = [json.loads(p.read_text()) for p in sorted(candidates_path.glob("*.json"))]
     if not candidates:
@@ -347,7 +398,7 @@ def campaign(rows, heldout, evaluator, seeds, heldout_seeds, trials, seed, max_e
 
 def tune(directory="instances/smac", output="flexo/profiles.json", workdir="results/pareto-tuning", *,
          trials=400, workers=0, max_evaluations=MAX_EVALUATIONS, seeds=(42, 43, 44),
-         heldout_seeds=(142, 143, 144), seed=42, resume=False):
+         heldout_seeds=(142, 143, 144), seed=42, resume=False, reuse_from=None):
     trials = integer(trials, "trials", 1)
     workers = integer(workers, "workers") or (os.cpu_count() or 1)
     budget_steps(max_evaluations)
@@ -368,9 +419,13 @@ def tune(directory="instances/smac", output="flexo/profiles.json", workdir="resu
     manifest = dict(schema_version=4, mode="parego", dataset_sha256=identity,
                     core_sha256=hashlib.sha256(Path(_core.__file__).read_bytes()).hexdigest(),
                     source_sha256=fingerprint([Path(__file__).read_text(), Path(__file__).with_name("api.py").read_text()]),
-                    evaluation_step=EVALUATION_STEP, max_evaluations=max_evaluations, max_starts=10,
+                    evaluation_step=EVALUATION_STEP, max_evaluations=max_evaluations, max_starts=20,
                     trials=trials, workers=workers, seeds=seeds, heldout_seeds=heldout_seeds,
                     smac_seed=seed, warm_starts=warm, tolerances=PRESET_TOLERANCES)
+    if previous is not None and "reused" in previous:
+        manifest["reused"] = previous["reused"]
+        if reuse_from is not None and str(Path(reuse_from).resolve()) != previous["reused"]["source"]:
+            raise ValueError("Resume reuse source differs from the saved campaign")
     if previous is not None:
         if not resume:
             raise ValueError("Campaign already exists; use --resume")
@@ -380,15 +435,19 @@ def tune(directory="instances/smac", output="flexo/profiles.json", workdir="resu
         if any(workdir.glob("*")):
             raise ValueError("Nonempty work directory has no compatible manifest")
         workdir.mkdir(parents=True, exist_ok=True)
+        if reuse_from is not None:
+            manifest["reused"] = reuse_campaign(reuse_from, workdir, dataset, manifest, workers)
         write_json(manifest_path, manifest)
     evaluator = CachedEvaluator(workdir/"solves.sqlite3", workers)
     exported = dict(manifest, profiles={})
     try:
         for n in SIZES:
             folder = workdir/f"N{n}"; folder.mkdir(exist_ok=True)
-            print(f"N{n}: pareto search, trials={trials}, workers={workers}, instances={len(dataset['train'][n])} x 3 seeds", flush=True)
+            inherited = manifest.get("reused", {}).get("candidates", {}).get(str(n), 0)
+            total_trials = trials + inherited
+            print(f"N{n}: pareto search, trials={total_trials}, reused={inherited}, workers={workers}, instances={len(dataset['train'][n])} x 3 seeds", flush=True)
             exported["profiles"][str(n)] = campaign(dataset["train"][n], dataset["heldout"][n], evaluator,
-                                                   seeds, heldout_seeds, trials, seed, max_evaluations, warm[str(n)], folder)
+                                                   seeds, heldout_seeds, total_trials, seed, max_evaluations, warm[str(n)], folder)
             print(f"N{n}: presets ready, frontier={len(exported['profiles'][str(n)]['frontier'])}", flush=True)
         write_json(output, exported)
         write_json(workdir/"progress.json", dict(complete=True, cache_hits=evaluator.hits, computed=evaluator.misses))

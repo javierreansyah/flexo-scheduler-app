@@ -20,23 +20,23 @@ def point(name, cost, quality, clean=None, carry=None, starts=4):
                                              carryover=quality if carry is None else carry))
 
 
-def test_search_bounds_and_exact_budget_with_ten_starts():
+def test_search_bounds_and_exact_budget_with_twenty_starts():
     assert DEFAULT_PARAMETERS["starts"] == 4
     space = configuration_space()
-    for starts in range(1, 11):
+    for starts in range(1, 21):
         assert parameters_checked({"starts": starts})["starts"] == starts
-        for steps in (1, 2, 16, 200):
+        for steps in (1, 2, 16, 200, 1000):
             result = decode(dict(t_max=1., temperature_ratio=.1, starts=starts, evaluation_steps=steps))
             assert result["evaluations"] == steps*100_000
             assert decode(as_config(space, result))["evaluations"] == result["evaluations"]
-    with pytest.raises(ValueError, match="1 and 10"):
-        parameters_checked({"starts": 11})
+    with pytest.raises(ValueError, match="1 and 20"):
+        parameters_checked({"starts": 21})
     for config in space.sample_configuration(30):
         result = decode(config)
-        assert 100_000 <= result["evaluations"] <= 20_000_000
+        assert 100_000 <= result["evaluations"] <= 100_000_000
         assert result["evaluations"] % 100_000 == 0
     assert decode(configuration_space(max_evaluations=100_000).get_default_configuration())["evaluations"] == 100_000
-    for bad in (18_837, 250_000, 20_100_000):
+    for bad in (18_837, 250_000, 100_100_000):
         with pytest.raises(ValueError): configuration_space(max_evaluations=bad)
 
 
@@ -102,7 +102,7 @@ def test_serial_parallel_native_results_match(tmp_path):
     clean = prepare(production_example())
     other = deepcopy(production_example()); other["now"] = 3
     rows = [("clean", "clean", clean), ("other", "carryover", prepare(other))]
-    parameters = parameters_checked({"evaluations": 10_001, "starts": 10})
+    parameters = parameters_checked({"evaluations": 10_001, "starts": 20})
     serial = CachedEvaluator(tmp_path/"serial.sqlite3", 1)
     parallel = CachedEvaluator(tmp_path/"parallel.sqlite3", 6)
     try:
@@ -110,7 +110,7 @@ def test_serial_parallel_native_results_match(tmp_path):
         b = parallel.panel(rows, parameters, [42, 43, 44])
         assert {k: [r["fitness"] for r in v["samples"]] for k, v in a.items()} == {k: [r["fitness"] for r in v["samples"]] for k, v in b.items()}
         s = optimize(clean, parameters, seed=42, num_threads=1)
-        p = optimize(clean, parameters, seed=42, num_threads=10)
+        p = optimize(clean, parameters, seed=42, num_threads=20)
         assert s["schedule"] == p["schedule"]
         assert s["evaluations"] == p["evaluations"] == 10_001
     finally:
@@ -191,3 +191,41 @@ def test_interrupted_smac_campaign_resumes(tmp_path, monkeypatch):
     monkeypatch.setattr(module, "write_json", original)
     result = tune(tmp_path/"data", tmp_path/"profiles.json", tmp_path/"runs", resume=True, **settings)
     assert set(result["profiles"]) == {"10", "30", "50", "100"}
+
+
+def test_expanded_campaign_reuses_observations_and_cache(tmp_path, monkeypatch):
+    pytest.importorskip("smac")
+    import flexo.tuning as module
+    generate_smac(tmp_path/"data", replicas=1, previous_evaluations=100)
+    calls = []
+    def solve(self, problem, parameters, seed):
+        calls.append((parameters, seed))
+        return dict(seed=seed, fitness=1., seconds=.01)
+    monkeypatch.setattr(CachedEvaluator, "solve", solve)
+    settings = dict(trials=4, workers=2, max_evaluations=100_000)
+    tune(tmp_path/"data", tmp_path/"old.json", tmp_path/"old", **settings)
+    original = {p.relative_to(tmp_path/"old"): p.read_bytes() for p in (tmp_path/"old").rglob("*") if p.is_file()}
+    result = tune(tmp_path/"data", tmp_path/"new.json", tmp_path/"new",
+                  reuse_from=tmp_path/"old", **{**settings, "max_evaluations": 200_000})
+    assert result["reused"]["verified_current_solver"]
+    for n in (10, 30, 50, 100):
+        history = json.loads((tmp_path/f"new/N{n}/smac/pareto/42/runhistory.json").read_text())
+        assert history["stats"]["finished"] == 8
+        old_ids = {p.name for p in (tmp_path/f"old/N{n}/candidates").glob("*.json")}
+        assert old_ids <= {p.name for p in (tmp_path/f"new/N{n}/candidates").glob("*.json")}
+    assert all((tmp_path/"old"/p).read_bytes() == raw for p, raw in original.items())
+    db = CachedEvaluator(tmp_path/"new/solves.sqlite3", 1)
+    try:
+        rows = module.load_dataset(tmp_path/"data")[0]["train"][10]
+        profile = json.loads((tmp_path/"old/N10/profile.json").read_text())
+        before = len(calls)
+        db.panel(rows, profile["baseline_parameters"], [42, 43, 44])
+        assert db.hits == 6 and len(calls) == before
+    finally:
+        db.close()
+    resumed = tune(tmp_path/"data", tmp_path/"new.json", tmp_path/"new", resume=True,
+                   **{**settings, "max_evaluations": 200_000})
+    assert resumed["profiles"] == result["profiles"]
+    monkeypatch.setattr(CachedEvaluator, "solve", lambda self, p, params, seed: dict(seed=seed, fitness=2., seconds=.01))
+    with pytest.raises(ValueError, match="Cached fitness differs"):
+        tune(tmp_path/"data", tmp_path/"bad.json", tmp_path/"bad", reuse_from=tmp_path/"old", **settings)
