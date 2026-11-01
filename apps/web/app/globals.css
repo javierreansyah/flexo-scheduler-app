@@ -1133,3 +1133,101 @@ label,
       calc(var(--text-base) * 16);
   }
 }
+
+/* Shared content rail; the grid canvas occupies the complete case-study header. */
+.workspace,
+.hero,
+.portfolio-footer-content {
+  width: 100%;
+  max-width: 120rem;
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+.masthead {
+  padding: 0;
+  min-height: calc(var(--text-base) * 41.34);
+}
+.hero {
+  padding-top: calc(var(--text-base) * 8.4);
+  padding-bottom: calc(var(--text-base) * 16);
+}
+.color-catalog {
+  padding-block: 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+.color-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-block: 1rem;
+}
+.color-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+}
+.color-row input[type="color"] {
+  width: 2.25rem;
+  height: 2.25rem;
+  flex-shrink: 0;
+  padding: 2px;
+  cursor: pointer;
+}
+.color-row input:not([type="color"]) {
+  width: 100%;
+  min-width: 0;
+}
+.color-row button {
+  border: 0;
+  background: none;
+  color: #999;
+  font-size: var(--text-sm);
+}
+input[type="range"] {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  height: 24px;
+  cursor: pointer;
+  accent-color: #eee;
+}
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 3px;
+  background: #444;
+}
+input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  width: 14px;
+  height: 18px;
+  margin-top: -7.5px;
+  background: #eee;
+  border: 1px solid #999;
+  border-radius: 0;
+}
+input[type="range"]::-moz-range-track {
+  height: 3px;
+  background: #444;
+}
+input[type="range"]::-moz-range-progress {
+  height: 3px;
+  background: #aaa;
+}
+input[type="range"]::-moz-range-thumb {
+  width: 14px;
+  height: 18px;
+  background: #eee;
+  border: 1px solid #999;
+  border-radius: 0;
+}
+input[type="range"]:focus-visible {
+  outline: 1px solid #eee;
+  outline-offset: 5px;
+}
+@media (max-width: 640px) {
+  .masthead {
+    padding: 0;
+    min-height: calc(var(--text-base) * 46.61);
+  }
+}

@@ -67,7 +67,9 @@ test("spreadsheet paste appends rows atomically", async ({ page }) => {
   await expect(page.getByLabel("Quantity row 1", { exact: true })).toHaveValue(
     "6000",
   );
-  await expect(page.getByLabel("Inks row 2", { exact: true })).toHaveValue("3");
+  await expect(page.getByLabel("Inks row 2", { exact: true })).toHaveValue(
+    "Brown",
+  );
 });
 
 test("ink editing and selected row deletion", async ({ page }) => {
@@ -76,7 +78,7 @@ test("ink editing and selected row deletion", async ({ page }) => {
   const inks = page.getByLabel("Inks row 1", { exact: true });
   await inks.fill("1,2,2");
   await inks.press("Tab");
-  await expect(inks).toHaveValue("1, 2, 2");
+  await expect(inks).toHaveValue("Red, Green, Green");
   await page.getByLabel("Select row 1", { exact: true }).check();
   await page
     .getByRole("button", { name: "Delete 1 selected", exact: true })
@@ -112,13 +114,13 @@ test("industry cost matrix edits persist and affect actual WASM scoring", async 
     buffer: Buffer.from(JSON.stringify(project)),
   });
   await page.getByRole("button", { name: "changeovers", exact: true }).click();
-  const cost = page.getByLabel("Ink cost 9 to 1", { exact: true });
+  const cost = page.getByLabel("Ink cost Color I to Color A", { exact: true });
   await expect(cost).toHaveValue("1");
-  await expect(page.getByLabel("Ink cost 1 to 9", { exact: true })).toHaveValue(
-    "0",
-  );
   await expect(
-    page.getByLabel("Ink cost 9 to 9", { exact: true }),
+    page.getByLabel("Ink cost Color A to Color I", { exact: true }),
+  ).toHaveValue("0");
+  await expect(
+    page.getByLabel("Ink cost Color I to Color I", { exact: true }),
   ).toBeDisabled();
   await cost.fill("3");
   await cost.press("Enter");
@@ -138,7 +140,7 @@ test("matrix adds new inks without overwriting existing cells", async ({
 }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "changeovers", exact: true }).click();
-  const cost = page.getByLabel("Ink cost 9 to 1", { exact: true });
+  const cost = page.getByLabel("Ink cost Brown to Red", { exact: true });
   await cost.fill("2.5");
   await cost.press("Enter");
   await page.getByRole("button", { name: "jobs / 0", exact: true }).click();
@@ -148,7 +150,7 @@ test("matrix adds new inks without overwriting existing cells", async ({
   await page.getByRole("button", { name: "changeovers", exact: true }).click();
   await expect(cost).toHaveValue("2.5");
   await expect(
-    page.getByLabel("Ink cost 12 to 1", { exact: true }),
+    page.getByLabel("Ink cost Color L to Red", { exact: true }),
   ).toHaveValue("1");
   await page.getByRole("button", { name: "Restore industry defaults" }).click();
   await expect(cost).toHaveValue("1");
@@ -201,4 +203,27 @@ test("portfolio typography and stable header during edits and search", async ({
       () => document.documentElement.scrollWidth <= innerWidth,
     ),
   ).toBe(true);
+});
+
+test("named palette drives job input and matrix labels", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "changeovers", exact: true }).click();
+  await page.getByRole("button", { name: "Add color", exact: true }).click();
+  const name = page.getByLabel("Color name 4", { exact: true });
+  await name.fill("Blue");
+  await name.press("Tab");
+  await expect(
+    page.getByRole("columnheader", { name: "Blue", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByLabel("Ink cost Blue to Red", { exact: true }),
+  ).toHaveValue("1");
+  await page.getByRole("button", { name: "jobs / 0", exact: true }).click();
+  await page.getByRole("button", { name: "Add job", exact: true }).click();
+  const inks = page.getByLabel("Inks row 1", { exact: true });
+  await inks.fill("Red, Blue");
+  await inks.press("Tab");
+  await expect(inks).toHaveValue("Red, Blue");
+  await page.getByRole("button", { name: "Optimize schedule" }).click();
+  await expect(page.getByText("A schedule, with perspective.")).toBeVisible();
 });

@@ -18,19 +18,9 @@ describe("industry ink matrix", () => {
   });
   it("seeds projects with an explicit industry matrix", () => {
     const p = initial();
-    expect(p.snapshot.ink_costs?.["9"]["1"]).toBe(1);
+    expect(p.snapshot.ink_costs?.["3"]["1"]).toBe(1);
     expect(isIndustryInkMatrix(p.snapshot.ink_costs)).toBe(true);
-    expect(inkLabels(p.snapshot)).toEqual([
-      "empty",
-      "1",
-      "2",
-      "4",
-      "5",
-      "6",
-      "7",
-      "8",
-      "9",
-    ]);
+    expect(inkLabels(p.snapshot, false)).toEqual(["empty", "1", "2", "3"]);
   });
   it("extends catalog preserving custom directed costs", () => {
     const old = inkCostMatrix(["empty", "1", "9"]);

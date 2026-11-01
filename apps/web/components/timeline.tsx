@@ -3,10 +3,12 @@ import { useState, useEffect } from "react";
 import type { Result } from "@/lib/model";
 export function Timeline({
   result,
+  colorNames = (ids: number[]) => ids.join(", "),
   preferences,
   onPreferences,
 }: {
   result: Result;
+  colorNames?: (ids: number[]) => string;
   preferences?: { mode: string; shift: number; scale: number };
   onPreferences: (v: { mode: string; shift: number; scale: number }) => void;
 }) {
@@ -130,7 +132,7 @@ export function Timeline({
                               arrivals.indexOf(j.arrival_time) % colors.length
                             ],
                         }}
-                        title={`${j.id} | ${j.quantity} pieces | inks ${j.inks.join(", ")} | setup ${j.setup_start?.toFixed(3)} · ${j.start?.toFixed(3)} | complete ${j.completion?.toFixed(3)}h${j.locked ? " | locked" : ""}`}
+                        title={`${j.id} | ${j.quantity} pieces | inks ${colorNames(j.inks)} | setup ${j.setup_start?.toFixed(3)} · ${j.start?.toFixed(3)} | complete ${j.completion?.toFixed(3)}h${j.locked ? " | locked" : ""}`}
                       >
                         <span
                           className="setup"

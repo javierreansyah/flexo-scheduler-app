@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { Button } from "./ui/button";
-import { inkLabels, inkCostMatrix, industryInkCost } from "@/lib/ink-costs";
+import { inkCostMatrix, industryInkCost } from "@/lib/ink-costs";
 import type { Snapshot } from "@/lib/model";
 function CostCell({
   from,
@@ -50,23 +50,28 @@ export function InkCostMatrix({
   snapshot,
   disabled,
   onChange,
+  colors,
 }: {
+  colors: import("@/lib/colors").InkColor[];
   snapshot: Snapshot;
   disabled: boolean;
   onChange: (costs: NonNullable<Snapshot["ink_costs"]>) => void;
 }) {
-  const labels = inkLabels(snapshot),
+  const labels = ["empty", ...colors.map((c) => String(c.id))],
     matrix = inkCostMatrix(labels, snapshot.ink_costs);
   const [error, setError] = useState("");
+  const name = (id: string) =>
+    id === "empty"
+      ? "Empty"
+      : (colors.find((c) => String(c.id) === id)?.name ?? id);
   return (
     <section className="ink-matrix-section">
       <div className="section-head">
         <div>
           <h4>Ink transition cost matrix</h4>
           <p>
-            Rows are the ink being removed; columns are its replacement. Higher
-            ink numbers are darker. Costs are directed and can be edited
-            independently.
+            Rows are the source color; columns are the replacement color. Edit
+            each directed transition independently.
           </p>
         </div>
         <Button
@@ -81,9 +86,9 @@ export function InkCostMatrix({
         </Button>
       </div>
       <p className="note">
-        Industry basis: lighter replacement = 1; darker replacement = 0; removal
-        = 1; addition = 0. Matching inks are retained. These are costs, not
-        setup hours.
+        The industry preset follows the original darkness ordering. For your own
+        palette, set the costs explicitly. Matching colors are retained; these
+        values are costs, not setup hours.
       </p>
       {disabled && (
         <p className="note">
@@ -106,7 +111,7 @@ export function InkCostMatrix({
               <th scope="col">From / To</th>
               {labels.map((to) => (
                 <th scope="col" key={to}>
-                  {to === "empty" ? "Empty" : `Ink ${to}`}
+                  {name(to)}
                 </th>
               ))}
             </tr>
@@ -114,17 +119,15 @@ export function InkCostMatrix({
           <tbody>
             {labels.map((from) => (
               <tr key={from}>
-                <th scope="row">
-                  {from === "empty" ? "Empty" : `Ink ${from}`}
-                </th>
+                <th scope="row">{name(from)}</th>
                 {labels.map((to) => (
                   <td
                     key={to}
                     data-custom={matrix[from][to] !== industryInkCost(from, to)}
                   >
                     <CostCell
-                      from={from}
-                      to={to}
+                      from={name(from)}
+                      to={name(to)}
                       value={matrix[from][to]}
                       disabled={disabled}
                       onError={setError}

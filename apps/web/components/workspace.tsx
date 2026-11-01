@@ -1,4 +1,6 @@
 "use client";
+import { ColorCatalog } from "./color-catalog";
+import { projectColors, colorNames, parseColors } from "@/lib/colors";
 import { InkCostMatrix } from "./ink-cost-matrix";
 import { inkLabels, inkCostMatrix, isIndustryInkMatrix } from "@/lib/ink-costs";
 import { useEffect, useRef, useState } from "react";
@@ -104,10 +106,15 @@ export default function Workspace() {
   const snapshot = project.snapshot,
     history = project.history;
   const physicalLocked = history.length > 0;
+  const colors = projectColors(project);
+  const usedColors = new Set([
+    ...snapshot.jobs.flatMap((j) => j.inks),
+    ...Object.values(snapshot.machine_states ?? {}).flatMap((s) => s.inks),
+  ]);
   useEffect(() => {
     if (!snapshot.ink_costs) return;
     const complete = inkCostMatrix(
-      inkLabels(snapshot, false),
+      ["empty", ...colors.map((c) => String(c.id))],
       snapshot.ink_costs,
     );
     if (JSON.stringify(complete) !== JSON.stringify(snapshot.ink_costs))
@@ -266,14 +273,14 @@ export default function Workspace() {
           <div className="actions">
             <Button
               variant="outline"
-              disabled={busy}
+              disabled={busy || !ready}
               onClick={() => replace(example())}
             >
               Industry example <ArrowUpRight size={14} />
             </Button>
             <Button
               variant="outline"
-              disabled={busy}
+              disabled={busy || !ready}
               onClick={() => replace(initial())}
             >
               <RotateCcw size={14} /> New
@@ -288,7 +295,7 @@ export default function Workspace() {
             </Button>
             <Button
               variant="outline"
-              disabled={busy}
+              disabled={busy || !ready}
               onClick={() => file.current?.click()}
             >
               <Upload size={14} /> Import
@@ -351,7 +358,7 @@ export default function Workspace() {
                   </div>
                   <Button
                     variant="outline"
-                    disabled={busy}
+                    disabled={busy || !ready}
                     onClick={() =>
                       appendJobs([
                         {
@@ -380,7 +387,7 @@ export default function Workspace() {
                   </label>
                   <Button
                     variant="outline"
-                    disabled={busy}
+                    disabled={busy || !ready}
                     onClick={() =>
                       action(() =>
                         appendJobs(
@@ -389,6 +396,7 @@ export default function Workspace() {
                             Number(project.seed),
                             snapshot.now,
                             `B${history.length}-${snapshot.jobs.length}-`,
+                            colors,
                           ),
                         ),
                       )
@@ -398,7 +406,7 @@ export default function Workspace() {
                   </Button>
                   <Button
                     variant="outline"
-                    disabled={busy}
+                    disabled={busy || !ready}
                     onClick={() => csv.current?.click()}
                   >
                     Import CSV
@@ -412,7 +420,7 @@ export default function Workspace() {
                           snapshot.jobs.map((j) => ({
                             id: j.id,
                             quantity: j.quantity,
-                            inks: j.inks.join(","),
+                            inks: colorNames(j.inks, colors),
                             arrival_time: j.arrival_time,
                           })),
                           { escapeFormulae: true },
@@ -428,7 +436,7 @@ export default function Workspace() {
                   rows={snapshot.jobs.map((j) => ({
                     id: j.id,
                     quantity: String(j.quantity),
-                    inks: j.inks.join(", "),
+                    inks: colorNames(j.inks, colors),
                     arrival: String(j.arrival_time),
                     status: fixed.has(String(j.id)) ? "Locked" : "Movable",
                   }))}
@@ -448,26 +456,20 @@ export default function Workspace() {
                           c.key === "quantity"
                             ? Number(c.value)
                             : c.key === "inks"
-                              ? c.value
-                                  .split(/[ ,]+/)
-                                  .filter(Boolean)
-                                  .map(Number)
+                              ? parseColors(c.value, colors)
                               : c.value;
                       }
                       for (const r of append)
                         jobs.push({
                           id: r.id || `J-${Date.now()}-${jobs.length}`,
                           quantity: Number(r.quantity ?? 10000),
-                          inks: (r.inks ?? "")
-                            .split(/[ ,]+/)
-                            .filter(Boolean)
-                            .map(Number),
+                          inks: parseColors(r.inks ?? "", colors),
                           arrival_time: snapshot.now,
                         });
                       changeSnapshot({ jobs });
                     })
                   }
-                  disabled={busy}
+                  disabled={busy || !ready}
                   onDelete={(i) =>
                     changeSnapshot({
                       jobs: snapshot.jobs.filter((_, x) => x !== i),
@@ -487,10 +489,7 @@ export default function Workspace() {
                                   key === "quantity"
                                     ? Number(value)
                                     : key === "inks"
-                                      ? value
-                                          .split(/[ ,]+/)
-                                          .filter(Boolean)
-                                          .map(Number)
+                                      ? parseColors(value, colors)
                                       : value,
                               },
                         ),
@@ -520,7 +519,7 @@ export default function Workspace() {
                     </label>
                     <Button
                       variant="outline"
-                      disabled={busy}
+                      disabled={busy || !ready}
                       onClick={() =>
                         action(() => {
                           update(advance(project, arrival));
@@ -549,7 +548,7 @@ export default function Workspace() {
                 <div className="actions inset">
                   <Button
                     variant="outline"
-                    disabled={busy || physicalLocked}
+                    disabled={busy || !ready || physicalLocked}
                     onClick={() =>
                       changeSnapshot({
                         machines: {
@@ -574,7 +573,7 @@ export default function Workspace() {
                   </label>
                   <Button
                     variant="outline"
-                    disabled={busy || physicalLocked}
+                    disabled={busy || !ready || physicalLocked}
                     onClick={() =>
                       action(() => {
                         if (
@@ -604,7 +603,7 @@ export default function Workspace() {
                   </Button>
                   <Button
                     variant="outline"
-                    disabled={busy || physicalLocked}
+                    disabled={busy || !ready || physicalLocked}
                     onClick={() => csv.current?.click()}
                   >
                     Import CSV
@@ -620,10 +619,10 @@ export default function Workspace() {
                               name,
                               rate,
                               ...snapshot.machine_states?.[name],
-                              inks:
-                                snapshot.machine_states?.[name]?.inks.join(
-                                  ",",
-                                ) ?? "",
+                              inks: colorNames(
+                                snapshot.machine_states?.[name]?.inks ?? [],
+                                colors,
+                              ),
                             }),
                           ),
                           { escapeFormulae: true },
@@ -643,8 +642,9 @@ export default function Workspace() {
                       available: String(
                         snapshot.machine_states?.[name]?.available_time ?? 0,
                       ),
-                      inks: (snapshot.machine_states?.[name]?.inks ?? []).join(
-                        ",",
+                      inks: colorNames(
+                        snapshot.machine_states?.[name]?.inks ?? [],
+                        colors,
                       ),
                     }),
                   )}
@@ -674,9 +674,10 @@ export default function Workspace() {
                             snapshot.machine_states?.[name]?.available_time ??
                               0,
                           ),
-                          inks: (
-                            snapshot.machine_states?.[name]?.inks ?? []
-                          ).join(","),
+                          inks: colorNames(
+                            snapshot.machine_states?.[name]?.inks ?? [],
+                            colors,
+                          ),
                         }),
                       );
                       for (const c of cells)
@@ -699,17 +700,14 @@ export default function Workspace() {
                             r.name,
                             {
                               available_time: Number(r.available),
-                              inks: r.inks
-                                .split(/[ ,]+/)
-                                .filter(Boolean)
-                                .map(Number),
+                              inks: parseColors(r.inks, colors),
                             },
                           ]),
                         ),
                       });
                     })
                   }
-                  disabled={busy || physicalLocked}
+                  disabled={busy || !ready || physicalLocked}
                   onDelete={(i) =>
                     changeSnapshot({
                       machines: Object.fromEntries(
@@ -753,10 +751,7 @@ export default function Workspace() {
                             [key === "available" ? "available_time" : "inks"]:
                               key === "available"
                                 ? Number(value)
-                                : value
-                                    .split(/[ ,]+/)
-                                    .filter(Boolean)
-                                    .map(Number),
+                                : parseColors(value, colors),
                           },
                         },
                       });
@@ -773,15 +768,31 @@ export default function Workspace() {
             {tab === "changeovers" && (
               <div className="settings">
                 <h3>Changeovers</h3>
+                <ColorCatalog
+                  colors={colors}
+                  used={usedColors}
+                  disabled={physicalLocked || busy || !ready}
+                  onChange={(next) => {
+                    const ids = ["empty", ...next.map((c) => String(c.id))];
+                    update((p) => ({
+                      ...p,
+                      colors: next,
+                      snapshot: {
+                        ...p.snapshot,
+                        ink_costs: inkCostMatrix(ids, p.snapshot.ink_costs),
+                      },
+                    }));
+                  }}
+                />
                 <p>
-                  Directed ink costs and setup durations are separate. Pattern
-                  keys are sorted ink IDs (for example 2,6); use empty for a
-                  clean machine.
+                  Directed ink costs and setup durations are separate. Use
+                  comma-separated color names for setup transitions, or Empty
+                  for a clean machine.
                 </p>
                 <label>
                   Default setup duration (hours)
                   <input
-                    disabled={physicalLocked || busy}
+                    disabled={physicalLocked || busy || !ready}
                     type="number"
                     min={0}
                     max={8}
@@ -803,7 +814,7 @@ export default function Workspace() {
                   <span>&rarr;</span>
                   <input
                     aria-label="Setup target pattern"
-                    placeholder="2,6"
+                    placeholder="Red, Green"
                     value={to}
                     onChange={(e) => setTo(e.target.value)}
                   />
@@ -817,17 +828,34 @@ export default function Workspace() {
                     onChange={(e) => setDuration(+e.target.value)}
                   />
                   <Button
-                    disabled={physicalLocked || busy}
+                    disabled={physicalLocked || busy || !ready}
                     variant="outline"
                     onClick={() =>
-                      changeSnapshot({
-                        setup_durations: {
-                          ...snapshot.setup_durations,
-                          [from]: {
-                            ...snapshot.setup_durations?.[from],
-                            [to]: duration,
+                      action(() => {
+                        const key = (value: string) => {
+                          if (value.trim().toLowerCase() === "empty")
+                            return "empty";
+                          const ids = parseColors(value, colors);
+                          if (
+                            !ids.length ||
+                            ids.some((id) => !Number.isInteger(id) || id < 1)
+                          )
+                            throw Error(
+                              "Choose color names from your color list",
+                            );
+                          return ids.sort((a, b) => a - b).join(",");
+                        };
+                        const a = key(from),
+                          b = key(to);
+                        changeSnapshot({
+                          setup_durations: {
+                            ...snapshot.setup_durations,
+                            [a]: {
+                              ...snapshot.setup_durations?.[a],
+                              [b]: duration,
+                            },
                           },
-                        },
+                        });
                       })
                     }
                   >
@@ -841,7 +869,7 @@ export default function Workspace() {
                         {a} · {b}
                         <span>{t}h</span>
                         <button
-                          disabled={physicalLocked || busy}
+                          disabled={physicalLocked || busy || !ready}
                           onClick={() => {
                             const d = structuredClone(
                               snapshot.setup_durations!,
@@ -857,8 +885,9 @@ export default function Workspace() {
                     )),
                 )}
                 <InkCostMatrix
+                  colors={colors}
                   snapshot={snapshot}
-                  disabled={physicalLocked || busy}
+                  disabled={physicalLocked || busy || !ready}
                   onChange={(ink_costs) => changeSnapshot({ ink_costs })}
                 />
               </div>
@@ -876,7 +905,7 @@ export default function Workspace() {
               ].map(([key, label]) => (
                 <button
                   key={key}
-                  disabled={busy}
+                  disabled={busy || !ready}
                   aria-pressed={project.preset === key}
                   onClick={() =>
                     update((p) => ({
@@ -922,7 +951,7 @@ export default function Workspace() {
                   <label key={key}>
                     {key}
                     <input
-                      disabled={busy}
+                      disabled={busy || !ready}
                       aria-label={key}
                       type="number"
                       step="any"
@@ -941,7 +970,7 @@ export default function Workspace() {
             <label>
               Random seed
               <input
-                disabled={busy}
+                disabled={busy || !ready}
                 aria-label="Random seed"
                 inputMode="numeric"
                 value={project.seed}
@@ -954,7 +983,7 @@ export default function Workspace() {
               <label>
                 Ink weight
                 <input
-                  disabled={busy}
+                  disabled={busy || !ready}
                   type="number"
                   min={0}
                   step="any"
@@ -967,7 +996,7 @@ export default function Workspace() {
               <label>
                 Flow weight
                 <input
-                  disabled={busy}
+                  disabled={busy || !ready}
                   type="number"
                   min={0}
                   step="any"
@@ -1049,10 +1078,7 @@ export default function Workspace() {
                         row.name,
                         {
                           available_time: Number(row.available_time ?? 0),
-                          inks: (row.inks ?? "")
-                            .split(/[ ,]+/)
-                            .filter(Boolean)
-                            .map(Number),
+                          inks: parseColors(row.inks ?? "", colors),
                         },
                       ]),
                     ),
@@ -1061,10 +1087,7 @@ export default function Workspace() {
                   const jobs = parsed.data.map((row) => ({
                     id: row.id,
                     quantity: Number(row.quantity),
-                    inks: (row.inks ?? "")
-                      .split(/[ ,]+/)
-                      .filter(Boolean)
-                      .map(Number),
+                    inks: parseColors(row.inks ?? "", colors),
                     arrival_time: snapshot.now,
                   }));
                   if (
@@ -1130,6 +1153,7 @@ export default function Workspace() {
             </div>
             <Timeline
               key={historyIndex}
+              colorNames={(ids) => colorNames(ids, colors)}
               result={result}
               preferences={project.view}
               onPreferences={(view) => update((p) => ({ ...p, view }))}
@@ -1147,7 +1171,7 @@ export default function Workspace() {
                           jobs.map((j) => ({
                             ...j,
                             machine,
-                            inks: j.inks.join(","),
+                            inks: colorNames(j.inks, colors),
                           })),
                       ),
                       { escapeFormulae: true },

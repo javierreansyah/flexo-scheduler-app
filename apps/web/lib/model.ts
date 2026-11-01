@@ -1,3 +1,4 @@
+import { starterColors } from "./colors";
 import { inkCostMatrix } from "./ink-costs";
 import industry from "./industry.json";
 import profiles from "./profiles.json";
@@ -51,6 +52,7 @@ export type Result = {
 };
 export type Project = {
   version: 1;
+  colors?: import("./colors").InkColor[];
   snapshot: Snapshot;
   history: Result[];
   preset: "low" | "medium" | "high" | "custom";
@@ -67,15 +69,17 @@ export function parameters(n: number, preset = "medium"): Parameters {
 export function initial(): Project {
   return {
     version: 1,
+    colors: structuredClone(starterColors),
     snapshot: {
       now: 0,
       machines: { ...industry.machines },
       jobs: [],
       locked: {},
       setup_time: 0.75,
-      ink_costs: inkCostMatrix(
-        ["empty", ...new Set(industry.jobs.flatMap((j) => j.inks))].map(String),
-      ),
+      ink_costs: inkCostMatrix([
+        "empty",
+        ...starterColors.map((c) => String(c.id)),
+      ]),
       ink_weight: 0.4,
       batch_flow_time_weight: 0.6,
     },
@@ -87,6 +91,17 @@ export function initial(): Project {
 }
 export function example(): Project {
   const p = initial();
+  p.colors = [...new Set(industry.jobs.flatMap((j) => j.inks))]
+    .sort((a, b) => a - b)
+    .map((id, i) => ({
+      id,
+      name: `Industry ${String.fromCharCode(65 + i)}`,
+      hex: "#808080",
+    }));
+  p.snapshot.ink_costs = inkCostMatrix([
+    "empty",
+    ...p.colors.map((c) => String(c.id)),
+  ]);
   p.snapshot.jobs = industry.jobs.map((j) => ({
     ...j,
     id: String(j.id),
@@ -121,16 +136,26 @@ export function randomJobs(
   seed: number,
   now: number,
   prefix: string,
+  colors?: import("./colors").InkColor[],
 ): Job[] {
   if (!Number.isInteger(count) || count < 1 || count > 10000)
     throw Error("Generate 1 to 10,000 jobs per action");
+  if (colors && !colors.length)
+    throw Error("Add colors before generating jobs");
+  const templateColors = [
+    ...new Set(industry.jobs.flatMap((j) => j.inks)),
+  ].sort((a, b) => a - b);
   const rng = random(seed);
   return Array.from({ length: count }, (_, i) => {
     const t = industry.jobs[Math.floor(rng() * industry.jobs.length)];
     return {
       id: `${prefix}${i + 1}`,
       quantity: Math.max(1000, Math.floor(t.quantity * (0.85 + 0.3 * rng()))),
-      inks: [...t.inks],
+      inks: colors
+        ? t.inks.map(
+            (id) => colors[templateColors.indexOf(id) % colors.length].id,
+          )
+        : [...t.inks],
       arrival_time: now,
     };
   });
@@ -206,6 +231,24 @@ export function importProject(v: unknown): Project {
     !finite(p.snapshot.batch_flow_time_weight)
   )
     throw Error("Invalid project settings");
+  if (
+    p.colors !== undefined &&
+    (!Array.isArray(p.colors) ||
+      p.colors.some(
+        (c) =>
+          !c ||
+          !Number.isInteger(c.id) ||
+          c.id < 1 ||
+          typeof c.name !== "string" ||
+          !c.name.trim() ||
+          c.name.includes(",") ||
+          !/^#[0-9a-f]{6}$/i.test(c.hex),
+      ) ||
+      new Set(p.colors.map((c) => c.id)).size !== p.colors.length ||
+      new Set(p.colors.map((c) => c.name.toLowerCase())).size !==
+        p.colors.length)
+  )
+    throw Error("Invalid color catalog");
   for (const r of p.history) {
     if (!validParameters(r.parameters) || typeof r.seed !== "string")
       throw Error("Invalid result settings");
