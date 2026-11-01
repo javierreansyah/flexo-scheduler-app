@@ -178,19 +178,27 @@ def test_interrupted_smac_campaign_resumes(tmp_path, monkeypatch):
     generate_smac(tmp_path/"data", replicas=1, previous_evaluations=100)
     settings = dict(trials=4, max_evaluations=100_000, workers=2)
     original = module.write_json
-    interrupted = False
+    completed = 0
     def interrupt(path, data):
-        nonlocal interrupted
+        nonlocal completed
         original(path, data)
-        if Path(path).parent.name == "candidates" and not interrupted:
-            interrupted = True
-            raise KeyboardInterrupt()
+        if Path(path).parent.name == "candidates":
+            completed += 1
+            if completed == 2:
+                raise KeyboardInterrupt()
     monkeypatch.setattr(module, "write_json", interrupt)
     with pytest.raises(KeyboardInterrupt):
         tune(tmp_path/"data", tmp_path/"profiles.json", tmp_path/"runs", **settings)
+    history_path = tmp_path/"runs/N10/smac/pareto/42/runhistory.json"
+    history = json.loads(history_path.read_text())
+    assert history["stats"]["finished"] >= 1
+    assert any(row["status"] == 0 and isinstance(row["cost"], (float, int)) for row in history["data"])
     monkeypatch.setattr(module, "write_json", original)
     result = tune(tmp_path/"data", tmp_path/"profiles.json", tmp_path/"runs", resume=True, **settings)
     assert set(result["profiles"]) == {"10", "30", "50", "100"}
+    history = json.loads(history_path.read_text())
+    assert history["stats"]["finished"] == 4 and history["stats"]["running"] == 0
+    assert history_path.with_suffix(".before-running-cost-fix.json").exists()
 
 
 def test_expanded_campaign_reuses_observations_and_cache(tmp_path, monkeypatch):

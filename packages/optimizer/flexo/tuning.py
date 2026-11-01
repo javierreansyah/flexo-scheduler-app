@@ -329,6 +329,23 @@ def reuse_campaign(source, workdir, dataset, manifest, workers):
                 verified_current_solver=True, candidates={str(n): len(p) for n, p in points.items()})
 
 
+def repair_running_costs(path):
+    """SMAC 2.3 saves scalar RUNNING placeholders in multiobjective histories."""
+    if not path.exists():
+        return
+    data = json.loads(path.read_text())
+    changed = False
+    for entry in data["data"]:
+        if entry["status"] == 0 and isinstance(entry["cost"], (int, float)):
+            entry["cost"] = [entry["cost"], entry["cost"]]
+            changed = True
+    if changed:
+        backup = path.with_suffix(".before-running-cost-fix.json")
+        if not backup.exists():
+            backup.write_bytes(path.read_bytes())
+        write_json(path, data)
+
+
 def campaign(rows, heldout, evaluator, seeds, heldout_seeds, trials, seed, max_evaluations, warm, folder):
     from smac import HyperparameterOptimizationFacade, Scenario
     from smac.multi_objective.parego import ParEGO
@@ -368,9 +385,14 @@ def campaign(rows, heldout, evaluator, seeds, heldout_seeds, trials, seed, max_e
     additional = [as_config(space, p) for p in unique.values()][:max(0, trials-2)]
     design = HyperparameterOptimizationFacade.get_initial_design(scenario, n_configs=min(64, max(1, trials//4)), additional_configs=additional)
     intensifier = HyperparameterOptimizationFacade.get_intensifier(scenario, max_config_calls=1, max_incumbents=budget_steps(max_evaluations))
+    repair_running_costs(folder/f"smac/pareto/{seed}/runhistory.json")
     smac = HyperparameterOptimizationFacade(scenario, target, initial_design=design, intensifier=intensifier,
                                            multi_objective_algorithm=ParEGO(scenario, rho=.05, seed=seed),
                                            overwrite=False, logging_level=30)
+    # Saved RUNNING trials have no live worker after a restart.
+    for info in smac.runhistory.get_running_trials():
+        cost = target(info.config)
+        smac.tell(info, TrialValue(cost=[cost["quality"], cost["proposal_cost"]]))
     # A changed search space gets a fresh SMAC state, seeded with old observations.
     # Reconstruct from the saved candidate panels; never reuse scaled old costs.
     for path in sorted(candidates_path.glob("*.json")):
