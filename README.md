@@ -1,58 +1,164 @@
-# Flexo scheduling workspace
+<div align="center">
+  <img src="apps/web/app/icon.svg" width="100" alt="Flexo Scheduler icon" />
+  <h1>Flexo Scheduler</h1>
+  <p>Shape your production schedule, right in your browser.</p>
+</div>
 
-A browser-only production scheduler. Next.js exports static HTML; the C++ simulated annealing optimizer runs in WASM Web Workers. No optimization API or account is required.
+Flexo Scheduler helps plan flexographic production across machines, jobs, and
+color changes. Set up your equipment, add orders, and find a schedule with a
+simulated annealing optimizer running entirely on your device. No account,
+optimization API, or server-side job processing is required.
 
-## Run locally
+## ✨ Features
 
-Requires Node.js 22+, pnpm 10.33.2, Python 3 and Git. First-time WASM setup downloads the pinned Emscripten SDK (6.0.13).
+- **Set up production quickly:** Edit machines and jobs in spreadsheet-style
+  tables, paste rows, and import or export CSV data.
+- **Define your colors:** Create a named color palette, edit directed transition
+  costs in a matrix, and configure setup-duration overrides.
+- **Choose your compute budget:** Use Quick, Balanced, or Thorough presets, or
+  adjust the optimizer parameters yourself.
+- **See the schedule:** Explore the production timeline, shift views, schedule
+  details, objective metrics, and optimization progress.
+- **Handle new arrivals:** Advance the current horizon, retain started work, and
+  reschedule remaining jobs alongside new orders. Review previous horizons.
+- **Try realistic inputs:** Load the original industry example or generate jobs
+  and machines. Generated jobs sample industry quantities and ink patterns,
+  mapped onto your current palette.
+- **Keep work local:** WebAssembly workers perform optimization off the main
+  thread. Projects autosave in browser storage and can be backed up as JSON.
+- **Work comfortably:** A responsive dark interface with fluid typography,
+  square controls, and an animated grid background.
 
-```powershell
-pnpm install
-pnpm wasm:setup
-pnpm dev
-```
+## 🚀 Get started
 
-Open http://localhost:3000. For the production export:
+You'll need **Node.js 22+**, **Python 3**, Git, and
+[pnpm](https://pnpm.io/). The repository pins pnpm 10.33.2 in `package.json`.
+The first WebAssembly setup downloads and activates Emscripten SDK 6.0.13.
 
-```powershell
+1. Install dependencies:
+
+   ```sh
+   pnpm install --frozen-lockfile
+   ```
+
+2. Set up the WebAssembly toolchain:
+
+   ```sh
+   pnpm wasm:setup
+   ```
+
+3. Start the development server:
+
+   ```sh
+   pnpm dev
+   ```
+
+4. Open [http://localhost:3000](http://localhost:3000).
+
+The development command builds the optimizer before starting Next.js. No API
+keys or environment variables are needed for the scheduling app.
+
+For a production export and local Cloudflare preview:
+
+```sh
 pnpm build
 pnpm preview
 ```
 
-## Workspace
+## Using the scheduler
 
-- `apps/web`: static Next.js app, editable TanStack tables, original portfolio grid, project persistence and timeline.
-- `packages/optimizer`: original Python/C++ project, experiments, datasets and saved results. Run Python commands from this directory; the experiment runner still works with Run Python File in Terminal.
-- `packages/optimizer-wasm`: thin WASM bindings and off-thread snapshot preparation. Search and scoring share the native C++ implementation.
+Start with the industry example, or define your own machines, colors, and jobs.
+Color inputs accept comma-separated names, including repeated inks. Matrix rows
+are source colors and columns are replacement colors; ink costs and setup hours
+are separate settings. The industry example uses placeholder color names because
+the source data identifies ink IDs and darkness ordering rather than actual hues.
 
-Machine/changeover settings freeze after the first accepted schedule. Advance the arrival time before adding the next batch; jobs whose setup has started are locked. Previous horizons remain viewable. Export project JSON to back up local work. Clearing browser storage removes autosaved data.
+Machine, palette, and changeover settings freeze after the first accepted
+schedule. Advance the arrival time before adding another batch; jobs whose setup
+has started remain locked. Times use production hours and consecutive eight-hour
+shifts. Export project JSON for a backup: clearing browser storage removes local
+projects.
 
-Quick/Balanced/Thorough use the completed tuning results. Quick shares Balanced for N30 to preserve cost ordering. Larger job counts and custom equipment/changeovers work, but presets were calibrated only on 10/30/50/100 movable jobs with the original three machines and default changeovers.
+Presets were calibrated on 10/30/50/100 movable jobs with the original three
+machines and default changeovers. Other inputs are supported, but measured
+average quality gaps are not guarantees for every schedule. Native tuning results
+also need browser-specific runtime checks before adoption.
 
-Times are production hours with consecutive eight-hour shifts. Duration overrides are directed transitions between sorted ink patterns (`empty` for no inks), independent of the ink-cost matrix. Unspecified transitions retain the legacy setup behavior.
+## 🛠️ Built with
 
-## Checks
+- [Next.js](https://nextjs.org/), [React](https://react.dev/), and TypeScript
+- [Tailwind CSS](https://tailwindcss.com/) and [shadcn/ui](https://ui.shadcn.com/)
+- [TanStack Table](https://tanstack.com/table) and TanStack Virtual
+- C++ simulated annealing, [Emscripten](https://emscripten.org/), WebAssembly,
+  and Web Workers
+- Python and [SMAC](https://github.com/automl/SMAC3) for offline parameter tuning
+- [Cloudflare Pages](https://pages.cloudflare.com/) for static hosting
 
-```powershell
+## Project structure
+
+| Directory | Purpose |
+| --- | --- |
+| `apps/web` | Static Next.js app, editable tables, local persistence, and timeline |
+| `packages/optimizer` | Native Python/C++ optimizer, datasets, tuning, and experiments |
+| `packages/optimizer-wasm` | Browser bindings and optimization workers sharing the C++ engine |
+| `scripts` | WebAssembly setup, builds, profile export, and browser benchmarks |
+| `docs` | Browser verification notes |
+
+For offline experiments, see the [optimizer guide](packages/optimizer/README.md)
+and [playground guide](packages/optimizer/experiments/README.md). The
+[tuning guide](packages/optimizer/docs/tuning.md) describes fixed-budget searches,
+exact-result caching, checkpoints, and terminal progress. The latest
+[results report](packages/optimizer/docs/pareto-tuning-report.md) includes the
+paused campaign's completed searches and comparison charts.
+
+Local result caches, generated SMAC instances, toolchains, and build outputs are
+Git-ignored; they are not bundled with the repository. The reports retain numeric
+snapshots of analyzed results.
+
+## ✅ Development checks
+
+```sh
 pnpm lint
 pnpm test
+pnpm build
 pnpm --filter @flexo/web exec playwright install chromium firefox webkit
-pnpm --filter @flexo/web test:e2e
-cd packages/optimizer
-python setup.py build_ext --inplace
+pnpm test:e2e
+```
+
+Build the static export before running browser tests. For the native optimizer,
+run these from `packages/optimizer` with a C++17 compiler installed:
+
+```sh
+python -m pip install -e ".[tuning,test,experiments]"
 python -m pytest -q
 ```
 
-Build the static export before running browser tests. Python dependencies remain in the optimizer package's setup.py extras.
+See [browser verification](docs/browser-app-verification.md) for native/browser
+comparisons. After building, `pnpm benchmark:browser` runs the representative
+browser benchmark.
 
-## Cloudflare Pages
+## Deploy to Cloudflare Pages
 
-Root directory: repository root. Build command: `pnpm wasm:setup && pnpm build`. Output directory: `apps/web/out`. Use Node 22+ and enable pnpm. No Pages Functions, API routes, credentials, or runtime server are required. The SDK is installed in ignored `.toolchains/`; CI must allow downloads from the official Emscripten sources. Deployment is manual; no production site has been published.
+Use the repository root as the project directory:
 
-The requested shadcn Claude MCP configuration is in `.mcp.json`; restart the client to load it. All UI uses the buFywKm preset with zero radius.
+| Setting | Value |
+| --- | --- |
+| Build command | `pnpm wasm:setup && pnpm build` |
+| Output directory | `apps/web/out` |
+| Node.js | 22+ |
 
-See [browser verification](docs/browser-app-verification.md) for measured timings and native/browser quality differences. Reproduce the five-case comparison with `pnpm benchmark:browser` after building. Previous tuning reports are under `packages/optimizer/docs`.
+Enable pnpm and allow toolchain downloads during the build. The app exports
+static files; no Pages Functions or runtime API are required. Building regenerates
+browser presets from `packages/optimizer/flexo/profiles.json`, so review those
+profiles before deploying.
 
-In Changeovers, define a palette of named colors and swatches, then edit the directed transition matrix. Rows are source colors; columns are replacements. Job and machine inputs accept comma-separated color names, including repeated colors. Add or remove unused colors before the first schedule; palette names and matrix costs are saved in project JSON. Older projects with numeric ink IDs remain supported.
+## 📄 License
 
-The industry example preserves its original ink IDs and darkness ordering, using placeholder names because the source data does not identify the actual hues. Its lighter replacements/removal cost 1, and darker replacements/addition cost 0. Common inks are retained before minimum-cost matching. Restore industry defaults resets all cells using this ordering; set explicit costs for your own palette. Random jobs map the original ink patterns onto your current palette while retaining sampled quantities and pattern lengths. Palette and changeover settings freeze after the first schedule.
+Flexo Scheduler is available under the [MIT License](LICENSE).
+
+## 🙏 Acknowledgments
+
+The visual language and grid background draw from
+[Javier Reansyah's portfolio](https://github.com/javierreansyah).
+The optimizer uses SMAC for offline tuning and Emscripten to bring its shared
+native scheduling engine into the browser.
