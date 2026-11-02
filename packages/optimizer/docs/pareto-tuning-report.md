@@ -1,4 +1,142 @@
-# Expanded Pareto tuning: results and next steps
+# Fixed-budget tuning: partial results (2026-11-02)
+
+**Focused tuning found modest improvements on training data, but has not yet
+shown a compelling across-the-board held-out benefit.** N30 Balanced is a useful
+10m compute tier. N30 Quick's improved training result did not generalize; N30
+High's held-out gain is negligible relative to its tuning expense. N50 Quick and
+Balanced have better training scores but still need held-out evaluation.
+
+The run is paused. This analysis reads saved files only; no tuning or additional
+optimizer evaluations were launched. Existing application presets are unchanged.
+The [partial numeric snapshot](fixed-budget-partial-summary.json) records winners,
+parameters, completed histories, progress checkpoints, timing and held-out results.
+The expanded Pareto analysis below remains the historical comparison baseline.
+
+## Completion and integrity
+
+Completed searches: N10/100k; N30/600k, 10m and 100m; N50/3m and 20m. Each completed
+search added 400 trials beyond its exact-budget imported observations. N10's three
+preset labels share one search. Across these six searches, 2,400 additional trials
+are complete. Saved successful observation counts, including imports, are
+930, 434, 402, 402, 421 and 404 respectively (N30 ordered low/medium/high; N50
+low/medium).
+
+N50/100m has 25 finished observations and one interrupted observation, including
+imports, with no winner checkpoint. N100 has not started. Neither unfinished
+search contributes a new selected point to this analysis or chart.
+
+Checks: dataset/native binary fingerprints match the fixed campaign; every
+completed candidate has the correct locked budget, 20 instances and training
+seeds 42/43/44. Training scores were independently recomputed, SMAC history costs
+matched to candidates, and winners checked against all saved candidates. N10/N30
+held-out aggregate scores were recomputed from saved measurements. These are data
+integrity checks, not new optimizer runs or independent acceptance tests.
+
+## Does quality improve at the same compute cost?
+
+Positive improvement means lower mean normalized training fitness. The exact-cost
+comparison uses the best prior expanded-Pareto candidate with exactly that budget;
+the cap comparison uses the best previous candidate costing no more than it.
+
+| Jobs / preset | Budget | Winner starts | Training improvement vs prior exact cost | Improvement vs prior budget cap | Recorded new-panel hours |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| N10 / all | 100k | 1 | 0.000% | 0.000% | 0.10 |
+| N30 / Quick | 600k | 8 | 0.350% | 0.350% | 0.12 |
+| N30 / Balanced | 10m | 13 | 0.219% | 0.148% | 1.12 |
+| N30 / High | 100m | 9 | 0.035% | 0.035% | 11.31 |
+| N50 / Quick | 3m | 1 | 0.143% | 0.143% | 0.55 |
+| N50 / Balanced | 20m | 4 | 0.174% | 0.174% | 3.26 |
+
+Hours sum saved new candidate panel wall times; they exclude model fitting,
+normalization, held-out work and interrupted work without a candidate record.
+They are neither an isolated-request latency benchmark nor a total campaign
+stopwatch. In particular, N30 High repeats a 100m solve across 20 instances and
+three seeds for each configuration, explaining its large tuning cost.
+
+![Historical frontiers with completed fixed-budget winners](pareto-tuning-frontiers.png)
+
+The green markers are completed fixed-budget winners, including N50's
+training-only results. No marker or connecting inference is supplied for unfinished
+N50 High or N100. All gaps use the expanded-Pareto high as a common training
+reference; a negative value means beating that historical reference. The plotted
+frontier lines are visual guides between measured candidates, not measurements at
+every intermediate budget.
+
+## Held-out results: N10 and N30 only
+
+| Selected setting | Held-out fitness change vs previous exported counterpart | Gap to new N30 High |
+| --- | ---: | ---: |
+| N10 / all | -0.0085% | not applicable |
+| N30 / Quick, 600k | +0.421% (worse) | +2.287% |
+| N30 / Balanced, 10m | +0.392% (worse, but 90% cheaper than the old exported 100m medium) | +0.407% |
+| N30 / High, 100m | -0.0155% | 0.000% |
+
+N30 Balanced's exported-counterpart comparison is **not equal-cost**: the previous
+exported medium fell back to 100m. Against the old proposed 9.4m medium candidate,
+the new 10m candidate improves held-out fitness by 0.101%, spending 6.4% more
+proposals. It is a useful distinct middle tier, not evidence of a large algorithmic
+breakthrough.
+
+N30 Quick is the important counterexample to declaring training improvements a
+success. Its held-out gap to the new High is 2.287% overall, 2.463% clean and
+2.111% carryover. It would fail the former 2% quality gate; fixed compute tiers
+correctly retain it and report the tradeoff instead of silently changing its cost.
+The old 600k Quick remains a credible comparison for fresh acceptance testing.
+Do not automatically replace it with the new training winner.
+
+N30 Balanced is 0.407% behind new High overall, with clean/carryover gaps of
+0.515%/0.300%. It would narrowly fail the former per-group 0.5% gate. The compute-tier
+policy is what allows this useful option to remain distinct.
+
+Descriptive 95% paired-replica bootstrap intervals for change against the previous
+export: N30 Quick [-0.132%, +1.112%]; N30 High [-0.052%, +0.023%]. Both include zero,
+so the small observed High gain is not convincing evidence of a general advantage.
+N10's tiny improvement is tie-level behavior, not a meaningful tuning win. Its
+new held-out normalized fitness (1.000394) is still worse than the original 20m
+campaign's 100k selection (1.000000).
+
+Bootstrap: 5,000 resamples, seed 20261102, keeping each generation replica's
+clean/carryover pair together and its three-seed means fixed. As before, these
+intervals omit selection uncertainty and use a repeatedly inspected held-out set.
+They are descriptive, not fresh acceptance evidence.
+
+**No held-out claim is available for N50 Quick/Balanced.** The current runner
+writes a size's validation only after all its budget searches finish. The absence
+of an N50 profile is expected while High is incomplete, and does not mean the
+completed winner checkpoints were lost.
+
+## Was the time worth it, and what next?
+
+- **N10:** no meaningful gain. Stop allocating additional tuning here for this
+  instance family; preserve the 100k budget.
+- **N30 Quick:** training improved, held-out did not. This is consistent with
+  selection/seed noise or overfitting; the current data cannot identify the cause.
+- **N30 Balanced:** the clearest practical outcome so far: a 10m middle option
+  with a measured 0.407% overall gap to new High. Extra search produced modest
+  improvements rather than a dramatic efficiency gain.
+- **N30 High:** 11.31 recorded panel hours for a 0.0155% held-out gain is poor
+  marginal value. The older high remains essentially competitive.
+- **N50 Quick/Balanced:** potentially useful, but provisional until evaluated on
+  held-out/fresh data. Quick found most of its improvement late; its best training
+  score improved about 0.139% during the final 100 trials. Balanced improved about
+  0.016% in that final block. Late improvements exist, without guaranteeing they
+  generalize.
+
+Do not add another blanket 400 trials. Review the completed winners against old
+settings on fresh instances, especially N30 Quick and both N50 tiers. For an
+immediate partial evaluation, held-out assessment can be separated from the
+unfinished High search in a future runner update; this report does not modify
+or execute the tuning pipeline. Completing remaining searches is a choice about
+tuning compute, not a prerequisite for retaining the already completed results.
+
+One browser integration issue is now concrete: N30 Balanced uses **13 starts**,
+while current browser input/worker validation caps starts at ten. Test and update
+browser support before adopting this winner; the native tuner accepts it. The
+app's existing presets remain untouched by this analysis.
+
+---
+
+## Historical expanded Pareto analysis
 
 **The additional 400 trials per size were useful. Another blanket increase to
 1,000-1,200 additional trials is not the next priority.** High improved mean

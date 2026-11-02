@@ -1,0 +1,343 @@
+{
+  "status": "partial; paused",
+  "campaign": {
+    "schema_version": 1,
+    "mode": "fixed-budget",
+    "dataset_sha256": "b04ddf6b2f056633874fbb4330aa750a4341235475de852662375eb3bb2224bf",
+    "core_sha256": "2df3d3ceeb6d831cf4edc403faf5bd2dc4829e68dfbd167b5a16a97606b55fc8",
+    "source_sha256": "9d96d58ee8aa258d4fb4ffe1611a06ae537aaa2a0c3e807b3f11600d5ef57fa1",
+    "budgets": {
+      "10": {
+        "low": 100000,
+        "medium": 100000,
+        "high": 100000
+      },
+      "30": {
+        "low": 600000,
+        "medium": 10000000,
+        "high": 100000000
+      },
+      "50": {
+        "low": 3000000,
+        "medium": 20000000,
+        "high": 100000000
+      },
+      "100": {
+        "low": 10000000,
+        "medium": 20000000,
+        "high": 100000000
+      }
+    },
+    "trials": 400,
+    "workers": 20,
+    "seed": 42,
+    "seeds": [
+      42,
+      43,
+      44
+    ],
+    "heldout_seeds": [
+      142,
+      143,
+      144
+    ],
+    "reuse_from": "C:\\Rean\\Project\\flexo-scheduling-wasm\\packages\\optimizer\\results\\pareto-tuning-100m-20starts",
+    "reuse_manifest_sha256": "bfaa3efc2c821ee57e7d5aa82c8e1929aff2f32c12a041a28e3e49432a21942a"
+  },
+  "sizes": {
+    "10": {
+      "completed": {
+        "100000": {
+          "parameters": {
+            "evaluations": 100000,
+            "starts": 1,
+            "stage_length": 4470,
+            "t_max": 0.1847258209518,
+            "t_min": 0.11398729486183289,
+            "rcl_alpha": 0.1991433430616,
+            "p_inter": 0.8718334894686,
+            "p_shift": 0.5184782643609,
+            "p_block": 0.2013263167357
+          },
+          "quality": 1.0,
+          "id": "12c4209e2b457987c5c9748e3e1d1ed3d35e135321cf1e2d4fff110466b01904",
+          "stats": {
+            "submitted": 930,
+            "finished": 930,
+            "running": 0
+          },
+          "improvement_vs_exact_pct": 0.0,
+          "improvement_vs_cap_pct": 0.0,
+          "cpu_hours": 0.10046440972222222,
+          "panel_wall_hours": 0.09506153219434459,
+          "checkpoints": {
+            "100": 1.0,
+            "200": 1.0,
+            "300": 1.0,
+            "400": 1.0
+          }
+        }
+      },
+      "pending": {},
+      "heldout": {
+        "low": {
+          "quality": 1.0003940774861715,
+          "change_vs_old_export_pct": -0.008500041330505859,
+          "change_bootstrap95": [
+            -0.025499330623224292,
+            0.0
+          ]
+        },
+        "medium": {
+          "quality": 1.0003940774861715,
+          "change_vs_old_export_pct": -0.008500041330505859,
+          "change_bootstrap95": [
+            -0.025499330623224292,
+            0.0
+          ]
+        },
+        "high": {
+          "quality": 1.0003940774861715,
+          "change_vs_old_export_pct": -0.008500041330505859,
+          "change_bootstrap95": [
+            -0.025499330623224292,
+            0.0
+          ]
+        }
+      },
+      "gaps_to_high_pct": {
+        "low": {
+          "overall": 0.0,
+          "clean": 0.0,
+          "carryover": 0.0
+        },
+        "medium": {
+          "overall": 0.0,
+          "clean": 0.0,
+          "carryover": 0.0
+        },
+        "high": {
+          "overall": 0.0,
+          "clean": 0.0,
+          "carryover": 0.0
+        }
+      }
+    },
+    "30": {
+      "completed": {
+        "10000000": {
+          "parameters": {
+            "evaluations": 10000000,
+            "starts": 13,
+            "stage_length": 4121,
+            "t_max": 0.1250132749676,
+            "t_min": 0.03545481965198901,
+            "rcl_alpha": 0.3340144265422,
+            "p_inter": 0.9603446927993,
+            "p_shift": 0.505760606627,
+            "p_block": 0.1322194041951
+          },
+          "quality": 0.9510337399607635,
+          "id": "4819b8da32e5e9c1986f26784e27d373b023141f0d67d6876fe20185c837649b",
+          "stats": {
+            "submitted": 402,
+            "finished": 402,
+            "running": 0
+          },
+          "improvement_vs_exact_pct": 0.2185246078182268,
+          "improvement_vs_cap_pct": 0.14760905592604567,
+          "cpu_hours": 21.420677083333334,
+          "panel_wall_hours": 1.1158192705832901,
+          "checkpoints": {
+            "100": 0.9515198806115124,
+            "200": 0.9512919236274419,
+            "300": 0.9510337399607635,
+            "400": 0.9510337399607635
+          }
+        },
+        "100000000": {
+          "parameters": {
+            "evaluations": 100000000,
+            "starts": 9,
+            "stage_length": 4226,
+            "t_max": 0.1114781445448,
+            "t_min": 0.029833194864552742,
+            "rcl_alpha": 0.3408040729198,
+            "p_inter": 0.5617233980566,
+            "p_shift": 0.555676332837,
+            "p_block": 0.1710299008231
+          },
+          "quality": 0.949122919655948,
+          "id": "95240c7e42c8092bcb805786de7b6c8f7a606350a9729bb4509d150fce9fcc5e",
+          "stats": {
+            "submitted": 402,
+            "finished": 402,
+            "running": 0
+          },
+          "improvement_vs_exact_pct": 0.034626209987154155,
+          "improvement_vs_cap_pct": 0.034626209987154155,
+          "cpu_hours": 218.74198784722222,
+          "panel_wall_hours": 11.310392132111042,
+          "checkpoints": {
+            "100": 0.9492020921582306,
+            "200": 0.9492020921582306,
+            "300": 0.949122919655948,
+            "400": 0.949122919655948
+          }
+        },
+        "600000": {
+          "parameters": {
+            "evaluations": 600000,
+            "starts": 8,
+            "stage_length": 2127,
+            "t_max": 0.1305472200046,
+            "t_min": 0.02365957760984327,
+            "rcl_alpha": 0.6037826750795,
+            "p_inter": 0.8156482080143,
+            "p_shift": 0.4763003559052,
+            "p_block": 0.1413150880574
+          },
+          "quality": 0.9629869730566618,
+          "id": "019188f7c464bdc93b9c2946c713ff6ab87cb22efd4e11552298b0270e054ed6",
+          "stats": {
+            "submitted": 434,
+            "finished": 434,
+            "running": 0
+          },
+          "improvement_vs_exact_pct": 0.3501926494041574,
+          "improvement_vs_cap_pct": 0.3501926494041574,
+          "cpu_hours": 1.1614322916666666,
+          "panel_wall_hours": 0.12499463013897184,
+          "checkpoints": {
+            "100": 0.9643406695031331,
+            "200": 0.9642336861534487,
+            "300": 0.9631654631681998,
+            "400": 0.9629869730566618
+          }
+        }
+      },
+      "pending": {},
+      "heldout": {
+        "low": {
+          "quality": 0.9605061545417573,
+          "change_vs_old_export_pct": 0.42066743270705587,
+          "change_bootstrap95": [
+            -0.13154381816736782,
+            1.1117169940142224
+          ]
+        },
+        "medium": {
+          "quality": 0.9428566976099854,
+          "change_vs_old_export_pct": 0.3917393038833872,
+          "change_bootstrap95": [
+            0.18862675034521104,
+            0.7118999610074672
+          ]
+        },
+        "high": {
+          "quality": 0.9390322053758603,
+          "change_vs_old_export_pct": -0.015477856806322965,
+          "change_bootstrap95": [
+            -0.05202774245026687,
+            0.022981986377712538
+          ]
+        }
+      },
+      "gaps_to_high_pct": {
+        "low": {
+          "overall": 2.286817112657147,
+          "clean": 2.4629135420942028,
+          "carryover": 2.1111148081429665
+        },
+        "medium": {
+          "overall": 0.4072801989357,
+          "clean": 0.5151412583533022,
+          "carryover": 0.2996605455015011
+        },
+        "high": {
+          "overall": 0.0,
+          "clean": 0.0,
+          "carryover": 0.0
+        }
+      },
+      "medium_vs_old_9m4_candidate_pct": -0.10070104781966238
+    },
+    "50": {
+      "completed": {
+        "20000000": {
+          "parameters": {
+            "evaluations": 20000000,
+            "starts": 4,
+            "stage_length": 143,
+            "t_max": 0.1410175042816,
+            "t_min": 0.017668149144566152,
+            "rcl_alpha": 0.011698307281,
+            "p_inter": 0.8800600384137,
+            "p_shift": 0.5486306048087,
+            "p_block": 0.1339137150091
+          },
+          "quality": 0.8858263078872675,
+          "id": "e5066aa9e618737752320d107188f51a7f463acf343249b72295267681fcf1c4",
+          "stats": {
+            "submitted": 404,
+            "finished": 404,
+            "running": 0
+          },
+          "improvement_vs_exact_pct": 0.17441606522823339,
+          "improvement_vs_cap_pct": 0.17441606522823339,
+          "cpu_hours": 62.891302083333336,
+          "panel_wall_hours": 3.261750046332988,
+          "checkpoints": {
+            "100": 0.8871047156870651,
+            "200": 0.886177818651295,
+            "300": 0.8859691785381028,
+            "400": 0.8858263078872675
+          }
+        },
+        "3000000": {
+          "parameters": {
+            "evaluations": 3000000,
+            "starts": 1,
+            "stage_length": 4978,
+            "t_max": 0.1372160247482,
+            "t_min": 0.018668274635205213,
+            "rcl_alpha": 0.030878169097,
+            "p_inter": 0.7779913925038,
+            "p_shift": 0.6844516674175,
+            "p_block": 0.150172712714
+          },
+          "quality": 0.8927160185696926,
+          "id": "a36d5d41ae7bd6b44767a97701b4377a8c96082db811e2a05e8e7e670570a22f",
+          "stats": {
+            "submitted": 421,
+            "finished": 421,
+            "running": 0
+          },
+          "improvement_vs_exact_pct": 0.14279265994388002,
+          "improvement_vs_cap_pct": 0.14279265994388002,
+          "cpu_hours": 10.313697916666667,
+          "panel_wall_hours": 0.5496243520000199,
+          "checkpoints": {
+            "100": 0.8939925743463025,
+            "200": 0.8939925743463025,
+            "300": 0.8939545332968897,
+            "400": 0.8927160185696926
+          }
+        }
+      },
+      "pending": {
+        "100000000": {
+          "submitted": 26,
+          "finished": 25,
+          "running": 1
+        }
+      },
+      "heldout": {}
+    },
+    "100": {
+      "completed": {},
+      "pending": {},
+      "heldout": {}
+    }
+  }
+}
