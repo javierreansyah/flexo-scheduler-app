@@ -59,12 +59,25 @@ export function checkSequences(
   time: number,
   lastCheckTime: number,
   activeAnimations: ActiveAnimation[],
+  config: GridBackgroundConfig,
 ): number {
-  if (!sequencesConfig || sequencesConfig.sequences.length === 0) {
+  if (
+    !sequencesConfig ||
+    (!sequencesConfig.sequences.length && !sequencesConfig.generateEvents)
+  ) {
     return lastCheckTime;
   }
 
   if (time - lastCheckTime > sequencesConfig.checkInterval) {
+    if (sequencesConfig.generateEvents) {
+      if (!activeAnimations.length)
+        enqueueInitialEvents(
+          sequencesConfig.generateEvents(config),
+          time,
+          activeAnimations,
+        );
+      return time;
+    }
     for (let i = 0; i < sequencesConfig.sequences.length; i++) {
       const seq = sequencesConfig.sequences[i];
       if (Math.random() < seq.probability) {

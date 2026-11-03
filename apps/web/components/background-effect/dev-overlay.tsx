@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useEffect, useRef, useState, useCallback } from "react";
-import type { DevStats, GridBackgroundConfig } from "./types";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { DEFAULT_CONFIG } from "./config";
-import type { BackgroundState } from "./runtime-state";
 import { DevControlsHud } from "./dev-controls-hud";
+import type { BackgroundState } from "./runtime-state";
+import type { DevStats, GridBackgroundConfig } from "./types";
 
 export interface DevOverlayProps {
   initialConfig: GridBackgroundConfig;
@@ -308,12 +308,11 @@ export default function DevOverlay({
       onPointerDown={isDragEnabled ? handlePointerDown : undefined}
       onPointerMove={isDragEnabled ? handlePointerMove : undefined}
       onPointerUp={isDragEnabled ? handlePointerUp : undefined}
-      className={`absolute inset-0 z-50 select-none ${
+      className={`absolute inset-0 z-50 select-none ${isDragEnabled ? "touch-none" : "touch-auto"} ${
         isDragEnabled
           ? `pointer-events-auto ${isDragging ? "cursor-grabbing" : "cursor-grab"}`
           : "pointer-events-none"
       }`}
-      style={{ touchAction: isDragEnabled ? "none" : "auto" }}
     >
       <DevControlsHud
         devStats={devStats}

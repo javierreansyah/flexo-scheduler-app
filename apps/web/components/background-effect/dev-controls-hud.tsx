@@ -114,9 +114,9 @@ function HudControl({
       {/* Label Row with direct keyboard-inputable value field, copy icon and nudge buttons */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-1">
-          <span className="truncate text-hud-md text-body">{label}</span>
+          <span className="truncate text-hud-md text-foreground">{label}</span>
           {unit && (
-            <span className="font-mono text-hud-xs text-neutral-500">
+            <span className="font-mono text-hud-xs text-muted-foreground">
               ({unit})
             </span>
           )}
@@ -157,7 +157,7 @@ function HudControl({
               onBlur={handleBlur}
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
-              className="w-16 border border-foreground/15 bg-background/60 px-1.5 py-0.5 text-right font-mono text-hud-md font-semibold text-neutral-200 tabular-nums transition hover:border-foreground/30 focus:border-neutral-200 focus:outline-none"
+              className="w-16 border border-foreground/15 bg-background/60 px-1.5 py-0.5 text-right font-mono text-hud-md font-semibold text-foreground tabular-nums transition hover:border-foreground/30 focus:border-foreground focus:outline-none"
               title={`Type value for ${label} (${min} - ${max})`}
             />
 
@@ -166,14 +166,14 @@ function HudControl({
               onClick={handleCopyParam}
               className={`flex cursor-pointer items-center justify-center border p-1 transition ${
                 isCopied
-                  ? "border-neutral-200 bg-neutral-200/25 text-neutral-200"
+                  ? "border-foreground bg-foreground/25 text-foreground"
                   : "border-foreground/10 bg-foreground/5 text-muted-foreground hover:border-foreground/20 hover:bg-foreground/10 hover:text-foreground"
               }`}
               title={`Copy ${paramKey ? `${paramKey}: ${value},` : label}`}
             >
               {isCopied ? (
                 <svg
-                  className="h-2.5 w-2.5 text-neutral-200"
+                  className="h-2.5 w-2.5 text-foreground"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -210,12 +210,12 @@ function HudControl({
         step={step}
         value={value}
         onChange={(e) => onChange(parseFloat(e.target.value))}
-        className="h-1 w-full cursor-pointer appearance-none bg-foreground/15 accent-neutral-200 transition hover:bg-foreground/25"
+        className="h-1 w-full cursor-pointer appearance-none bg-foreground/15 accent-foreground transition hover:bg-foreground/25"
       />
 
       {/* Hint (if any) */}
       {hint && (
-        <div className="font-mono text-hud-xs text-neutral-500 italic">
+        <div className="font-mono text-hud-xs text-muted-foreground italic">
           {hint}
         </div>
       )}
@@ -223,7 +223,7 @@ function HudControl({
       {/* Preset Pills */}
       {presets && presets.length > 0 && (
         <div className="flex flex-wrap items-center gap-1 pt-0.5">
-          <span className="font-mono text-hud-xs text-neutral-500">
+          <span className="font-mono text-hud-xs text-muted-foreground">
             Presets:
           </span>
           {presets.map((preset) => {
@@ -234,9 +234,9 @@ function HudControl({
                 key={preset}
                 type="button"
                 onClick={() => onChange(preset)}
-                className={`py-0.2 cursor-pointer border px-1.5 font-mono text-hud-xs transition ${
+                className={`py-0.5 cursor-pointer border px-1.5 font-mono text-hud-xs transition ${
                   isActive
-                    ? "border-neutral-200 bg-neutral-200 font-bold text-neutral-950"
+                    ? "border-foreground bg-foreground font-bold text-background"
                     : "border-foreground/5 bg-foreground/5 text-muted-foreground hover:border-foreground/15 hover:bg-foreground/10 hover:text-foreground"
                 }`}
               >
@@ -269,7 +269,7 @@ function HudSection({ title, isOpen, onToggle, children }: HudSectionProps) {
         onClick={onToggle}
         className="flex w-full cursor-pointer items-center justify-between py-2 text-left transition select-none hover:text-foreground"
       >
-        <span className="text-hud-sm font-bold tracking-wider text-neutral-200 uppercase">
+        <span className="text-hud-sm font-bold tracking-wider text-foreground uppercase">
           {title}
         </span>
         <span className="font-mono text-hud-sm text-muted-foreground">
@@ -405,10 +405,10 @@ export function DevControlsHud({
         <button
           type="button"
           onClick={() => setIsMinimized(false)}
-          className="cursor-pointer border border-foreground/20 bg-neutral-950/95 px-3 py-1.5 font-mono text-xs text-secondary shadow-xl backdrop-blur-md transition hover:border-neutral-200 hover:bg-neutral-900 hover:text-foreground"
+          className="cursor-pointer border border-foreground/20 bg-card/95 px-3 py-1.5 font-mono text-xs text-muted-foreground shadow-xl backdrop-blur-md transition hover:border-foreground hover:bg-muted hover:text-foreground"
           title="Expand Dev HUD"
         >
-          <span className="font-bold tracking-wider text-neutral-200">
+          <span className="font-bold tracking-wider text-foreground">
             DEV HUD
           </span>
           <span className="ml-2 text-muted-foreground">⤢</span>
@@ -422,21 +422,21 @@ export function DevControlsHud({
     <div
       data-dev-hud
       data-lenis-prevent
-      className="pointer-events-auto absolute top-4 right-4 z-50 flex max-h-(--hud-max-height) w-(--hud-width) flex-col overscroll-contain border border-foreground/20 bg-neutral-950/95 font-mono text-xs text-secondary shadow-2xl backdrop-blur-md [scrollbar-width:thin]"
+      className="pointer-events-auto absolute top-4 right-4 z-50 flex max-h-(--hud-max-height) w-(--hud-width) flex-col overscroll-contain border border-foreground/20 bg-card/95 font-mono text-xs text-muted-foreground shadow-2xl backdrop-blur-md"
       onClick={(e) => e.stopPropagation()}
       onPointerDown={(e) => e.stopPropagation()}
       onKeyDown={(e) => e.stopPropagation()}
       onWheel={(e) => e.stopPropagation()}
     >
       {/* Header: Copy Config button on left, controls on right */}
-      <div className="flex shrink-0 items-center justify-between border-b border-foreground/10 bg-neutral-950 p-2.5">
+      <div className="flex shrink-0 items-center justify-between border-b border-foreground/10 bg-card p-2.5">
         <button
           type="button"
           onClick={handleCopyAll}
           className={`cursor-pointer border px-2.5 py-1 text-hud-md font-semibold transition active:scale-98 ${
             isCopied
-              ? "border-neutral-200 bg-neutral-200 text-neutral-950"
-              : "border-foreground/20 bg-foreground/5 text-secondary hover:border-neutral-200/60 hover:bg-foreground/10 hover:text-foreground"
+              ? "border-foreground bg-foreground text-background"
+              : "border-foreground/20 bg-foreground/5 text-muted-foreground hover:border-foreground/60 hover:bg-foreground/10 hover:text-foreground"
           }`}
           title="Copy full configuration object to clipboard"
         >
@@ -449,7 +449,7 @@ export function DevControlsHud({
             onClick={toggleDrag}
             className={`cursor-pointer border px-2 py-1 text-hud-sm font-semibold transition active:scale-98 ${
               isDragEnabled
-                ? "border-neutral-200 bg-neutral-200/20 text-neutral-200 shadow-sm shadow-neutral-300/20"
+                ? "border-foreground bg-foreground/20 text-foreground shadow-sm shadow-foreground/20"
                 : "border-foreground/10 bg-foreground/5 text-muted-foreground hover:border-foreground/20 hover:text-foreground"
             }`}
             title={
@@ -471,7 +471,7 @@ export function DevControlsHud({
           <button
             type="button"
             onClick={handleReset}
-            className="cursor-pointer border border-foreground/10 bg-foreground/5 px-2 py-1 text-hud-sm text-muted-foreground transition hover:border-neutral-200/40 hover:bg-neutral-200/10 hover:text-neutral-200"
+            className="cursor-pointer border border-foreground/10 bg-foreground/5 px-2 py-1 text-hud-sm text-muted-foreground transition hover:border-foreground/40 hover:bg-foreground/10 hover:text-foreground"
             title="Reset all parameters to default"
           >
             Reset
@@ -491,7 +491,7 @@ export function DevControlsHud({
       <div
         ref={scrollRef}
         data-lenis-prevent
-        className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-3 py-1 [scrollbar-width:thin]"
+        className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-3 py-1"
         onWheel={(e) => e.stopPropagation()}
       >
         {/* ── Section 1: Camera & Grid Resolution ── */}
@@ -502,13 +502,15 @@ export function DevControlsHud({
         >
           {/* Screen Camera Drag Toggle */}
           <div className="mb-1 flex items-center justify-between border-b border-foreground/10 pb-1.5">
-            <span className="text-hud-md text-body">Screen Camera Drag</span>
+            <span className="text-hud-md text-foreground">
+              Screen Camera Drag
+            </span>
             <button
               type="button"
               onClick={toggleDrag}
               className={`cursor-pointer border px-2 py-0.5 font-mono text-hud-sm font-semibold transition ${
                 isDragEnabled
-                  ? "border-neutral-200 bg-neutral-200 font-bold text-neutral-950 shadow-sm shadow-neutral-300/30"
+                  ? "border-foreground bg-foreground font-bold text-background shadow-sm shadow-foreground/30"
                   : "border-foreground/10 bg-foreground/5 text-muted-foreground hover:border-foreground/20 hover:text-foreground"
               }`}
               title="Toggle screen drag camera control"

@@ -5,9 +5,13 @@
     "dev": "next dev",
     "build": "next build",
     "preview": "wrangler pages dev out",
-    "lint": "tsc --noEmit",
+    "lint": "pnpm typecheck && pnpm lint:ui && pnpm lint:css",
     "test": "vitest run",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "typecheck": "tsc --noEmit",
+    "lint:ui": "oxlint --deny-warnings .",
+    "lint:css": "stylelint \"app/**/*.css\" --max-warnings 0",
+    "format:check": "prettier --check app components hooks lib e2e *.json *.mjs .oxlintrc.json AGENTS.md"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
@@ -26,11 +30,14 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.56.0",
+    "@shadcn/lint": "^0.2.4",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^22",
     "@types/papaparse": "^5",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "oxlint": "^1.90.0",
+    "stylelint": "^17.16.0",
     "tailwindcss": "^4",
     "typescript": "^5.9.0",
     "vitest": "^3",

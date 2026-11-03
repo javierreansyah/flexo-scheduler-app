@@ -1,6 +1,6 @@
-import { it, expect } from "vitest";
-import { initial, example, importProject } from "./model";
-import { projectColors, colorNames, parseColors } from "./colors";
+import { expect, it } from "vitest";
+import { colorNames, parseColors, projectColors } from "./colors";
+import { example, importProject, initial } from "./model";
 it("supports named colors while preserving numeric engine inputs", () => {
   const p = initial(),
     colors = projectColors(p);

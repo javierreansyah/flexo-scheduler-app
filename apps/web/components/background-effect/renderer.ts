@@ -1,17 +1,17 @@
+import {
+  NOISE_FRAGMENT_SHADER,
+  VERTEX_SHADER,
+  getMainFragmentShader,
+} from "./shaders";
 import type {
-  GridBackgroundConfig,
   GradationConfig,
+  GridBackgroundConfig,
   ScrollDissolveConfig,
 } from "./types";
 import {
-  VERTEX_SHADER,
-  NOISE_FRAGMENT_SHADER,
-  getMainFragmentShader,
-} from "./shaders";
-import {
   QUAD_VERTS,
-  createProgram,
   createGpuResources,
+  createProgram,
   getUniformLocations,
 } from "./webgl-utils";
 
@@ -33,6 +33,8 @@ export function createGridRenderer(
   const state = createGpuResources();
   let shaderSource = getMainFragmentShader(config);
   let vbo: WebGLBuffer | null = null;
+  let cssWidth = 1,
+    cssHeight = 1;
 
   function dispose() {
     gl.deleteFramebuffer(state.fbo);
@@ -114,6 +116,8 @@ export function createGridRenderer(
     "uScrollDissolveDir",
   ] as const);
   const mainNames = [
+    "uCellInset",
+    "uTime",
     "uResolution",
     "uGridColsRows",
     "uLineDisplaceAmount",
@@ -141,6 +145,8 @@ export function createGridRenderer(
 
   function resize(width: number, height: number, cellSize: number) {
     if (width <= 0 || height <= 0) return;
+    cssWidth = width;
+    cssHeight = height;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const pixelWidth = Math.max(1, Math.round(width * dpr));
     const pixelHeight = Math.max(1, Math.round(height * dpr));
@@ -252,6 +258,13 @@ export function createGridRenderer(
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 
     gl.useProgram(state.mainProgram);
+    const bleed = activeConfig.singleCellBleedPx;
+    gl.uniform2f(
+      main.uCellInset,
+      bleed ? bleed[0] / cssWidth : 0.025,
+      bleed ? bleed[1] / cssHeight : 0.08,
+    );
+    gl.uniform1f(main.uTime, activeConfig.time);
     gl.uniform2f(main.uResolution, gl.canvas.width, gl.canvas.height);
     gl.uniform2f(main.uGridColsRows, state.gridCols, state.gridRows);
 

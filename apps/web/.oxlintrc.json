@@ -1,0 +1,59 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "jsPlugins": ["@shadcn/lint"],
+  "ignorePatterns": [
+    ".next/**",
+    "out/**",
+    "public/**",
+    "test-results/**",
+    "next-env.d.ts"
+  ],
+  "rules": {
+    "no-unused-vars": "error",
+    "shadcn/no-restyle": [
+      "error",
+      {
+        "allow": ["layout"],
+        "contracts": [
+          {
+            "pattern": "^Button$",
+            "allow": ["w-full", "flex-1", "mt-*", "mb-*"]
+          },
+          {
+            "pattern": "^Input$",
+            "allow": ["w-*", "max-w-*", "min-w-*", "flex-*"]
+          },
+          {
+            "pattern": "^SelectTrigger$",
+            "allow": ["w-*", "max-w-*", "min-w-*"]
+          }
+        ]
+      }
+    ],
+    "shadcn/no-raw-colors": [
+      "error",
+      {
+        "allow": [],
+        "deny": ["*-white", "*-black"]
+      }
+    ],
+    "shadcn/no-arbitrary-values": "error",
+    "shadcn/no-inline-styles": "error",
+    "shadcn/no-unknown-classes": "error",
+    "shadcn/require-static-classes": "error"
+  },
+  "overrides": [
+    {
+      "files": ["components/ui/**"],
+      "rules": {
+        "shadcn/no-restyle": "off",
+        "shadcn/require-static-classes": "off"
+      }
+    }
+  ],
+  "settings": {
+    "shadcn": {
+      "note": "Use shared component variants and theme tokens. See AGENTS.md."
+    }
+  }
+}

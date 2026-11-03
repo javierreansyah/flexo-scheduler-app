@@ -1,11 +1,28 @@
 "use client";
-import { useMemo, useRef, useState, useEffect } from "react";
 import {
-  useTable,
-  tableFeatures,
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+  TableScroll,
+  TableToolbar,
+  TableFilter,
+} from "@/components/ui/table";
+
+import {
   createColumnHelper,
+  tableFeatures,
+  useTable,
 } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { ArrowDown, ArrowUp, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { NewTableRow, type EntryColumn } from "./new-table-row";
+import { Button } from "./ui/button";
+import { Checkbox } from "./ui/checkbox";
+import { Input } from "./ui/input";
 function GridInput({
   value,
   onCommit,
@@ -17,7 +34,8 @@ function GridInput({
   const [draft, setDraft] = useState(value);
   useEffect(() => setDraft(value), [value]);
   return (
-    <input
+    <Input
+      variant="cell"
       {...props}
       value={draft}
       onChange={(e) => setDraft(e.target.value)}
@@ -43,12 +61,16 @@ export function DataGrid({
   onPasteCells,
   onDeleteMany,
   disabled = false,
+  toolbarActions,
+  onAppend,
 }: {
   rows: Record<string, string>[];
-  columns: { key: string; label: string }[];
+  columns: EntryColumn[];
+  onAppend?: (row: Record<string, string>) => string | null;
   onChange: (i: number, key: string, value: string) => void;
   onDelete: (i: number) => void;
   disabled?: boolean;
+  toolbarActions?: React.ReactNode;
   onDeleteMany?: (indices: number[]) => void;
   onPasteCells?: (
     cells: { i: number; key: string; value: string }[],
@@ -93,39 +115,43 @@ export function DataGrid({
   const virtual = useVirtualizer({
     count: data.length,
     getScrollElement: () => ref.current,
-    estimateSize: () => 45,
+    estimateSize: () => 44,
     overscan: 8,
   });
   const model = table.getRowModel().rows;
   return (
     <>
-      <div className="table-toolbar">
-        <input
-          aria-label="Search table"
-          placeholder="Filter rows..."
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
+      <TableToolbar>
+        <TableFilter
+          query={query}
+          onQueryChange={setQuery}
+          count={data.length}
         />
+        <div className="ml-auto flex flex-wrap items-center gap-2 max-sm:w-full max-sm:justify-between">
+          {toolbarActions}
+        </div>
         {selected.size > 0 && (
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label={`Delete ${selected.size} selected`}
+            title={`Delete ${selected.size} selected`}
             disabled={disabled}
             onClick={() => {
               onDeleteMany?.([...selected]);
               setSelected(new Set());
             }}
           >
-            Delete {selected.size} selected
-          </button>
+            <Trash2 />
+          </Button>
         )}
-        <span>{data.length} rows · Tab to edit · paste spreadsheet cells</span>
-      </div>
-      <div ref={ref} className="grid-scroll">
-        <table>
-          <thead>
-            <tr>
-              <th>
-                <input
-                  type="checkbox"
+      </TableToolbar>
+      <TableScroll ref={ref}>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead variant="selection">
+                <Checkbox
                   aria-label="Select visible rows"
                   disabled={disabled}
                   checked={
@@ -135,9 +161,9 @@ export function DataGrid({
                         selected.has(Number(r._index)) || r.status === "Locked",
                     )
                   }
-                  onChange={(e) =>
+                  onCheckedChange={(checked) =>
                     setSelected(
-                      e.target.checked
+                      checked
                         ? new Set(
                             data
                               .filter((r) => r.status !== "Locked")
@@ -147,24 +173,35 @@ export function DataGrid({
                     )
                   }
                 />
-              </th>
+              </TableHead>
               {columns.map((c) => (
-                <th key={c.key}>
-                  <button
+                <TableHead key={c.key}>
+                  <Button
+                    variant="ghost"
+                    size="header"
                     onClick={() => {
                       setSort(c.key);
                       setDescending(sort === c.key ? !descending : false);
                     }}
                   >
-                    {c.label} {sort === c.key ? (descending ? "v" : "^") : ""}
-                  </button>
-                </th>
+                    {c.label}{" "}
+                    {sort === c.key &&
+                      (descending ? <ArrowDown /> : <ArrowUp />)}
+                  </Button>
+                </TableHead>
               ))}
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            <tr style={{ height: virtual.getVirtualItems()[0]?.start ?? 0 }} />
+              <TableHead variant="actions" />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow
+              variant="spacer"
+              style={
+                {
+                  "--spacer-height": `${virtual.getVirtualItems()[0]?.start ?? 0}px`,
+                } as React.CSSProperties
+              }
+            />
             <>
               {virtual.getVirtualItems().map((item) => {
                 const row = model[item.index];
@@ -172,24 +209,24 @@ export function DataGrid({
                 const i = Number(original._index);
                 const locked = original.status === "Locked";
                 return (
-                  <tr key={row.id}>
-                    <td>
-                      <input
-                        type="checkbox"
+                  <TableRow key={row.id}>
+                    <TableCell variant="selection">
+                      <Checkbox
                         aria-label={`Select row ${i + 1}`}
                         disabled={disabled || locked}
                         checked={selected.has(i)}
-                        onChange={(e) =>
+                        onCheckedChange={(checked) =>
                           setSelected((old) => {
                             const next = new Set(old);
-                            e.target.checked ? next.add(i) : next.delete(i);
+                            if (checked) next.add(i);
+                            else next.delete(i);
                             return next;
                           })
                         }
                       />
-                    </td>
+                    </TableCell>
                     {columns.map((c, col) => (
-                      <td key={c.key}>
+                      <TableCell key={c.key}>
                         <GridInput
                           aria-label={`${c.label} row ${i + 1}`}
                           disabled={
@@ -243,33 +280,48 @@ export function DataGrid({
                               );
                           }}
                         />
-                      </td>
+                      </TableCell>
                     ))}
-                    <td>
-                      <button
+                    <TableCell variant="actions">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title={`Delete row ${i + 1}`}
                         aria-label={`Delete row ${i + 1}`}
                         disabled={disabled || locked}
                         onClick={() => onDelete(i)}
                       >
-                        &times;
-                      </button>
-                    </td>
-                  </tr>
+                        <Trash2 />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
                 );
               })}
             </>
-            <tr
-              style={{
-                height: Math.max(
-                  0,
-                  virtual.getTotalSize() -
-                    (virtual.getVirtualItems().at(-1)?.end ?? 0),
-                ),
-              }}
+            <TableRow
+              variant="spacer"
+              style={
+                {
+                  "--spacer-height":
+                    Math.max(
+                      0,
+                      virtual.getTotalSize() -
+                        (virtual.getVirtualItems().at(-1)?.end ?? 0),
+                    ) + "px",
+                } as React.CSSProperties
+              }
             />
-          </tbody>
-        </table>
-      </div>
+            {onAppend && (
+              <NewTableRow
+                columns={columns}
+                selection
+                disabled={disabled}
+                onCommit={onAppend}
+              />
+            )}
+          </TableBody>
+        </Table>
+      </TableScroll>
     </>
   );
 }

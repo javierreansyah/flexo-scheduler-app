@@ -1,14 +1,14 @@
 import type { RefObject } from "react";
-import type { GridBackgroundConfig, GridBackgroundProps } from "./types";
-import type { BackgroundState } from "./runtime-state";
-import { createGridRenderer, type GridRenderer } from "./renderer";
 import {
-  enqueueInitialEvents,
   checkSequences,
+  enqueueInitialEvents,
   stepAnimations,
   type ActiveAnimation,
 } from "./animation-engine";
+import { createGridRenderer, type GridRenderer } from "./renderer";
+import type { BackgroundState } from "./runtime-state";
 import { dissolveProgress, resolveDissolve } from "./scroll-dissolve";
+import type { GridBackgroundConfig, GridBackgroundProps } from "./types";
 
 export type RuntimeOptions = Pick<
   GridBackgroundProps,
@@ -42,6 +42,7 @@ export function createBackgroundRuntime(
     if (raf !== null) cancelAnimationFrame(raf);
     if (timer !== null) clearTimeout(timer);
     raf = timer = null;
+    lastFrame = -Infinity;
   }
 
   function canRun() {
@@ -107,7 +108,14 @@ export function createBackgroundRuntime(
   function frame(time: number) {
     raf = null;
     if (!canRun()) return;
+    const elapsed = Number.isFinite(lastFrame)
+      ? Math.min(time - lastFrame, 100)
+      : 0;
     lastFrame = time;
+    const timeSpeed = reducedMotion.matches
+      ? 0
+      : (options.current.sequences?.timeSpeed ?? 0);
+    if (timeSpeed) config.current.time += (elapsed / 1000) * timeSpeed;
     if (!initialEventsRun) {
       initialEventsRun = true;
       const events = options.current.initialEvents;
@@ -130,11 +138,12 @@ export function createBackgroundRuntime(
         time,
         lastSequenceCheck,
         animations,
+        config.current,
       );
     }
     const animated = stepAnimations(animations, time, config.current);
     if (
-      (state.needsRender || animated) &&
+      (state.needsRender || animated || timeSpeed) &&
       state.containerWidth > 0 &&
       state.containerHeight > 0
     ) {
@@ -151,12 +160,13 @@ export function createBackgroundRuntime(
       );
       state.needsRender = false;
     }
-    if (animations.length > 0 || state.needsRender) {
+    if (animations.length > 0 || state.needsRender || timeSpeed) {
       // A zero-size canvas is woken by ResizeObserver when it has a drawable area.
       if (state.containerWidth > 0 && state.containerHeight > 0) wake();
     } else if (
       !reducedMotion.matches &&
-      options.current.sequences?.sequences.length
+      (options.current.sequences?.sequences.length ||
+        options.current.sequences?.generateEvents)
     ) {
       const delay = Math.max(
         1,

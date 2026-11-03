@@ -38,7 +38,7 @@ export default function ContactLinks() {
 
   return (
     <>
-      <ul className="contact-links">
+      <ul className="m-0 list-none space-y-3 text-sm [&_li+li]:border-t [&_li+li]:border-border [&_li+li]:pt-3">
         {LINKS.map((item) => (
           <li key={item.href}>
             <a
@@ -46,7 +46,7 @@ export default function ContactLinks() {
               target={item.email ? undefined : "_blank"}
               rel={item.email ? undefined : "noopener noreferrer"}
               onClick={item.email ? copyEmail : undefined}
-              className="group flex items-center justify-between gap-4 py-1 text-secondary hover:text-foreground"
+              className="group flex items-center justify-between gap-4 py-1 text-foreground hover:text-muted-foreground"
             >
               <span className="group-hover:underline">
                 {item.email && copied

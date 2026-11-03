@@ -1,5 +1,5 @@
 import engineManifest from "./engine-manifest.json";
-import { Snapshot, Parameters, Result } from "./model";
+import { Parameters, Result, Snapshot } from "./model";
 export function run(
   snapshot: Snapshot,
   parameters: Parameters,

@@ -1,6 +1,10 @@
 import type React from "react";
 
 export interface GridBackgroundConfig {
+  /** Render one elongated CRT cell instead of the full grid. */
+  singleCell?: boolean;
+  /** Space outside the lit cell reserved for CRT displacement and glow. */
+  singleCellBleedPx?: [number, number];
   gridCellSizePx: number;
   seed: number;
   cameraX: number;
@@ -78,6 +82,12 @@ export interface AnimationSequence {
 }
 
 export interface AnimationSequenceConfig {
+  /** Advance shader time continuously in units per second while this sequence is active. */
+  timeSpeed?: number;
+  /** Generate a fresh burst after the previous one finishes. */
+  generateEvents?: (
+    current: Readonly<GridBackgroundConfig>,
+  ) => AnimationEvent[];
   /** How often (in ms) to check the probability and potentially trigger a sequence */
   checkInterval: number;
   /** List of possible sequences to run */

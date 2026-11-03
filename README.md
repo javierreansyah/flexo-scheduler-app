@@ -162,3 +162,7 @@ The visual language and grid background draw from
 [Javier Reansyah's portfolio](https://github.com/javierreansyah).
 The optimizer uses SMAC for offline tuning and Emscripten to bring its shared
 native scheduling engine into the browser.
+
+### Web UI maintenance
+
+The web app uses strict shadcn/Oxlint policies and Stylelint. Run `pnpm lint` for types and design checks, `pnpm --filter @flexo/web format:check` for formatting, and `pnpm test` for unit checks. UI rules and component ownership are documented in `apps/web/AGENTS.md`. Workspace panels live in `components/workspace`; hooks own persistence and optimizer execution; shared controls and tables live in `components/ui`.

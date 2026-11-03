@@ -1,5 +1,10 @@
 import type { Project } from "./model";
-export type InkColor = { id: number; name: string; hex: string };
+export type InkColor = {
+  id: number;
+  name: string;
+  hex: string;
+  darkness?: number;
+};
 export const starterColors: InkColor[] = [
   { id: 1, name: "Red", hex: "#be4545" },
   { id: 2, name: "Green", hex: "#4d916a" },
@@ -10,6 +15,9 @@ export function projectColors(p: Project): InkColor[] {
   const ids = new Set([
     ...p.snapshot.jobs.flatMap((j) => j.inks),
     ...Object.values(p.snapshot.machine_states ?? {}).flatMap((s) => s.inks),
+    ...Object.keys(p.snapshot.transition_times ?? {})
+      .filter((k) => k !== "empty")
+      .map(Number),
     ...Object.keys(p.snapshot.ink_costs ?? {})
       .filter((k) => k !== "empty")
       .map(Number),

@@ -56,10 +56,7 @@ for (const [n, p] of Object.entries(profiles.profiles)) {
     slim[n].low = slim[n].medium;
 }
 writeFileSync("apps/web/lib/profiles.json", JSON.stringify(slim, null, 2));
-copyFileSync(
-  "packages/optimizer/flexo/example.json",
-  "apps/web/lib/industry.json",
-);
+// apps/web/lib/industry.json is curated UI data, not the research hue-level fixture.
 
 const hash = createHash("sha256");
 for (const name of ["engine.mjs", "engine.wasm", "worker.mjs"])
@@ -77,7 +74,14 @@ for (const name of ["engine.mjs", "engine.wasm", "worker.mjs"])
 writeFileSync(
   "apps/web/lib/engine-manifest.json",
   JSON.stringify(
-    { version, workerUrl: "/optimizer/" + version + "/worker.mjs", profileVersion: createHash("sha256").update(readFileSync("packages/optimizer/flexo/profiles.json")).update("monotonic-presets-v1").digest("hex") },
+    {
+      version,
+      workerUrl: "/optimizer/" + version + "/worker.mjs",
+      profileVersion: createHash("sha256")
+        .update(readFileSync("packages/optimizer/flexo/profiles.json"))
+        .update("monotonic-presets-v1")
+        .digest("hex"),
+    },
     null,
     2,
   ) + "\n",

@@ -251,6 +251,8 @@ in vec2 vUv;
 out vec4 fragColor;
 
 uniform sampler2D uGrid;
+uniform float uTime;
+uniform vec2 uCellInset;
 uniform vec2 uResolution;
 uniform vec2 uGridColsRows;
 uniform float uLineDisplaceAmount;
@@ -270,7 +272,13 @@ float hash(vec2 p) {
 }
 
 vec4 sampleGrid(vec2 uv) {
-  return texture(uGrid, uv);
+  ${
+    config.singleCell
+      ? `// One lit cell with room for beam bleed and horizontal displacement.
+  vec2 inside = step(uCellInset, uv) * step(uv, vec2(1.0) - uCellInset);
+  return texture(uGrid, vec2(0.5)) * inside.x * inside.y;`
+      : "return texture(uGrid, uv);"
+  }
 }
 
 // 7-tap anisotropic horizontal blur simulating CRT electron beam slew and edge bleed
@@ -305,6 +313,12 @@ void main() {
   float ldDir = mix(-1.0, 1.0, inThick);
 
   distUv.x += ldDir * uLineDisplaceAmount / uGridColsRows.x;
+  ${
+    config.singleCell
+      ? `float tear = hash(vec2(floor(uv.y * 8.0), floor(uTime * 12.0)));
+  distUv.x += (step(0.72, tear) - step(tear, 0.22)) * 0.18;`
+      : ""
+  }
 
   // Sample with horizontal beam bleed
   vec4 baseSample = mix(sampleGrid(distUv), sampleGridBleed(distUv, uHBleedSpread), uHBleedIntensity);

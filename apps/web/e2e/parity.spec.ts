@@ -1,6 +1,6 @@
 import engineManifest from "../lib/engine-manifest.json";
 
-import { test, expect } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 import fixtures from "./native-fixtures.json";
 for (const fixture of fixtures)
   test(`WASM matches native metrics: ${fixture.name}`, async ({ page }) => {
@@ -20,7 +20,8 @@ for (const fixture of fixtures)
                 w.onmessage = ({ data }) => {
                   if (data.progress !== undefined) return;
                   w.terminate();
-                  data.error ? reject(Error(data.error)) : resolve(data.result);
+                  if (data.error) reject(Error(data.error));
+                  else resolve(data.result);
                 };
                 w.postMessage({ ...f, index });
               }),

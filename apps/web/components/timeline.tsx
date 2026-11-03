@@ -1,6 +1,10 @@
 "use client";
-import { useState, useEffect } from "react";
+import type { CSSProperties } from "react";
+
 import type { Result } from "@/lib/model";
+import { useEffect, useState } from "react";
+import { Button } from "./ui/button";
+import { Slider } from "./ui/slider";
 export function Timeline({
   result,
   colorNames = (ids: number[]) => ids.join(", "),
@@ -29,61 +33,76 @@ export function Timeline({
         .map((j) => j.arrival_time),
     ),
   ].sort((a, b) => a - b);
-  const colors = ["#73b6a0", "#a6a9d9", "#c6ae78", "#8eb4cf", "#bd94b2"];
+  const colors = [
+    "var(--chart-1)",
+    "var(--chart-2)",
+    "var(--chart-3)",
+    "var(--chart-4)",
+    "var(--chart-5)",
+  ];
   return (
-    <section className="panel timeline">
-      <div className="section-head">
-        <h2>Production timeline</h2>
-        <div className="actions">
+    <section className="mt-6 min-w-0">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <h2>Schedule</h2>
+        <div className="flex flex-wrap items-center gap-2">
           {["full", "scroll", "shift"].map((v) => (
-            <button
+            <Button
+              variant="toggle"
               aria-pressed={view === v}
               key={v}
               onClick={() => setView(v)}
             >
               {v}
-            </button>
+            </Button>
           ))}
           {view === "scroll" && (
-            <input
+            <Slider
               aria-label="Timeline zoom"
-              type="range"
               min={20}
               max={240}
               value={scale}
-              onChange={(e) => setScale(+e.target.value)}
+              onValueChange={(value) => setScale(Number(value))}
             />
           )}{" "}
           {view === "shift" && (
             <>
-              <button
+              <Button
+                variant="outline"
                 disabled={shift === 0}
                 onClick={() => setShift(Math.max(0, shift - 1))}
               >
                 Prev
-              </button>
+              </Button>
               <span>Shift {Math.min(shift, maxShift) + 1}</span>
-              <button
+              <Button
+                variant="outline"
                 disabled={shift >= maxShift}
                 onClick={() => setShift(shift + 1)}
               >
                 Next
-              </button>
+              </Button>
             </>
           )}
         </div>
       </div>
       <div className="timeline-scroll">
         <div
-          style={{
-            minWidth: view === "scroll" ? `${end * scale + 120}px` : "0px",
-          }}
+          className="timeline-content"
+          style={
+            {
+              "--timeline-width":
+                view === "scroll" ? `${end * scale + 120}px` : "0px",
+            } as CSSProperties
+          }
         >
           <div className="lane axis">
             <strong>Machine</strong>
             <div>
               {Array.from({ length: 9 }, (_, i) => (
-                <span key={i} style={{ left: `${(i / 8) * 100}%` }}>
+                <span
+                  key={i}
+                  style={{ "--position": `${(i / 8) * 100}%` } as CSSProperties}
+                >
                   {(start + (span * i) / 8).toFixed(1)}h
                 </span>
               ))}
@@ -102,13 +121,21 @@ export function Timeline({
                     <i
                       key={t}
                       className="shift-line"
-                      style={{ left: `${((t - start) / span) * 100}%` }}
+                      style={
+                        {
+                          "--position": `${((t - start) / span) * 100}%`,
+                        } as CSSProperties
+                      }
                     />
                   ))}
                 {result.now >= start && result.now <= start + span && (
                   <i
                     className="now-line"
-                    style={{ left: `${((result.now - start) / span) * 100}%` }}
+                    style={
+                      {
+                        "--position": `${((result.now - start) / span) * 100}%`,
+                      } as CSSProperties
+                    }
                   />
                 )}
                 {jobs
@@ -124,21 +151,25 @@ export function Timeline({
                       <button
                         key={j.id}
                         className={`job-bar ${j.locked ? "locked" : ""}`}
-                        style={{
-                          left: `${((left - start) / span) * 100}%`,
-                          width: `${((right - left) / span) * 100}%`,
-                          background:
-                            colors[
-                              arrivals.indexOf(j.arrival_time) % colors.length
-                            ],
-                        }}
+                        style={
+                          {
+                            "--position": `${((left - start) / span) * 100}%`,
+                            "--job-width": `${((right - left) / span) * 100}%`,
+                            "--batch-color":
+                              colors[
+                                arrivals.indexOf(j.arrival_time) % colors.length
+                              ],
+                          } as CSSProperties
+                        }
                         title={`${j.id} | ${j.quantity} pieces | inks ${colorNames(j.inks)} | setup ${j.setup_start?.toFixed(3)} · ${j.start?.toFixed(3)} | complete ${j.completion?.toFixed(3)}h${j.locked ? " | locked" : ""}`}
                       >
                         <span
                           className="setup"
-                          style={{
-                            width: `${((j.start! - j.setup_start!) / duration) * 100}%`,
-                          }}
+                          style={
+                            {
+                              "--setup-width": `${((j.start! - j.setup_start!) / duration) * 100}%`,
+                            } as CSSProperties
+                          }
                         />
                         {j.id}
                       </button>
@@ -149,12 +180,18 @@ export function Timeline({
           ))}
         </div>
       </div>
-      <div className="legend">
+      <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
         <span>Hatched: setup</span>
         <span>Outlined: locked work</span>
         <span>White line: current time</span>
         {arrivals.map((a, i) => (
-          <span key={a} style={{ color: colors[i % colors.length] }}>
+          <span
+            key={a}
+            className="batch-label"
+            style={
+              { "--batch-color": colors[i % colors.length] } as CSSProperties
+            }
+          >
             Batch {a}h
           </span>
         ))}

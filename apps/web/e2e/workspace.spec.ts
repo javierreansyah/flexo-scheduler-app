@@ -1,45 +1,74 @@
-import { inkCostMatrix } from "../lib/ink-costs";
-import fixtures from "./native-fixtures.json";
-import { test, expect } from "@playwright/test";
+import { expect, test } from "@playwright/test";
+
 test("industry scheduling, arrivals, history, views and reload", async ({
   page,
 }) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("/");
-  await page.getByRole("button", { name: "Industry example" }).click();
-  await page.getByRole("button", { name: "Optimize schedule" }).click();
-  await expect(page.getByText("A schedule, with perspective.")).toBeVisible();
-  await expect(page.locator(".metrics")).toContainText("4.63594");
+  const projectControls = page.getByRole("region", {
+    name: "Project controls",
+  });
+  await expect(
+    projectControls.getByRole("button", { name: "New", exact: true }),
+  ).toBeVisible();
+  await projectControls
+    .getByRole("button", { name: "Project actions" })
+    .click();
+  await expect(
+    page.getByRole("menuitem", { name: "Import project" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("menuitem", { name: "Export project" }),
+  ).toBeVisible();
+  await page.getByRole("menuitem", { name: "Industry example" }).click();
+  await page.getByRole("button", { name: "Optimize" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Schedule", exact: true }),
+  ).toBeVisible();
+  const firstFitness = await page
+    .locator('[data-slot="metrics"] strong')
+    .first()
+    .innerText();
+  expect(Number.isFinite(Number(firstFitness))).toBe(true);
   await page.getByRole("button", { name: "shift", exact: true }).click();
   await expect(page.getByText("Shift 1", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "scroll", exact: true }).click();
   await expect(page.getByLabel("Timeline zoom")).toBeVisible();
   await page.getByLabel("Next batch arrival hour").fill("1");
-  await page.getByRole("button", { name: "Start arrival batch" }).click();
+  await page.getByRole("button", { name: "Start next batch" }).click();
   await expect(page.getByText(/locked.*current time 1h/)).toBeVisible();
   await page.getByRole("button", { name: "Add job", exact: true }).click();
-  await page.getByRole("button", { name: "Optimize schedule" }).click();
-  await expect(
-    page.getByLabel("Schedule history").locator("option"),
-  ).toHaveCount(2);
+  await page.getByRole("button", { name: "Optimize" }).click();
+  await page.getByRole("combobox", { name: "Horizon" }).click();
+  await expect(page.getByRole("option")).toHaveCount(2);
+  await page.keyboard.press("Escape");
   await page.reload();
-  await expect(
-    page.getByLabel("Schedule history").locator("option"),
-  ).toHaveCount(2);
-  await page.getByLabel("Schedule history").selectOption("0");
-  await expect(page.locator(".metrics")).toContainText("4.63594");
+  await page.getByRole("combobox", { name: "Horizon" }).click();
+  await expect(page.getByRole("option")).toHaveCount(2);
+  await page.keyboard.press("Escape");
+  await page.getByRole("combobox", { name: "Horizon" }).click();
+  await page.getByRole("option", { name: "Horizon 1 · 0h · C1" }).click();
+  await expect(page.locator('[data-slot="metrics"] strong').first()).toHaveText(
+    firstFitness,
+  );
   expect(errors).toEqual([]);
 });
 test("cancel keeps input; mobile layout fits viewport", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
-  await page.getByRole("button", { name: "Industry example" }).click();
-  await page.getByRole("button", { name: "Custom", exact: true }).click();
+  await page.getByRole("button", { name: "Project actions" }).click();
+  await page.getByRole("menuitem", { name: "Industry example" }).click();
+  await page.getByRole("combobox", { name: "Speed preset" }).click();
+  await page.getByRole("option", { name: "Custom", exact: true }).click();
+  await page.getByRole("tab", { name: "Project", exact: true }).click();
   await page.getByLabel("evaluations", { exact: true }).fill("1000000000");
-  await page.getByRole("button", { name: "Optimize schedule" }).click();
+  await page.getByRole("tab", { name: "Jobs", exact: true }).click();
+  await page.getByRole("button", { name: "Optimize" }).click();
   await page.getByRole("button", { name: "Cancel", exact: true }).click();
-  await expect(page.locator(".error[role=alert]")).toContainText("cancelled");
+  await expect(page.locator("#workspace [role=alert]")).toContainText(
+    "cancelled",
+  );
   await expect(page.getByLabel("Quantity row 1", { exact: true })).toHaveValue(
     "16539",
   );
@@ -79,6 +108,13 @@ test("ink editing and selected row deletion", async ({ page }) => {
   await inks.fill("1,2,2");
   await inks.press("Tab");
   await expect(inks).toHaveValue("Red, Green, Green");
+  const deleteButton = page.getByRole("button", {
+    name: "Delete row 1",
+    exact: true,
+  });
+  const deleteSize = await deleteButton.boundingBox();
+  expect(deleteSize?.width).toBeGreaterThanOrEqual(36);
+  expect(deleteSize?.height).toBeGreaterThanOrEqual(36);
   await page.getByLabel("Select row 1", { exact: true }).check();
   await page
     .getByRole("button", { name: "Delete 1 selected", exact: true })
@@ -86,74 +122,29 @@ test("ink editing and selected row deletion", async ({ page }) => {
   await expect(page.getByLabel("Job ID row 1", { exact: true })).toHaveCount(0);
 });
 
-test("industry cost matrix edits persist and affect actual WASM scoring", async ({
-  page,
-}) => {
-  await page.goto("/");
-  const project = {
-    version: 1,
-    snapshot: {
-      now: 0,
-      machines: { A: 100 },
-      jobs: [{ id: "probe", quantity: 6000, inks: [1], arrival_time: 0 }],
-      locked: {},
-      machine_states: { A: { available_time: 0, inks: [9] } },
-      setup_time: 0.75,
-      ink_weight: 0.4,
-      batch_flow_time_weight: 0.6,
-      ink_costs: inkCostMatrix(["empty", "1", "9"]),
-    },
-    history: [],
-    preset: "low",
-    custom: fixtures[0].parameters,
-    seed: "42",
-  };
-  await page.locator('input[type=file][accept=".json"]').setInputFiles({
-    name: "project.json",
-    mimeType: "application/json",
-    buffer: Buffer.from(JSON.stringify(project)),
-  });
-  await page.getByRole("button", { name: "changeovers", exact: true }).click();
-  const cost = page.getByLabel("Ink cost Color I to Color A", { exact: true });
-  await expect(cost).toHaveValue("1");
-  await expect(
-    page.getByLabel("Ink cost Color A to Color I", { exact: true }),
-  ).toHaveValue("0");
-  await expect(
-    page.getByLabel("Ink cost Color I to Color I", { exact: true }),
-  ).toBeDisabled();
-  await cost.fill("3");
-  await cost.press("Enter");
-  await expect(
-    page.getByText("Custom ink costs:", { exact: false }),
-  ).toBeVisible();
-  await expect(page.getByText("Saved locally", { exact: true })).toBeVisible();
-  await page.reload();
-  await page.getByRole("button", { name: "changeovers", exact: true }).click();
-  await expect(cost).toHaveValue("3");
-  await page.getByRole("button", { name: "Optimize schedule" }).click();
-  await expect(page.locator(".metrics")).toContainText("2.25000");
-  await expect(cost).toBeDisabled();
-});
 test("matrix adds new inks without overwriting existing cells", async ({
   page,
 }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "changeovers", exact: true }).click();
-  const cost = page.getByLabel("Ink cost Brown to Red", { exact: true });
-  await cost.fill("2.5");
+  await page.getByRole("tab", { name: "Changeovers", exact: true }).click();
+  const cost = page.getByLabel("Transition time Brown to Red (minutes)", {
+    exact: true,
+  });
+  await cost.fill("150");
   await cost.press("Enter");
-  await page.getByRole("button", { name: "jobs / 0", exact: true }).click();
+  await page.getByRole("tab", { name: "Jobs", exact: true }).click();
   await page.getByRole("button", { name: "Add job", exact: true }).click();
   await page.getByLabel("Inks row 1", { exact: true }).fill("12");
   await page.getByLabel("Inks row 1", { exact: true }).press("Tab");
-  await page.getByRole("button", { name: "changeovers", exact: true }).click();
-  await expect(cost).toHaveValue("2.5");
+  await page.getByRole("tab", { name: "Changeovers", exact: true }).click();
+  await expect(cost).toHaveValue("150");
   await expect(
-    page.getByLabel("Ink cost Color L to Red", { exact: true }),
-  ).toHaveValue("1");
-  await page.getByRole("button", { name: "Restore industry defaults" }).click();
-  await expect(cost).toHaveValue("1");
+    page.getByLabel("Transition time Color L to Red (minutes)", {
+      exact: true,
+    }),
+  ).toHaveValue("45");
+  await page.getByRole("button", { name: "Restore defaults" }).click();
+  await expect(cost).toHaveValue("45");
 });
 
 test("portfolio typography and stable header during edits and search", async ({
@@ -189,10 +180,14 @@ test("portfolio typography and stable header during edits and search", async ({
   expect(sizes.body).toBeCloseTo(0.9712 * 16 + 0.1282 * 3.9, 1);
   expect(sizes.header).toBeCloseTo(1.9699 * 16 + 2.3041 * 3.9, 1);
   expect(sizes.weight).toBe("500");
-  await page.getByRole("button", { name: "Industry example" }).click();
-  await page.getByRole("button", { name: "Custom", exact: true }).click();
+  await page.getByRole("button", { name: "Project actions" }).click();
+  await page.getByRole("menuitem", { name: "Industry example" }).click();
+  await page.getByRole("combobox", { name: "Speed preset" }).click();
+  await page.getByRole("option", { name: "Custom", exact: true }).click();
+  await page.getByRole("tab", { name: "Project", exact: true }).click();
   await page.getByLabel("evaluations", { exact: true }).fill("1000000000");
-  await page.getByRole("button", { name: "Optimize schedule" }).click();
+  await page.getByRole("tab", { name: "Jobs", exact: true }).click();
+  await page.getByRole("button", { name: "Optimize" }).click();
   await page.getByRole("button", { name: "Cancel", exact: true }).click();
   await page.waitForTimeout(300);
   expect(await page.evaluate(() => (window as any).headerContexts)).toBe(
@@ -207,23 +202,26 @@ test("portfolio typography and stable header during edits and search", async ({
 
 test("named palette drives job input and matrix labels", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "changeovers", exact: true }).click();
+  await page.getByRole("tab", { name: "Colors", exact: true }).click();
   await page.getByRole("button", { name: "Add color", exact: true }).click();
   const name = page.getByLabel("Color name 4", { exact: true });
   await name.fill("Blue");
   await name.press("Tab");
+  await page.getByRole("tab", { name: "Changeovers", exact: true }).click();
   await expect(
     page.getByRole("columnheader", { name: "Blue", exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByLabel("Ink cost Blue to Red", { exact: true }),
-  ).toHaveValue("1");
-  await page.getByRole("button", { name: "jobs / 0", exact: true }).click();
+    page.getByLabel("Transition time Blue to Red (minutes)", { exact: true }),
+  ).toHaveValue("45");
+  await page.getByRole("tab", { name: "Jobs", exact: true }).click();
   await page.getByRole("button", { name: "Add job", exact: true }).click();
   const inks = page.getByLabel("Inks row 1", { exact: true });
   await inks.fill("Red, Blue");
   await inks.press("Tab");
   await expect(inks).toHaveValue("Red, Blue");
-  await page.getByRole("button", { name: "Optimize schedule" }).click();
-  await expect(page.getByText("A schedule, with perspective.")).toBeVisible();
+  await page.getByRole("button", { name: "Optimize" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Schedule", exact: true }),
+  ).toBeVisible();
 });

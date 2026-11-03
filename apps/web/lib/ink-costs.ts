@@ -2,9 +2,12 @@ import industry from "./industry.json";
 import type { Snapshot } from "./model";
 export type InkCosts = Record<string, Record<string, number>>;
 export function industryInkCost(from: string, to: string) {
-  return Number(
-    Number(from === "empty" ? 0 : from) > Number(to === "empty" ? 0 : to),
-  );
+  const level = (id: string) =>
+    id === "empty"
+      ? 0
+      : (industry.colors.find((color) => String(color.id) === id)?.darkness ??
+        Number(id));
+  return Number(level(from) > level(to));
 }
 export function inkLabels(snapshot: Snapshot, includeIndustry = true) {
   return [

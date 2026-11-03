@@ -1,6 +1,8 @@
+import { activeNode, selectedResult } from "./horizons";
+import { transitionTimes, validateTransitionTimes } from "./transition-times";
 import { starterColors } from "./colors";
-import { inkCostMatrix } from "./ink-costs";
 import industry from "./industry.json";
+import { inkCostMatrix } from "./ink-costs";
 import profiles from "./profiles.json";
 export type Job = {
   id: string;
@@ -19,6 +21,7 @@ export type Snapshot = {
   jobs: Job[];
   locked: Record<string, Job[]>;
   machine_states?: Record<string, { available_time: number; inks: number[] }>;
+  transition_times?: Record<string, Record<string, number>>;
   setup_time: number;
   ink_weight: number;
   batch_flow_time_weight: number;
@@ -52,6 +55,7 @@ export type Result = {
 };
 export type Project = {
   version: 1;
+  horizons?: import("./horizons").Horizons;
   colors?: import("./colors").InkColor[];
   snapshot: Snapshot;
   history: Result[];
@@ -67,6 +71,10 @@ export function parameters(n: number, preset = "medium"): Parameters {
   return (profiles as any)[size][preset];
 }
 export function initial(): Project {
+  const times = transitionTimes(
+    ["empty", ...starterColors.map((c) => String(c.id))],
+    { setup_time: 0.75 },
+  );
   return {
     version: 1,
     colors: structuredClone(starterColors),
@@ -76,6 +84,7 @@ export function initial(): Project {
       jobs: [],
       locked: {},
       setup_time: 0.75,
+      transition_times: times,
       ink_costs: inkCostMatrix([
         "empty",
         ...starterColors.map((c) => String(c.id)),
@@ -91,17 +100,15 @@ export function initial(): Project {
 }
 export function example(): Project {
   const p = initial();
-  p.colors = [...new Set(industry.jobs.flatMap((j) => j.inks))]
-    .sort((a, b) => a - b)
-    .map((id, i) => ({
-      id,
-      name: `Industry ${String.fromCharCode(65 + i)}`,
-      hex: "#808080",
-    }));
+  p.colors = structuredClone(industry.colors);
   p.snapshot.ink_costs = inkCostMatrix([
     "empty",
     ...p.colors.map((c) => String(c.id)),
   ]);
+  p.snapshot.transition_times = transitionTimes(
+    ["empty", ...p.colors.map((c) => String(c.id))],
+    { setup_time: 0.75 },
+  );
   p.snapshot.jobs = industry.jobs.map((j) => ({
     ...j,
     id: String(j.id),
@@ -110,9 +117,14 @@ export function example(): Project {
   return p;
 }
 export function advance(p: Project, now: number): Project {
-  if (!Number.isFinite(now) || now < p.snapshot.now)
-    throw Error("Arrival time cannot move backwards");
-  const last = p.history.at(-1);
+  if (!Number.isFinite(now) || now <= p.snapshot.now)
+    throw Error("Arrival time must be later than the current time");
+  const last = p.horizons ? selectedResult(p) : p.history.at(-1);
+  if (
+    p.horizons &&
+    (activeNode(p).result === undefined || activeNode(p).unavailable)
+  )
+    throw Error("Optimize the current draft before advancing time");
   if (!last) throw Error("Create the initial schedule first");
   if (
     last.inputSnapshot &&
@@ -242,7 +254,11 @@ export function importProject(v: unknown): Project {
           typeof c.name !== "string" ||
           !c.name.trim() ||
           c.name.includes(",") ||
-          !/^#[0-9a-f]{6}$/i.test(c.hex),
+          !/^#[0-9a-f]{6}$/i.test(c.hex) ||
+          (c.darkness !== undefined &&
+            (!Number.isInteger(c.darkness) ||
+              c.darkness < 1 ||
+              c.darkness > 9)),
       ) ||
       new Set(p.colors.map((c) => c.id)).size !== p.colors.length ||
       new Set(p.colors.map((c) => c.name.toLowerCase())).size !==
@@ -275,6 +291,43 @@ export function importProject(v: unknown): Project {
       )
     )
       throw Error("Invalid schedule history");
+  }
+  if (p.snapshot.transition_times)
+    validateTransitionTimes(p.snapshot.transition_times);
+  if (p.horizons) {
+    const g = p.horizons;
+    if (
+      !Array.isArray(g.nodes) ||
+      !g.nodes.length ||
+      new Set(g.nodes.map((n) => n.id)).size !== g.nodes.length ||
+      !g.nodes.some((n) => n.id === g.active)
+    )
+      throw Error("Invalid horizon graph");
+    const seen = new Map<string, number>();
+    const results = new Set<number>();
+    for (const n of g.nodes) {
+      if (
+        typeof n.id !== "string" ||
+        !n.id ||
+        (n.parent !== null && !seen.has(n.parent)) ||
+        (n.result !== undefined &&
+          (!Number.isInteger(n.result) || !p.history[n.result])) ||
+        !n.state
+      )
+        throw Error("Invalid checkpoint");
+      importProject({ ...p, ...n.state, horizons: undefined, history: [] });
+      if (n.parent !== null && seen.get(n.parent)! > n.state.snapshot.now)
+        throw Error("Invalid checkpoint time");
+      if (n.result !== undefined) {
+        if (
+          results.has(n.result) ||
+          p.history[n.result].now !== n.state.snapshot.now
+        )
+          throw Error("Invalid checkpoint result");
+        results.add(n.result);
+      }
+      seen.set(n.id, n.state.snapshot.now);
+    }
   }
   return p;
 }

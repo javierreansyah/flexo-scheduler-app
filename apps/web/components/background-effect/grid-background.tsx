@@ -1,11 +1,11 @@
 "use client";
 
 import { lazy, Suspense, useEffect, useRef } from "react";
-import type { GridBackgroundConfig, GridBackgroundProps } from "./types";
-import { DEFAULT_CONFIG } from "./config";
-import { createBackgroundState } from "./runtime-state";
-import type { createBackgroundRuntime, RuntimeOptions } from "./runtime";
 import { afterTextPaint } from "./after-paint";
+import { DEFAULT_CONFIG } from "./config";
+import type { createBackgroundRuntime, RuntimeOptions } from "./runtime";
+import { createBackgroundState } from "./runtime-state";
+import type { GridBackgroundConfig, GridBackgroundProps } from "./types";
 import { whenNearViewport } from "./when-visible";
 
 const EMPTY_CONFIG: Partial<GridBackgroundConfig> = {};

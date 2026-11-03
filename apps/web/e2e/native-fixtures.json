@@ -12,96 +12,61 @@
         {
           "id": "1",
           "quantity": 16539,
-          "inks": [
-            6,
-            8
-          ],
+          "inks": [6, 8],
           "arrival_time": 0
         },
         {
           "id": "2",
           "quantity": 5020,
-          "inks": [
-            4,
-            5,
-            6
-          ],
+          "inks": [4, 5, 6],
           "arrival_time": 0
         },
         {
           "id": "3",
           "quantity": 5110,
-          "inks": [
-            1,
-            2,
-            8
-          ],
+          "inks": [1, 2, 8],
           "arrival_time": 0
         },
         {
           "id": "4",
           "quantity": 6030,
-          "inks": [
-            6,
-            6
-          ],
+          "inks": [6, 6],
           "arrival_time": 0
         },
         {
           "id": "5",
           "quantity": 6100,
-          "inks": [
-            9
-          ],
+          "inks": [9],
           "arrival_time": 0
         },
         {
           "id": "6",
           "quantity": 24173,
-          "inks": [
-            6,
-            8,
-            9
-          ],
+          "inks": [6, 8, 9],
           "arrival_time": 0
         },
         {
           "id": "7",
           "quantity": 15740,
-          "inks": [
-            2,
-            4,
-            6,
-            6
-          ],
+          "inks": [2, 4, 6, 6],
           "arrival_time": 0
         },
         {
           "id": "8",
           "quantity": 21165,
-          "inks": [
-            6,
-            4,
-            6
-          ],
+          "inks": [6, 4, 6],
           "arrival_time": 0
         },
         {
           "id": "9",
           "quantity": 4640,
-          "inks": [
-            8
-          ],
+          "inks": [8],
           "arrival_time": 0
         },
         {
           "id": "10",
           "quantity": 12100,
-          "inks": [
-            5,
-            8,
-            9
-          ],
+          "inks": [5, 8, 9],
           "arrival_time": 0
         }
       ]
@@ -138,105 +103,67 @@
         {
           "id": "1",
           "quantity": 16539,
-          "inks": [
-            6,
-            8
-          ],
+          "inks": [6, 8],
           "arrival_time": 0
         },
         {
           "id": "2",
           "quantity": 5020,
-          "inks": [
-            4,
-            5,
-            6
-          ],
+          "inks": [4, 5, 6],
           "arrival_time": 0
         },
         {
           "id": "3",
           "quantity": 5110,
-          "inks": [
-            1,
-            2,
-            8
-          ],
+          "inks": [1, 2, 8],
           "arrival_time": 0
         },
         {
           "id": "4",
           "quantity": 6030,
-          "inks": [
-            6,
-            6
-          ],
+          "inks": [6, 6],
           "arrival_time": 0
         },
         {
           "id": "5",
           "quantity": 6100,
-          "inks": [
-            9
-          ],
+          "inks": [9],
           "arrival_time": 0
         },
         {
           "id": "6",
           "quantity": 24173,
-          "inks": [
-            6,
-            8,
-            9
-          ],
+          "inks": [6, 8, 9],
           "arrival_time": 0
         },
         {
           "id": "7",
           "quantity": 15740,
-          "inks": [
-            2,
-            4,
-            6,
-            6
-          ],
+          "inks": [2, 4, 6, 6],
           "arrival_time": 0
         },
         {
           "id": "8",
           "quantity": 21165,
-          "inks": [
-            6,
-            4,
-            6
-          ],
+          "inks": [6, 4, 6],
           "arrival_time": 0
         },
         {
           "id": "9",
           "quantity": 4640,
-          "inks": [
-            8
-          ],
+          "inks": [8],
           "arrival_time": 0
         },
         {
           "id": "10",
           "quantity": 12100,
-          "inks": [
-            5,
-            8,
-            9
-          ],
+          "inks": [5, 8, 9],
           "arrival_time": 0
         },
         {
           "id": "new",
           "quantity": 7000,
-          "inks": [
-            1,
-            2
-          ],
+          "inks": [1, 2],
           "arrival_time": 1.0
         }
       ],
@@ -245,9 +172,7 @@
           {
             "id": "9",
             "quantity": 4640,
-            "inks": [
-              8
-            ],
+            "inks": [8],
             "arrival_time": 0.0,
             "setup_start": 0.0,
             "start": 0.0,
@@ -258,9 +183,7 @@
           {
             "id": "5",
             "quantity": 6100,
-            "inks": [
-              9
-            ],
+            "inks": [9],
             "arrival_time": 0.0,
             "setup_start": 0.6904761904761905,
             "start": 0.6904761904761905,
@@ -273,10 +196,7 @@
           {
             "id": "4",
             "quantity": 6030,
-            "inks": [
-              6,
-              6
-            ],
+            "inks": [6, 6],
             "arrival_time": 0.0,
             "setup_start": 0.0,
             "start": 0.0,
@@ -287,10 +207,7 @@
           {
             "id": "1",
             "quantity": 16539,
-            "inks": [
-              6,
-              8
-            ],
+            "inks": [6, 8],
             "arrival_time": 0.0,
             "setup_start": 0.4486607142857143,
             "start": 0.4486607142857143,
@@ -303,11 +220,7 @@
           {
             "id": "2",
             "quantity": 5020,
-            "inks": [
-              4,
-              5,
-              6
-            ],
+            "inks": [4, 5, 6],
             "arrival_time": 0.0,
             "setup_start": 0.0,
             "start": 0.0,
@@ -318,11 +231,7 @@
           {
             "id": "8",
             "quantity": 21165,
-            "inks": [
-              4,
-              6,
-              6
-            ],
+            "inks": [4, 6, 6],
             "arrival_time": 0.0,
             "setup_start": 0.47809523809523813,
             "start": 0.47809523809523813,
@@ -364,17 +273,13 @@
         {
           "id": "a",
           "quantity": 6000,
-          "inks": [
-            1
-          ],
+          "inks": [1],
           "arrival_time": 0
         },
         {
           "id": "b",
           "quantity": 12000,
-          "inks": [
-            2
-          ],
+          "inks": [2],
           "arrival_time": 0
         }
       ],

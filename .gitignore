@@ -23,3 +23,6 @@ packages/optimizer-wasm/dist/
 
 test-results/
 playwright-report/
+
+# Browser diagnostic output
+apps/web/debug.log
