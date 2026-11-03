@@ -27,17 +27,23 @@ def test_fixed_budgets_and_search_space():
                 assert decode(config)['evaluations'] == budget
 
 
-def test_play_button_defaults_to_fixed_without_launching_tuning(monkeypatch, tmp_path):
+@pytest.mark.parametrize("pgo", [False, True])
+def test_play_button_defaults_to_fixed_without_launching_tuning(monkeypatch, tmp_path, pgo):
     import sys
     import flexo.__main__ as cli
     from experiments import run_tuning
     captured=[]
+    monkeypatch.setattr(run_tuning, '__file__', str(tmp_path/'experiments/run_tuning.py'))
+    if pgo:
+        certificate = tmp_path/'results/fixed-budget-tuning-pgo/build-transition.json'
+        certificate.parent.mkdir(parents=True)
+        certificate.write_text('{}')
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(sys,'argv',['run_tuning.py'])
     monkeypatch.setattr(cli,'main',lambda: captured.extend(sys.argv[1:]))
     run_tuning.main()
     assert captured[0]=='tune-fixed'
-    assert captured[captured.index('--workdir')+1]=='results/fixed-budget-tuning'
+    assert Path(captured[captured.index('--workdir')+1])==Path('results/fixed-budget-tuning-pgo' if pgo else 'results/fixed-budget-tuning')
     assert captured[captured.index('--trials')+1]=='400'
 
 

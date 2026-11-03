@@ -114,8 +114,12 @@ def main():
     parser.add_argument("--trials", type=int, default=400)
     args, remaining = parser.parse_known_args()
     if args.workdir is None:
-        args.workdir = "results/fixed-budget-tuning" if args.mode == "fixed" else "results/pareto-tuning-100m-20starts"
+        pgo = Path("results/fixed-budget-tuning-pgo")
+        args.workdir = (str(pgo) if (pgo/"build-transition.json").exists() else "results/fixed-budget-tuning") if args.mode == "fixed" else "results/pareto-tuning-100m-20starts"
     resume = (Path(args.workdir)/"manifest.json").exists()
+    from flexo import _core
+    import hashlib
+    print(f"Native build: {hashlib.sha256(Path(_core.__file__).read_bytes()).hexdigest()}; checkpoint: {Path(args.workdir).resolve()}")
     command = ["tune-fixed" if args.mode == "fixed" else "tune", "--workdir", args.workdir, "--seed", str(args.seed), "--trials", str(args.trials), *remaining]
     source = args.reuse_from
     if source is None and args.mode == "fixed" and Path("results/pareto-tuning-100m-20starts/manifest.json").exists():

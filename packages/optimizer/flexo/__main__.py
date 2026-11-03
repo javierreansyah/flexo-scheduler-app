@@ -50,6 +50,7 @@ def main():
     fixed.add_argument("--heldout-seeds", type=int, nargs=3, default=[142,143,144])
     fixed.add_argument("--seed", type=int, default=42)
     fixed.add_argument("--resume", action="store_true")
+    fixed.add_argument("--check-resume", action="store_true", help="Validate checkpoint compatibility without submitting solves")
     args = parser.parse_args()
     if args.command == "generate":
         kwargs = dict(directory=args.directory or f"instances/{args.kind}", replicas=args.replicas,
@@ -63,7 +64,7 @@ def main():
         from .fixed_tuning import tune_fixed
         tune_fixed(args.directory, args.output, args.workdir, trials=args.trials,
                    workers=args.workers, seed=args.seed, seeds=args.seeds,
-                   heldout_seeds=args.heldout_seeds, reuse_from=args.reuse_from, resume=args.resume)
+                   heldout_seeds=args.heldout_seeds, reuse_from=args.reuse_from, resume=args.resume, validate_only=args.check_resume)
     elif args.command == "tune":
         from .tuning import tune
         tune(args.directory, args.output, args.workdir, trials=args.trials,

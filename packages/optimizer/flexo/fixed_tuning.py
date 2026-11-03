@@ -111,7 +111,7 @@ def fixed_campaign(rows, evaluator, seeds, baseline, budget, trials, seed, sourc
 
 def tune_fixed(directory="instances/smac", output=None, workdir="results/fixed-budget-tuning", *,
                trials=400, workers=0, seed=42, seeds=(42,43,44), heldout_seeds=(142,143,144),
-               reuse_from=None, resume=False):
+               reuse_from=None, resume=False, validate_only=False):
     trials = integer(trials, "trials", 1)
     workers = integer(workers, "workers") or (os.cpu_count() or 1)
     seed = integer(seed, "seed")
@@ -123,6 +123,12 @@ def tune_fixed(directory="instances/smac", output=None, workdir="results/fixed-b
     workdir = Path(workdir)
     source = Path(reuse_from).resolve() if reuse_from is not None else None
     core_hash = hashlib.sha256(Path(_core.__file__).read_bytes()).hexdigest()
+    transition = None
+    transition_path = workdir/"build-transition.json"
+    if transition_path.exists():
+        transition = json.loads(transition_path.read_text())
+        if transition["new_core_sha256"] != core_hash or transition["dataset_sha256"] != identity:
+            raise ValueError("Verified PGO transition does not match binary or dataset")
     source_hash = None
     if source is not None:
         if source == workdir.resolve():
@@ -130,7 +136,9 @@ def tune_fixed(directory="instances/smac", output=None, workdir="results/fixed-b
         old = json.loads((source/"manifest.json").read_text())
         for key, expected in dict(mode="parego", schema_version=4, dataset_sha256=identity,
                                   core_sha256=core_hash, seeds=seeds, heldout_seeds=heldout_seeds).items():
-            if old.get(key) != expected:
+            compatible_core = (key == "core_sha256" and transition is not None
+                               and old.get(key) == transition["old_core_sha256"])
+            if old.get(key) != expected and not compatible_core:
                 raise ValueError(f"Cannot reuse previous search: {key} differs")
         if not (source/"solves.sqlite3").exists():
             raise ValueError("Previous solve cache is missing")
@@ -142,6 +150,8 @@ def tune_fixed(directory="instances/smac", output=None, workdir="results/fixed-b
                     budgets={str(n): v for n,v in BUDGETS.items()}, trials=trials, workers=workers,
                     seed=seed, seeds=seeds, heldout_seeds=heldout_seeds,
                     reuse_from=str(source) if source else None, reuse_manifest_sha256=source_hash)
+    if transition is not None:
+        manifest["build_transition_sha256"] = fingerprint(transition)
     manifest_path = workdir/"manifest.json"
     if manifest_path.exists():
         if not resume:
@@ -152,6 +162,8 @@ def tune_fixed(directory="instances/smac", output=None, workdir="results/fixed-b
         if any(workdir.glob("*")):
             raise ValueError("Nonempty workdir has no compatible manifest")
         write_json(manifest_path, manifest)
+    if validate_only:
+        return manifest
     evaluator = CachedEvaluator(workdir/"solves.sqlite3", workers,
                                 read_cache=source/"solves.sqlite3" if source else None)
     exported = dict(manifest, profiles={})

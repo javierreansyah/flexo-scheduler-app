@@ -16,6 +16,10 @@ python -m pytest -q
 python -m flexo solve flexo/example.json --output results/schedule.json
 ```
 
+For verified PGO installation and resuming an unfinished fixed-budget campaign, see
+[PGO and tuning bottlenecks](docs/tuning-pgo.md). The PGO preparation command preserves
+the original checkpoint and does not launch tuning.
+
 Rebuild C++ edits with `python setup.py build_ext --inplace`. Header dependencies
 are tracked. Release flags are portable and retain compiler safety checks.
 

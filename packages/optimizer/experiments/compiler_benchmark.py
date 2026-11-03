@@ -31,6 +31,7 @@ def panel(args):
             raw = json.loads((ROOT/'instances/smac'/args.dataset/name).read_text())
             jobs.append((name, prepare(raw)))
     params = {**PARAMS, 'evaluations': args.evaluations}
+    if args.parameters: params.update(json.loads(Path(args.parameters).read_text()))
     budgets = json.loads(Path(args.budget_file).read_text()) if args.budget_file else {}
     # Preparation and warmup are outside the measured interval.
     for _, problem in jobs:
@@ -39,7 +40,7 @@ def panel(args):
     def solve(task):
         name, problem, seed = task
         start = time.perf_counter()
-        r = optimize(problem, {**params, 'evaluations': budgets.get(name, args.evaluations)}, seed=seed, num_threads=1)
+        r = optimize(problem, {**params, 'evaluations': budgets.get(name, params['evaluations'])}, seed=seed, num_threads=1)
         elapsed = time.perf_counter()-start
         checked = evaluate(problem, r['schedule'])
         assert abs(checked['fitness']-r['fitness']) < 1e-8
@@ -202,6 +203,7 @@ if __name__ == '__main__':
     p.add_argument('--clang')
     p.add_argument('--panel', action='store_true')
     p.add_argument('--budget-file')
+    p.add_argument('--parameters')
     p.add_argument('--package', default=str(ROOT))
     p.add_argument('--output')
     p.add_argument('--dataset', default='heldout')
