@@ -57,3 +57,7 @@ Raw verification logs, rollback binary and profiling output are in results/pgo-i
 ## Validation
 
 **57 tests passed** on the installed PGO build. It is covered by the optimizer suite and regressions for explicit proposal budgets, verified resume transitions, strict rejection of incompatible changes, and default checkpoint selection. The actual prepared checkpoint passed --check-resume; its SMAC history still reports 9 finished and one running trial.
+
+## Relocated SMAC checkpoints
+
+The resume path now validates SMAC’s complete saved scenario and configuration space before constructing its optimizer. A changed checkpoint location is normalized automatically; all search-setting mismatches fail with an error instead of offering to overwrite the run. The actual migrated N100 checkpoint was loaded through SMAC with 9 finished and one running trial, with input disabled and no new trials submitted.

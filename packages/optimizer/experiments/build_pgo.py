@@ -120,7 +120,8 @@ print('60 cached fitness values match exactly')
     def fingerprint(value):
         return hashlib.sha256(json.dumps(value,sort_keys=True,allow_nan=False).encode()).hexdigest()
     manifest = dict(old,core_sha256=transition['new_core_sha256'], source_sha256=fingerprint([
-        (ROOT/'flexo/fixed_tuning.py').read_text(),(ROOT/'flexo/tuning.py').read_text(),(ROOT/'flexo/api.py').read_text()]),
+        (ROOT/'flexo/fixed_tuning.py').read_text(),(ROOT/'flexo/tuning.py').read_text(),(ROOT/'flexo/api.py').read_text(),
+        (ROOT/'flexo/smac_resume.py').read_text()]),
         build_transition_sha256=fingerprint(transition))
     (target/'build-transition.json').write_text(json.dumps(transition,indent=2))
     (target/'manifest.json').write_text(json.dumps(manifest,indent=2))

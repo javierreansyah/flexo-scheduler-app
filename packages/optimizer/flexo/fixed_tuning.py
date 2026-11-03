@@ -93,7 +93,18 @@ def fixed_campaign(rows, evaluator, seeds, baseline, budget, trials, seed, sourc
     class Progress(Callback):
         def on_tell_end(self, smbo, info, value):
             print(f"Fixed trial {smbo.runhistory.finished}/{total}: quality={value.cost:.6f}", flush=True)
-    smac = HyperparameterOptimizationFacade(scenario, target, initial_design=design,
+    class ResumeFacade(HyperparameterOptimizationFacade):
+        @property
+        def meta(self):
+            metadata = super().meta
+            metadata['facade']['name'] = HyperparameterOptimizationFacade.__name__
+            return metadata
+
+        def _get_optimizer(self):
+            from .smac_resume import check_resume_scenario
+            check_resume_scenario(self._scenario)
+            return super()._get_optimizer()
+    smac = ResumeFacade(scenario, target, initial_design=design,
              intensifier=intensifier, callbacks=[Progress()], overwrite=False, logging_level=30)
     for info in smac.runhistory.get_running_trials():
         smac.tell(info, TrialValue(cost=target(info.config)))
@@ -146,7 +157,8 @@ def tune_fixed(directory="instances/smac", output=None, workdir="results/fixed-b
     manifest = dict(schema_version=1, mode="fixed-budget", dataset_sha256=identity,
                     core_sha256=core_hash, source_sha256=fingerprint([
                         Path(__file__).read_text(), Path(__file__).with_name("tuning.py").read_text(),
-                        Path(__file__).with_name("api.py").read_text()]),
+                        Path(__file__).with_name("api.py").read_text(),
+                        Path(__file__).with_name("smac_resume.py").read_text()]),
                     budgets={str(n): v for n,v in BUDGETS.items()}, trials=trials, workers=workers,
                     seed=seed, seeds=seeds, heldout_seeds=heldout_seeds,
                     reuse_from=str(source) if source else None, reuse_manifest_sha256=source_hash)
