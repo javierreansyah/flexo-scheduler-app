@@ -1,4 +1,150 @@
-# Fixed-budget tuning: partial results (2026-11-02)
+# Completed fixed-budget tuning (2026-11-05)
+
+**The campaign is complete. Focused tuning produced real but modest gains at
+N100, mixed generalization at N50, and little additional value at N10/N30 High.**
+The strongest practical result is N100 Quick: better held-out fitness at the same
+10m proposal budget. Further blanket searches are not justified by these results;
+prioritize fresh acceptance cases and browser runtime checks.
+
+The authoritative completed campaign is `results/fixed-budget-tuning-pgo`, not
+its unfinished predecessor `results/fixed-budget-tuning`. It contains four final
+size profiles, the combined export and `progress.json` with `complete: true`.
+The [completed numeric snapshot](fixed-budget-summary.json) adds all N50/N100
+results while the [partial snapshot](fixed-budget-partial-summary.json) preserves
+the earlier analysis. The dated partial and expanded-Pareto reports below are
+historical and do not describe the current completion state.
+
+## Completion, verification and compiler provenance
+
+All ten distinct size/budget searches completed 400 additional trials each:
+**4,000 additional configurations**, plus 606 imported exact-budget observations,
+for **4,606 successful SMAC observations**. No final history has running or failed
+trials. N10 still shares one search across three labels.
+
+Every completed candidate has its assigned total budget, 20 training instances,
+and three training seeds. Training quality was recomputed from saved measurements,
+all history costs matched to candidate records, and every winner checked against
+its saved search candidates. Held-out overall qualities were recomputed too.
+The dataset and installed native binary match the final manifest. No new
+optimization or application changes were performed for this analysis.
+
+The campaign continued using a PGO native build. Its saved build-transition record
+links old/new binaries and records 60 cached-fitness checks. Most search results
+were carried forward unchanged; this is a continuation, not an independent repeat
+with a second optimizer. Timing records span compiler builds, pauses and resumes.
+Their summed candidate-panel time is about **60.17 hours**, excluding SMAC fitting
+and other overhead; it is not a total elapsed stopwatch or browser latency result.
+The final invocation's 7,080 computed / 180 cached counters cover that invocation
+only, not the whole campaign.
+
+## Final fixed-cost presets
+
+Gaps are mean normalized held-out fitness relative to the new High for the same
+size; positive means worse. Total proposals are shared across starts.
+
+| Jobs | Preset | Proposals | Starts | Overall gap to High | Clean gap | Carryover gap |
+| ---: | --- | ---: | ---: | ---: | ---: | ---: |
+| 10 | all | 100k | 1 | 0.000% | 0.000% | 0.000% |
+| 30 | Quick | 600k | 8 | 2.287% | 2.463% | 2.111% |
+| 30 | Balanced | 10m | 13 | 0.407% | 0.515% | 0.300% |
+| 30 | High | 100m | 9 | 0.000% | 0.000% | 0.000% |
+| 50 | Quick | 3m | 1 | 1.474% | 0.655% | 2.331% |
+| 50 | Balanced | 20m | 4 | 0.480% | 0.230% | 0.742% |
+| 50 | High | 100m | 20 | 0.000% | 0.000% | 0.000% |
+| 100 | Quick | 10m | 1 | 0.679% | 0.251% | 1.149% |
+| 100 | Balanced | 20m | 1 | 0.443% | 0.199% | 0.712% |
+| 100 | High | 100m | 2 | 0.000% | 0.000% | 0.000% |
+
+![Completed fixed-budget winners versus historical frontiers](pareto-tuning-frontiers.png)
+
+All green markers now represent completed searches; all four sizes have held-out
+results. The chart still plots training fitness against the expanded-Pareto High
+reference. Those green improvements alone do not establish generalization.
+
+These are compute tiers. Every N30/N50/N100 Balanced setting would fail the old
+0.5% per-group gate despite meeting 0.5% overall; carryover remains sensitive at
+N50/N100 and clean at N30. N50 Quick also exceeds 2% on carryover. The fixed-cost
+policy intentionally reports these differences without silently spending more.
+
+## Remaining searches: did they improve quality?
+
+Training improvements compare with the best expanded-Pareto candidate at the
+**same exact proposal budget**. Held-out changes use equal-cost comparisons where
+available; negative means better. N50/N100 Balanced compare with their original
+20m Pareto High, since expanded-Pareto Medium had fallen back to 100m.
+
+| New result | Training improvement | Held-out change at same budget | New-panel hours |
+| --- | ---: | ---: | ---: |
+| N50 Quick, 3m | 0.143% | +0.175% (worse) | 0.55 |
+| N50 Balanced, 20m | 0.174% | +0.078% (worse) | 3.26 |
+| N50 High, 100m | 0.076% | -0.064% | 15.10 |
+| N100 Quick, 10m | 0.509% | -0.244% | 2.64 |
+| N100 Balanced, 20m | 0.314% | -0.119% | 5.29 |
+| N100 High, 100m | 0.196% | -0.120% | 20.69 |
+
+**N50:** the formerly provisional Quick/Balanced findings are now validated as
+mixed rather than clear wins. Training improves, but held-out means slightly
+regress at equal compute. Quick's descriptive change interval is
+[-0.190%, +0.600%], spanning zero. High improves by only 0.064%; its descriptive
+interval [-0.132%, -0.005%] suggests a small consistent advantage within this
+sample, but 15.1 panel hours bought little additional quality.
+
+**N100:** Quick is the clearest efficiency improvement. It reduces held-out
+fitness by 0.244% at the same 10m cost; its descriptive interval is
+[-0.444%, -0.058%]. Balanced also improves at its actual 20m cost. Comparing it
+with the former exported 100m Medium instead would show a 0.322% regression, but
+that spends five times fewer proposals and is not an equal-cost comparison.
+High improves by 0.120%, with interval [-0.186%, -0.042%], at the same 100m cost.
+
+N100 Quick and Balanced both select one start; N50 High selects twenty. The data
+therefore favors budget/size-specific starts rather than a blanket assumption
+that more starts always helps. These settings optimize fitness, not measured
+interactive wall time: one start cannot exploit parallelism across starts within
+an individual request, while many starts have initialization overhead.
+
+## Was the extra tuning worthwhile?
+
+**Useful for N100; limited payoff elsewhere.** It established distinct compute
+tiers and found some better parameters, but it did not reveal a large hidden
+quality improvement. The original partial conclusions for N10/N30 still stand:
+N10 is effectively tied, N30 Quick regresses on held-out data, N30 Balanced is a
+useful cheaper tier, and N30 High's gain is negligible.
+
+All new High searches together account for about **47.10 panel hours** for
+held-out gains of just 0.0155% (N30), 0.0642% (N50), and 0.1204% (N100) over the
+previous 100m settings. Those are small marginal returns, even where intervals
+exclude zero. This cost is offline tuning effort, not the cost of a user request.
+
+N100 Quick still improved about 0.187% on training during the final 100 trials;
+Balanced improved about 0.039%. N100 High was flat over that final block. Late
+training gains justify considering a targeted Quick search only if that preset
+matters enough to the product; they do not justify increasing every search.
+
+Recommended next steps:
+
+1. Freeze these results. Compare old and new shortlisted presets on **fresh**
+   acceptance instances, especially N30 Quick and N50 Quick/Balanced. Avoid
+   selecting replacements solely because they score better on this reused
+   held-out collection.
+2. Benchmark the actual browser build, including one-start N100 presets and
+   twenty-start N50 High. Confirm responsiveness, cancellation and desktop/mobile
+   latency before choosing defaults.
+3. Review browser starts limits before promotion: current app/worker validation
+   allows at most ten starts, so N30 Balanced (13) and N50 High (20) need support
+   changes and tests. This report does not alter application settings.
+4. Keep quality claims empirical. The dataset still uses three original machines,
+   sampled industry templates, default objective/changeovers, and one preceding
+   horizon. Expand acceptance coverage before investing in more narrow tuning.
+
+Bootstrap intervals are descriptive: 5,000 paired clean/carryover-replica resamples,
+RNG seed 20261102, with three-seed means fixed and the same per-instance baseline
+normalization as tuning. Selection uncertainty and all seed noise are not modeled.
+This held-out set has been examined repeatedly; intervals are not independent
+post-selection guarantees.
+
+---
+
+## Historical partial fixed-budget analysis (2026-11-02)
 
 **Focused tuning found modest improvements on training data, but has not yet
 shown a compelling across-the-board held-out benefit.** N30 Balanced is a useful

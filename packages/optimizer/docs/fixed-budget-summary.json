@@ -1,0 +1,566 @@
+{
+  "status": "complete",
+  "campaign": {
+    "schema_version": 1,
+    "mode": "fixed-budget",
+    "dataset_sha256": "b04ddf6b2f056633874fbb4330aa750a4341235475de852662375eb3bb2224bf",
+    "core_sha256": "22a829671563f7c618471ff4144125aee103dae9617e4e2f5ce76310e2749fee",
+    "source_sha256": "cc4379ea11253d96fb5bbe92711f1bd2701ef384ee1775676ae50444c1ea4a26",
+    "budgets": {
+      "10": {
+        "low": 100000,
+        "medium": 100000,
+        "high": 100000
+      },
+      "30": {
+        "low": 600000,
+        "medium": 10000000,
+        "high": 100000000
+      },
+      "50": {
+        "low": 3000000,
+        "medium": 20000000,
+        "high": 100000000
+      },
+      "100": {
+        "low": 10000000,
+        "medium": 20000000,
+        "high": 100000000
+      }
+    },
+    "trials": 400,
+    "workers": 20,
+    "seed": 42,
+    "seeds": [
+      42,
+      43,
+      44
+    ],
+    "heldout_seeds": [
+      142,
+      143,
+      144
+    ],
+    "reuse_from": "C:\\Rean\\Project\\flexo-scheduling-wasm\\packages\\optimizer\\results\\pareto-tuning-100m-20starts",
+    "reuse_manifest_sha256": "bfaa3efc2c821ee57e7d5aa82c8e1929aff2f32c12a041a28e3e49432a21942a",
+    "build_transition_sha256": "7ccc33bc288debc692c120a60620f90e84ee98a1c895d96841900f896624c014"
+  },
+  "sizes": {
+    "10": {
+      "completed": {
+        "100000": {
+          "parameters": {
+            "evaluations": 100000,
+            "starts": 1,
+            "stage_length": 4470,
+            "t_max": 0.1847258209518,
+            "t_min": 0.11398729486183289,
+            "rcl_alpha": 0.1991433430616,
+            "p_inter": 0.8718334894686,
+            "p_shift": 0.5184782643609,
+            "p_block": 0.2013263167357
+          },
+          "quality": 1.0,
+          "id": "12c4209e2b457987c5c9748e3e1d1ed3d35e135321cf1e2d4fff110466b01904",
+          "stats": {
+            "submitted": 930,
+            "finished": 930,
+            "running": 0
+          },
+          "improvement_vs_exact_pct": 0.0,
+          "improvement_vs_cap_pct": 0.0,
+          "cpu_hours": 0.10046440972222222,
+          "panel_wall_hours": 0.09506153219434459,
+          "checkpoints": {
+            "100": 1.0,
+            "200": 1.0,
+            "300": 1.0,
+            "400": 1.0
+          }
+        }
+      },
+      "pending": {},
+      "heldout": {
+        "low": {
+          "quality": 1.0003940774861715,
+          "change_vs_old_export_pct": -0.008500041330505859,
+          "change_bootstrap95": [
+            -0.025499330623224292,
+            0.0
+          ]
+        },
+        "medium": {
+          "quality": 1.0003940774861715,
+          "change_vs_old_export_pct": -0.008500041330505859,
+          "change_bootstrap95": [
+            -0.025499330623224292,
+            0.0
+          ]
+        },
+        "high": {
+          "quality": 1.0003940774861715,
+          "change_vs_old_export_pct": -0.008500041330505859,
+          "change_bootstrap95": [
+            -0.025499330623224292,
+            0.0
+          ]
+        }
+      },
+      "gaps_to_high_pct": {
+        "low": {
+          "overall": 0.0,
+          "clean": 0.0,
+          "carryover": 0.0
+        },
+        "medium": {
+          "overall": 0.0,
+          "clean": 0.0,
+          "carryover": 0.0
+        },
+        "high": {
+          "overall": 0.0,
+          "clean": 0.0,
+          "carryover": 0.0
+        }
+      }
+    },
+    "30": {
+      "completed": {
+        "10000000": {
+          "parameters": {
+            "evaluations": 10000000,
+            "starts": 13,
+            "stage_length": 4121,
+            "t_max": 0.1250132749676,
+            "t_min": 0.03545481965198901,
+            "rcl_alpha": 0.3340144265422,
+            "p_inter": 0.9603446927993,
+            "p_shift": 0.505760606627,
+            "p_block": 0.1322194041951
+          },
+          "quality": 0.9510337399607635,
+          "id": "4819b8da32e5e9c1986f26784e27d373b023141f0d67d6876fe20185c837649b",
+          "stats": {
+            "submitted": 402,
+            "finished": 402,
+            "running": 0
+          },
+          "improvement_vs_exact_pct": 0.2185246078182268,
+          "improvement_vs_cap_pct": 0.14760905592604567,
+          "cpu_hours": 21.420677083333334,
+          "panel_wall_hours": 1.1158192705832901,
+          "checkpoints": {
+            "100": 0.9515198806115124,
+            "200": 0.9512919236274419,
+            "300": 0.9510337399607635,
+            "400": 0.9510337399607635
+          }
+        },
+        "100000000": {
+          "parameters": {
+            "evaluations": 100000000,
+            "starts": 9,
+            "stage_length": 4226,
+            "t_max": 0.1114781445448,
+            "t_min": 0.029833194864552742,
+            "rcl_alpha": 0.3408040729198,
+            "p_inter": 0.5617233980566,
+            "p_shift": 0.555676332837,
+            "p_block": 0.1710299008231
+          },
+          "quality": 0.949122919655948,
+          "id": "95240c7e42c8092bcb805786de7b6c8f7a606350a9729bb4509d150fce9fcc5e",
+          "stats": {
+            "submitted": 402,
+            "finished": 402,
+            "running": 0
+          },
+          "improvement_vs_exact_pct": 0.034626209987154155,
+          "improvement_vs_cap_pct": 0.034626209987154155,
+          "cpu_hours": 218.74198784722222,
+          "panel_wall_hours": 11.310392132111042,
+          "checkpoints": {
+            "100": 0.9492020921582306,
+            "200": 0.9492020921582306,
+            "300": 0.949122919655948,
+            "400": 0.949122919655948
+          }
+        },
+        "600000": {
+          "parameters": {
+            "evaluations": 600000,
+            "starts": 8,
+            "stage_length": 2127,
+            "t_max": 0.1305472200046,
+            "t_min": 0.02365957760984327,
+            "rcl_alpha": 0.6037826750795,
+            "p_inter": 0.8156482080143,
+            "p_shift": 0.4763003559052,
+            "p_block": 0.1413150880574
+          },
+          "quality": 0.9629869730566618,
+          "id": "019188f7c464bdc93b9c2946c713ff6ab87cb22efd4e11552298b0270e054ed6",
+          "stats": {
+            "submitted": 434,
+            "finished": 434,
+            "running": 0
+          },
+          "improvement_vs_exact_pct": 0.3501926494041574,
+          "improvement_vs_cap_pct": 0.3501926494041574,
+          "cpu_hours": 1.1614322916666666,
+          "panel_wall_hours": 0.12499463013897184,
+          "checkpoints": {
+            "100": 0.9643406695031331,
+            "200": 0.9642336861534487,
+            "300": 0.9631654631681998,
+            "400": 0.9629869730566618
+          }
+        }
+      },
+      "pending": {},
+      "heldout": {
+        "low": {
+          "quality": 0.9605061545417573,
+          "change_vs_old_export_pct": 0.42066743270705587,
+          "change_bootstrap95": [
+            -0.13154381816736782,
+            1.1117169940142224
+          ]
+        },
+        "medium": {
+          "quality": 0.9428566976099854,
+          "change_vs_old_export_pct": 0.3917393038833872,
+          "change_bootstrap95": [
+            0.18862675034521104,
+            0.7118999610074672
+          ]
+        },
+        "high": {
+          "quality": 0.9390322053758603,
+          "change_vs_old_export_pct": -0.015477856806322965,
+          "change_bootstrap95": [
+            -0.05202774245026687,
+            0.022981986377712538
+          ]
+        }
+      },
+      "gaps_to_high_pct": {
+        "low": {
+          "overall": 2.286817112657147,
+          "clean": 2.4629135420942028,
+          "carryover": 2.1111148081429665
+        },
+        "medium": {
+          "overall": 0.4072801989357,
+          "clean": 0.5151412583533022,
+          "carryover": 0.2996605455015011
+        },
+        "high": {
+          "overall": 0.0,
+          "clean": 0.0,
+          "carryover": 0.0
+        }
+      },
+      "medium_vs_old_9m4_candidate_pct": -0.10070104781966238
+    },
+    "50": {
+      "completed": {
+        "100000000": {
+          "parameters": {
+            "evaluations": 100000000,
+            "starts": 20,
+            "stage_length": 4376,
+            "t_max": 0.1205567196725,
+            "t_min": 0.008807899243983642,
+            "rcl_alpha": 0.7254777009381,
+            "p_inter": 0.6256976602899,
+            "p_shift": 0.5073244971916,
+            "p_block": 0.2169714174867
+          },
+          "quality": 0.8828854979296142,
+          "id": "5bb4e576e7ce640df938b24480e84bed36310158e40800491aa1a91a96d42592",
+          "stats": {
+            "submitted": 402,
+            "finished": 402,
+            "running": 0
+          },
+          "improvement_vs_exact_pct": 0.07649538095864106,
+          "improvement_vs_cap_pct": 0.07649538095864106,
+          "cpu_hours": 292.3499001736111,
+          "panel_wall_hours": 15.101545717194968,
+          "checkpoints": {
+            "100": 0.8833665710099906,
+            "200": 0.8829402931520451,
+            "300": 0.8829333260670682,
+            "400": 0.8828854979296142
+          }
+        },
+        "20000000": {
+          "parameters": {
+            "evaluations": 20000000,
+            "starts": 4,
+            "stage_length": 143,
+            "t_max": 0.1410175042816,
+            "t_min": 0.017668149144566152,
+            "rcl_alpha": 0.011698307281,
+            "p_inter": 0.8800600384137,
+            "p_shift": 0.5486306048087,
+            "p_block": 0.1339137150091
+          },
+          "quality": 0.8858263078872675,
+          "id": "e5066aa9e618737752320d107188f51a7f463acf343249b72295267681fcf1c4",
+          "stats": {
+            "submitted": 404,
+            "finished": 404,
+            "running": 0
+          },
+          "improvement_vs_exact_pct": 0.17441606522823339,
+          "improvement_vs_cap_pct": 0.17441606522823339,
+          "cpu_hours": 62.891302083333336,
+          "panel_wall_hours": 3.261750046332988,
+          "checkpoints": {
+            "100": 0.8871047156870651,
+            "200": 0.886177818651295,
+            "300": 0.8859691785381028,
+            "400": 0.8858263078872675
+          }
+        },
+        "3000000": {
+          "parameters": {
+            "evaluations": 3000000,
+            "starts": 1,
+            "stage_length": 4978,
+            "t_max": 0.1372160247482,
+            "t_min": 0.018668274635205213,
+            "rcl_alpha": 0.030878169097,
+            "p_inter": 0.7779913925038,
+            "p_shift": 0.6844516674175,
+            "p_block": 0.150172712714
+          },
+          "quality": 0.8927160185696926,
+          "id": "a36d5d41ae7bd6b44767a97701b4377a8c96082db811e2a05e8e7e670570a22f",
+          "stats": {
+            "submitted": 421,
+            "finished": 421,
+            "running": 0
+          },
+          "improvement_vs_exact_pct": 0.14279265994388002,
+          "improvement_vs_cap_pct": 0.14279265994388002,
+          "cpu_hours": 10.313697916666667,
+          "panel_wall_hours": 0.5496243520000199,
+          "checkpoints": {
+            "100": 0.8939925743463025,
+            "200": 0.8939925743463025,
+            "300": 0.8939545332968897,
+            "400": 0.8927160185696926
+          }
+        }
+      },
+      "pending": {},
+      "heldout": {
+        "low": {
+          "quality": 0.9117376055483021,
+          "change_vs_old_export_pct": 0.17535755156623534,
+          "change_bootstrap95": [
+            -0.19030862146173222,
+            0.6003309226884079
+          ]
+        },
+        "medium": {
+          "quality": 0.9028086052797313,
+          "change_vs_old_export_pct": 0.41550493782378517,
+          "change_bootstrap95": [
+            0.20205112612361464,
+            0.6365576430902742
+          ]
+        },
+        "high": {
+          "quality": 0.8984960635751399,
+          "change_vs_old_export_pct": -0.06416046445468782,
+          "change_bootstrap95": [
+            -0.13211299505758722,
+            -0.005048019371700629
+          ]
+        }
+      },
+      "gaps_to_high_pct": {
+        "low": {
+          "overall": 1.4737451292188952,
+          "clean": 0.6546466598482237,
+          "carryover": 2.330988674705914
+        },
+        "medium": {
+          "overall": 0.47997335541256625,
+          "clean": 0.23001358824343843,
+          "carryover": 0.7415736453042054
+        },
+        "high": {
+          "overall": 0.0,
+          "clean": 0.0,
+          "carryover": 0.0
+        }
+      }
+    },
+    "100": {
+      "completed": {
+        "10000000": {
+          "parameters": {
+            "evaluations": 10000000,
+            "starts": 1,
+            "stage_length": 4769,
+            "t_max": 0.159083250938,
+            "t_min": 0.00537307258068806,
+            "rcl_alpha": 0.8974959497158,
+            "p_inter": 0.5396548814667,
+            "p_shift": 0.3111253897508,
+            "p_block": 0.2380530930989
+          },
+          "quality": 0.8294361255541569,
+          "id": "787519da641cb5a3cb86ffeb77b7fcaa85191b0a0806b2c8403fb31c42a0d4de",
+          "stats": {
+            "submitted": 405,
+            "finished": 405,
+            "running": 0
+          },
+          "improvement_vs_exact_pct": 0.5091709336534356,
+          "improvement_vs_cap_pct": 0.5091709336534356,
+          "cpu_hours": 49.98390190972222,
+          "panel_wall_hours": 2.6373416736110813,
+          "checkpoints": {
+            "100": 0.8320769075564775,
+            "200": 0.8312953639511935,
+            "300": 0.8309939306408043,
+            "400": 0.8294361255541569
+          }
+        },
+        "100000000": {
+          "parameters": {
+            "evaluations": 100000000,
+            "starts": 2,
+            "stage_length": 4444,
+            "t_max": 0.2231074946405,
+            "t_min": 0.0005255817134408646,
+            "rcl_alpha": 0.7793999399022,
+            "p_inter": 0.4901457785847,
+            "p_shift": 0.3875948793959,
+            "p_block": 0.2948395951966
+          },
+          "quality": 0.8248870006108251,
+          "id": "be2c29f516f209ea20931249543fe0243c57fad28ddb820652f7fb6e8334a08a",
+          "stats": {
+            "submitted": 402,
+            "finished": 402,
+            "running": 0
+          },
+          "improvement_vs_exact_pct": 0.19553217977495985,
+          "improvement_vs_cap_pct": 0.19553217977495985,
+          "cpu_hours": 400.697421875,
+          "panel_wall_hours": 20.687630425473326,
+          "checkpoints": {
+            "100": 0.8254780774261696,
+            "200": 0.8251417807479162,
+            "300": 0.8248870006108251,
+            "400": 0.8248870006108251
+          }
+        },
+        "20000000": {
+          "parameters": {
+            "evaluations": 20000000,
+            "starts": 1,
+            "stage_length": 4553,
+            "t_max": 0.273415242008,
+            "t_min": 0.003630094942513155,
+            "rcl_alpha": 0.7538930064921,
+            "p_inter": 0.5801559022389,
+            "p_shift": 0.416028718319,
+            "p_block": 0.0961923271711
+          },
+          "quality": 0.8275708375534825,
+          "id": "3b30079fcced9e5b0f72a8e0f36a2dc0a56036d183a94e7939ab7da0a6fdfdcd",
+          "stats": {
+            "submitted": 404,
+            "finished": 404,
+            "running": 0
+          },
+          "improvement_vs_exact_pct": 0.3141805180706614,
+          "improvement_vs_cap_pct": 0.3141805180706614,
+          "cpu_hours": 101.26775607638889,
+          "panel_wall_hours": 5.288995018639188,
+          "checkpoints": {
+            "100": 0.8296933943637783,
+            "200": 0.8284921793224226,
+            "300": 0.8278972429682395,
+            "400": 0.8275708375534825
+          }
+        }
+      },
+      "pending": {},
+      "heldout": {
+        "low": {
+          "quality": 0.8285069419147993,
+          "change_vs_old_export_pct": -0.24392688102965465,
+          "change_bootstrap95": [
+            -0.4437119545649515,
+            -0.05812439478533049
+          ]
+        },
+        "medium": {
+          "quality": 0.8265681550812594,
+          "change_vs_old_export_pct": 0.3223576561139252,
+          "change_bootstrap95": [
+            0.18854302851691873,
+            0.4739186926902894
+          ]
+        },
+        "high": {
+          "quality": 0.8229204314326446,
+          "change_vs_old_export_pct": -0.1203744214012259,
+          "change_bootstrap95": [
+            -0.18568294568461763,
+            -0.04240254738329119
+          ]
+        }
+      },
+      "gaps_to_high_pct": {
+        "low": {
+          "overall": 0.6788639908270389,
+          "clean": 0.2510434109715298,
+          "carryover": 1.1489820663361572
+        },
+        "medium": {
+          "overall": 0.4432656559838266,
+          "clean": 0.19910079520566448,
+          "carryover": 0.711570454445698
+        },
+        "high": {
+          "overall": 0.0,
+          "clean": 0.0,
+          "carryover": 0.0
+        }
+      }
+    }
+  },
+  "build_transition": {
+    "old_core_sha256": "2df3d3ceeb6d831cf4edc403faf5bd2dc4829e68dfbd167b5a16a97606b55fc8",
+    "new_core_sha256": "22a829671563f7c618471ff4144125aee103dae9617e4e2f5ce76310e2749fee",
+    "dataset_sha256": "b04ddf6b2f056633874fbb4330aa750a4341235475de852662375eb3bb2224bf",
+    "source": "C:\\Rean\\Project\\flexo-scheduling-wasm\\packages\\optimizer\\results\\fixed-budget-tuning",
+    "source_manifest_sha256": "d3c5613924f93a37c23a499efbb9bc1e73ba2bc3fb91b430e51dbad98d4f49c1",
+    "old_source_sha256": "9d96d58ee8aa258d4fb4ffe1611a06ae537aaa2a0c3e807b3f11600d5ef57fa1",
+    "verification": "C:\\Rean\\Project\\flexo-scheduling-wasm\\packages\\optimizer\\results\\pgo-install",
+    "native_sources": {
+      "engine.h": "1ab6fb6fe30feacde3556e36cb1572949124722b45c89b6705b45871ba3bbc2a",
+      "moves.h": "9373c6375320b537c017ca1e8ca0a30bed596b40d0d35d634e550f09dac77ffc",
+      "optimizer.cpp": "d64e59206c844ff40d6073c669d3d07fe3b474934ce69f161353e0c5b2614721",
+      "solver.h": "b6680ff8f8597c607d0c6335a078c0e71f08c23ec77f0358de63b36dc4958086"
+    },
+    "timing_samples": {
+      "baseline_seconds": 99.03455980005674,
+      "pgo_seconds": 83.16779220011085
+    },
+    "timing_proposals_per_solve": 100000000,
+    "cached_fitness_checks": 60,
+    "resume_path_fix_from_source_sha256": "6eea9311273c3cb3c5bd2e2421193e319efbe8e9485bd9d8a389eb82d17390f7"
+  },
+  "verification": "Completed winners, complete panels and every successful SMAC history cost recomputed/checked; dataset and current binary match manifest. No optimizer runs performed."
+}
