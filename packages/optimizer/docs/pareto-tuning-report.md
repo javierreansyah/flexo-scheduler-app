@@ -55,6 +55,71 @@ size; positive means worse. Total proposals are shared across starts.
 | 100 | Balanced | 20m | 1 | 0.443% | 0.199% | 0.712% |
 | 100 | High | 100m | 2 | 0.000% | 0.000% | 0.000% |
 
+### Full selected parameters
+
+Values below are the saved winning parameters, shown without rounding the
+floating-point values. `evaluations` is the total proposal budget across starts;
+`stage_length` is the cooling stage length. Quick/Balanced/High correspond to
+`low`/`medium`/`high` in the exported profiles.
+
+#### 10 movable jobs
+
+All three labels share the same 100k search winner.
+
+| Parameter | Quick | Balanced | High |
+| --- | ---: | ---: | ---: |
+| `evaluations` | 100,000 | 100,000 | 100,000 |
+| `starts` | 1 | 1 | 1 |
+| `stage_length` | 4,470 | 4,470 | 4,470 |
+| `t_max` | 0.1847258209518 | 0.1847258209518 | 0.1847258209518 |
+| `t_min` | 0.11398729486183289 | 0.11398729486183289 | 0.11398729486183289 |
+| `rcl_alpha` | 0.1991433430616 | 0.1991433430616 | 0.1991433430616 |
+| `p_inter` | 0.8718334894686 | 0.8718334894686 | 0.8718334894686 |
+| `p_shift` | 0.5184782643609 | 0.5184782643609 | 0.5184782643609 |
+| `p_block` | 0.2013263167357 | 0.2013263167357 | 0.2013263167357 |
+
+#### 30 movable jobs
+
+| Parameter | Quick | Balanced | High |
+| --- | ---: | ---: | ---: |
+| `evaluations` | 600,000 | 10,000,000 | 100,000,000 |
+| `starts` | 8 | 13 | 9 |
+| `stage_length` | 2,127 | 4,121 | 4,226 |
+| `t_max` | 0.1305472200046 | 0.1250132749676 | 0.1114781445448 |
+| `t_min` | 0.02365957760984327 | 0.03545481965198901 | 0.029833194864552742 |
+| `rcl_alpha` | 0.6037826750795 | 0.3340144265422 | 0.3408040729198 |
+| `p_inter` | 0.8156482080143 | 0.9603446927993 | 0.5617233980566 |
+| `p_shift` | 0.4763003559052 | 0.505760606627 | 0.555676332837 |
+| `p_block` | 0.1413150880574 | 0.1322194041951 | 0.1710299008231 |
+
+#### 50 movable jobs
+
+| Parameter | Quick | Balanced | High |
+| --- | ---: | ---: | ---: |
+| `evaluations` | 3,000,000 | 20,000,000 | 100,000,000 |
+| `starts` | 1 | 4 | 20 |
+| `stage_length` | 4,978 | 143 | 4,376 |
+| `t_max` | 0.1372160247482 | 0.1410175042816 | 0.1205567196725 |
+| `t_min` | 0.018668274635205213 | 0.017668149144566152 | 0.008807899243983642 |
+| `rcl_alpha` | 0.030878169097 | 0.011698307281 | 0.7254777009381 |
+| `p_inter` | 0.7779913925038 | 0.8800600384137 | 0.6256976602899 |
+| `p_shift` | 0.6844516674175 | 0.5486306048087 | 0.5073244971916 |
+| `p_block` | 0.150172712714 | 0.1339137150091 | 0.2169714174867 |
+
+#### 100 movable jobs
+
+| Parameter | Quick | Balanced | High |
+| --- | ---: | ---: | ---: |
+| `evaluations` | 10,000,000 | 20,000,000 | 100,000,000 |
+| `starts` | 1 | 1 | 2 |
+| `stage_length` | 4,769 | 4,553 | 4,444 |
+| `t_max` | 0.159083250938 | 0.273415242008 | 0.2231074946405 |
+| `t_min` | 0.00537307258068806 | 0.003630094942513155 | 0.0005255817134408646 |
+| `rcl_alpha` | 0.8974959497158 | 0.7538930064921 | 0.7793999399022 |
+| `p_inter` | 0.5396548814667 | 0.5801559022389 | 0.4901457785847 |
+| `p_shift` | 0.3111253897508 | 0.416028718319 | 0.3875948793959 |
+| `p_block` | 0.2380530930989 | 0.0961923271711 | 0.2948395951966 |
+
 ![Completed fixed-budget winners versus historical frontiers](pareto-tuning-frontiers.png)
 
 All green markers now represent completed searches; all four sizes have held-out
