@@ -154,20 +154,22 @@ export function randomJobs(
     throw Error("Generate 1 to 10,000 jobs per action");
   if (colors && !colors.length)
     throw Error("Add colors before generating jobs");
-  const templateColors = [
-    ...new Set(industry.jobs.flatMap((j) => j.inks)),
-  ].sort((a, b) => a - b);
   const rng = random(seed);
   return Array.from({ length: count }, (_, i) => {
     const t = industry.jobs[Math.floor(rng() * industry.jobs.length)];
+    const quantity = Math.max(
+      1000,
+      Math.floor(t.quantity * (0.85 + 0.3 * rng())),
+    );
+    const available = (colors ?? industry.colors).map((color) => color.id);
+    const inks = Array.from(
+      { length: Math.min(t.inks.length, available.length) },
+      () => available.splice(Math.floor(rng() * available.length), 1)[0],
+    );
     return {
       id: `${prefix}${i + 1}`,
-      quantity: Math.max(1000, Math.floor(t.quantity * (0.85 + 0.3 * rng()))),
-      inks: colors
-        ? t.inks.map(
-            (id) => colors[templateColors.indexOf(id) % colors.length].id,
-          )
-        : [...t.inks],
+      quantity,
+      inks,
       arrival_time: now,
     };
   });

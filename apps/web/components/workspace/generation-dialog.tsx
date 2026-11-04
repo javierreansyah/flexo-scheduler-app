@@ -39,7 +39,9 @@ export function GenerationDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent finalFocus={trigger}>
-        <DialogTitle>Generate {kind}</DialogTitle>
+        <DialogTitle>
+          Generate {kind === "jobs" ? "Jobs" : "Machines"}
+        </DialogTitle>
         <DialogDescription>
           {kind === "jobs"
             ? "Append generated jobs to this batch."
@@ -115,7 +117,7 @@ export function GenerationDialog({
               Cancel
             </Button>
             <Button type="submit" disabled={disabled}>
-              Generate {kind}
+              Generate {kind === "jobs" ? "Jobs" : "Machines"}
             </Button>
           </div>
         </form>

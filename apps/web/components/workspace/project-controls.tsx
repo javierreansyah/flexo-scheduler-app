@@ -81,7 +81,7 @@ export function ProjectControls() {
                 disabled={busy || !ready}
                 onClick={() => file.current?.click()}
               >
-                <Upload size={16} /> Import project
+                <Upload size={16} /> Import Project
               </DropdownMenuItem>
               <DropdownMenuItem
                 disabled={!ready}
@@ -92,13 +92,13 @@ export function ProjectControls() {
                   )
                 }
               >
-                <Download size={16} /> Export project
+                <Download size={16} /> Export Project
               </DropdownMenuItem>
               <DropdownMenuItem
                 disabled={busy || !ready}
                 onClick={() => replace(example())}
               >
-                Industry example
+                Industry Example
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -126,11 +126,9 @@ export function ProjectControls() {
                 ),
               ]
                 .sort((a, b) => a - b)
-                .map((time, i) => (
+                .map((time) => (
                   <SelectGroup key={time}>
-                    <SelectGroupLabel>
-                      Horizon {i + 1} · {time}h
-                    </SelectGroupLabel>
+                    <SelectGroupLabel>Horizon {time}h</SelectGroupLabel>
                     {project
                       .horizons!.nodes.filter(
                         (n) => n.state.snapshot.now === time,
@@ -149,7 +147,7 @@ export function ProjectControls() {
         {history.length > 0 && (
           <div className="flex items-end gap-2">
             <Field>
-              Arrival hour{" "}
+              Arrival Hour{" "}
               <Input
                 aria-label="Next batch arrival hour"
                 type="number"
@@ -171,7 +169,7 @@ export function ProjectControls() {
                 })
               }
             >
-              Start next batch <ArrowUpRight size={14} />
+              Start Next Batch <ArrowUpRight size={14} />
             </Button>
           </div>
         )}

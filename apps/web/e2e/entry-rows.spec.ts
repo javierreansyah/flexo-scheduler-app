@@ -4,7 +4,7 @@ test("blank rows create validated records and filters preserve the matrix", asyn
 }) => {
   await page.goto("/");
   await expect(
-    page.getByRole("button", { name: "Add job", exact: true }),
+    page.getByRole("button", { name: "Add Job", exact: true }),
   ).toBeEnabled();
   await expect(
     page.getByRole("tab", { name: "Jobs", exact: true }),
@@ -32,20 +32,22 @@ test("blank rows create validated records and filters preserve the matrix", asyn
   await expect(page.getByText("4 rows", { exact: true })).toBeVisible();
   await expect(page.getByLabel("New Machine", { exact: true })).toHaveValue("");
   await page.getByRole("tab", { name: "Colors", exact: true }).click();
-  await page.getByLabel("New color name", { exact: true }).fill("Blue");
-  await page.getByLabel("New color darkness", { exact: true }).fill("6");
-  await page.getByLabel("New color darkness", { exact: true }).press("Tab");
-  await expect(page.getByLabel("Color name 4", { exact: true })).toHaveValue(
+  await page.getByLabel("New Color Name", { exact: true }).fill("Blue");
+  await expect(
+    page.getByRole("columnheader", { name: "Darkness", exact: true }),
+  ).toHaveCount(0);
+  await page.getByLabel("New Color Name", { exact: true }).press("Tab");
+  await expect(page.getByLabel("Color Name 4", { exact: true })).toHaveValue(
     "Blue",
   );
-  await expect(page.getByLabel("New color name", { exact: true })).toHaveValue(
+  await expect(page.getByLabel("New Color Name", { exact: true })).toHaveValue(
     "",
   );
-  await page.getByLabel("Search colors").fill("Blue");
+  await page.getByLabel("Search Colors").fill("Blue");
   await expect(page.getByText("1 rows", { exact: true })).toBeVisible();
-  await expect(page.getByLabel("Color name 1", { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel("Color Name 1", { exact: true })).toHaveCount(0);
   await page.getByRole("tab", { name: "Changeovers", exact: true }).click();
-  await page.getByLabel("Search transitions").fill("Blue");
+  await page.getByLabel("Search Transitions").fill("Blue");
   await expect(
     page.getByRole("rowheader", { name: "Blue", exact: true }),
   ).toBeVisible();
@@ -57,10 +59,23 @@ test("blank rows create validated records and filters preserve the matrix", asyn
   });
   await time.fill("20");
   await time.press("Enter");
-  await page.getByLabel("Search transitions").fill("");
+  await page.getByLabel("Search Transitions").fill("");
   await expect(time).toHaveValue("20");
   await page
-    .getByRole("button", { name: "Restore defaults", exact: true })
+    .getByRole("button", { name: "Restore Defaults", exact: true })
     .click();
   await expect(time).toHaveValue("45");
+});
+
+test("new job accepts catalog inks as chips", async ({ page }) => {
+  await page.goto("/");
+  await page.getByLabel("New Job ID").fill("chip-job");
+  await page.getByLabel("New Quantity").fill("100");
+  const inks = page.getByLabel("New Inks");
+  await inks.fill("red");
+  await inks.press("Tab");
+  await expect(page.getByRole("button", { name: "Remove Red" })).toBeVisible();
+  await inks.press("Tab");
+  await expect(page.getByLabel("Job ID row 1")).toHaveValue("chip-job");
+  await expect(page.getByRole("button", { name: "Remove Red" })).toBeVisible();
 });

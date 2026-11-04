@@ -21,7 +21,7 @@ export function HorizonGraph({
     nodes.map((n) => [
       n.id,
       {
-        x: times.indexOf(n.state.snapshot.now) * 240 + 24,
+        x: times.indexOf(n.state.snapshot.now) * 240,
         y:
           nodes
             .filter((x) => x.state.snapshot.now === n.state.snapshot.now)
@@ -56,67 +56,52 @@ export function HorizonGraph({
         className="horizon-graph"
         style={
           {
-            "--graph-width": times.length * 240 + "px",
+            "--graph-width": (times.length - 1) * 240 + 208 + "px",
             "--graph-height": height + "px",
           } as CSSProperties
         }
       >
-        <svg width={times.length * 240} height={height} aria-hidden="true">
-          {nodes.map((n) => {
-            const a = positions.get(n.parent ?? ""),
-              b = positions.get(n.id)!;
-            return a ? (
-              <path
-                key={n.id}
-                className={
-                  ancestors.has(n.id) ? "horizon-path-active" : "horizon-path"
-                }
-                d={
-                  a.x === b.x
-                    ? "M " +
-                      a.x +
-                      " " +
-                      (a.y + 18) +
-                      " C " +
-                      (a.x - 20) +
-                      " " +
-                      a.y +
-                      ", " +
-                      (b.x - 20) +
-                      " " +
-                      b.y +
-                      ", " +
-                      b.x +
-                      " " +
-                      (b.y + 18)
-                    : "M " +
-                      (a.x + 176) +
-                      " " +
-                      (a.y + 18) +
-                      " C " +
-                      (a.x + 212) +
-                      " " +
-                      (a.y + 18) +
-                      ", " +
-                      (b.x - 36) +
-                      " " +
-                      (b.y + 18) +
-                      ", " +
-                      b.x +
-                      " " +
-                      (b.y + 18)
-                }
-              />
-            ) : null;
-          })}
+        <svg
+          width={(times.length - 1) * 240 + 208}
+          height={height}
+          aria-hidden="true"
+        >
+          {[...nodes]
+            .sort(
+              (a, b) =>
+                Number(ancestors.has(a.id)) - Number(ancestors.has(b.id)),
+            )
+            .map((n) => {
+              const a = positions.get(n.parent ?? ""),
+                b = positions.get(n.id)!;
+              return a ? (
+                <path
+                  key={n.id}
+                  className={
+                    ancestors.has(n.id) ? "horizon-path-active" : "horizon-path"
+                  }
+                  d={
+                    a.x === b.x
+                      ? b.y - a.y === 64
+                        ? `M ${a.x + 88} ${a.y + 36} V ${b.y}`
+                        : a.x === 0
+                          ? `M ${a.x + 176} ${a.y + 18} H ${a.x + 208} V ${b.y + 18} H ${b.x + 176}`
+                          : `M ${a.x} ${a.y + 18} H ${a.x - 32} V ${b.y + 18} H ${b.x}`
+                      : b.x - a.x === 240
+                        ? `M ${a.x + 176} ${a.y + 18} H ${a.x + 208} V ${b.y + 18} H ${b.x}`
+                        : `M ${a.x + 176} ${a.y + 18} H ${a.x + 208} V 48 H ${b.x - 32} V ${b.y + 18} H ${b.x}`
+                  }
+                />
+              ) : null;
+            })}
         </svg>
         {times.map((time, i) => (
           <p
             key={time}
             className="horizon-column-label"
-            style={{ "--node-x": i * 240 + 24 + "px" } as CSSProperties}
+            style={{ "--node-x": i * 240 + "px" } as CSSProperties}
           >
-            Horizon {i + 1} · {time}h
+            Horizon {time}h
           </p>
         ))}
         {nodes.map((n) => {

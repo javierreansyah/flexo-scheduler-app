@@ -22,11 +22,13 @@ import { download } from "@/lib/download";
 import { useWorkspace } from "./workspace-context";
 
 export function ScheduleResults() {
-  const { project, update, colors, result } = useWorkspace();
-  if (!result) return null;
+  const { project, update, colors, result, snapshot } = useWorkspace();
+  const cleaningTime = result
+    ? !!result.inputSnapshot?.transition_times
+    : !!snapshot.transition_times;
   return (
     <>
-      {activeNode(project).result === undefined && (
+      {result && activeNode(project).result === undefined && (
         <p className="border-l-2 border-warning pl-3 text-sm leading-relaxed text-warning">
           Inputs changed. The timeline shows the last successful result;
           optimize again to update it.
@@ -37,6 +39,7 @@ export function ScheduleResults() {
         key={project.horizons!.active}
         colorNames={(ids) => colorNames(ids, colors)}
         result={result}
+        snapshot={snapshot}
         preferences={project.view}
         onPreferences={(view) => update((p) => ({ ...p, view }))}
       />
@@ -45,18 +48,16 @@ export function ScheduleResults() {
         className="mt-6 grid grid-cols-2 gap-6 lg:grid-cols-5 [&_span]:block [&_span]:text-sm [&_span]:text-muted-foreground [&_strong]:mt-2 [&_strong]:block [&_strong]:text-lg [&_strong]:font-medium"
       >
         {[
-          ["Fitness", result.fitness.toFixed(5)],
+          ["Fitness", (result?.fitness ?? 0).toFixed(2)],
           [
-            result.inputSnapshot?.transition_times
-              ? "Cleaning time"
-              : "Ink cost",
-            result.inputSnapshot?.transition_times
-              ? `${result.ink_changes.toFixed(3)}h`
-              : result.ink_changes.toFixed(2),
+            cleaningTime ? "Cleaning Time" : "Ink Cost",
+            cleaningTime
+              ? `${(result?.ink_changes ?? 0).toFixed(2)}h`
+              : (result?.ink_changes ?? 0).toFixed(2),
           ],
-          ["Batch flow", `${result.batch_flow_time.toFixed(3)}h`],
-          ["Makespan", `${result.makespan.toFixed(3)}h`],
-          ["Compute time", `${result.seconds.toFixed(3)}s`],
+          ["Batch Flow", `${(result?.batch_flow_time ?? 0).toFixed(2)}h`],
+          ["Makespan", `${(result?.makespan ?? 0).toFixed(2)}h`],
+          ["Compute Time", `${(result?.seconds ?? 0).toFixed(2)}s`],
         ].map(([label, value]) => (
           <div key={label}>
             <span>{label}</span>
@@ -64,16 +65,22 @@ export function ScheduleResults() {
           </div>
         ))}
       </div>
-      <details className="mt-6 flex-col gap-4">
-        <summary className="mb-4 text-sm">Schedule details & export</summary>
-        <Button
-          variant="outline"
-          onClick={() =>
-            download("schedule.csv", scheduleCsv(result, colors), "text/csv")
-          }
-        >
-          Export schedule CSV
-        </Button>
+      <section
+        className="mt-6 flex flex-col gap-4"
+        aria-label="Schedule Details"
+      >
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <h3>Schedule Details</h3>
+          <Button
+            disabled={!result}
+            onClick={() =>
+              result &&
+              download("schedule.csv", scheduleCsv(result, colors), "text/csv")
+            }
+          >
+            Export Schedule CSV
+          </Button>
+        </div>
         <TableScroll>
           <Table>
             <TableHeader>
@@ -86,7 +93,16 @@ export function ScheduleResults() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {Object.entries(result.schedule).flatMap(([m, jobs]) =>
+              {!result && (
+                <TableRow>
+                  <TableCell colSpan={6}>
+                    <span className="text-muted-foreground">
+                      No jobs scheduled yet.
+                    </span>
+                  </TableCell>
+                </TableRow>
+              )}
+              {Object.entries(result?.schedule ?? {}).flatMap(([m, jobs]) =>
                 jobs.map((j) => (
                   <TableRow key={j.id}>
                     <TableCell>{m}</TableCell>
@@ -101,7 +117,7 @@ export function ScheduleResults() {
             </TableBody>
           </Table>
         </TableScroll>
-      </details>
+      </section>
     </>
   );
 }

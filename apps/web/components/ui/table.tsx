@@ -5,13 +5,14 @@ export function Table({
   className,
   variant = "default",
   ...props
-}: ComponentProps<"table"> & { variant?: "default" | "matrix" }) {
+}: ComponentProps<"table"> & { variant?: "default" | "matrix" | "colors" }) {
   return (
     <table
       data-slot="table"
       className={cn(
         "w-full border-collapse text-sm",
         variant === "matrix" && "w-max min-w-full table-fixed",
+        variant === "colors" && "table-fixed",
         className,
       )}
       {...props}
@@ -48,7 +49,7 @@ export function TableHead({
   variant = "default",
   ...props
 }: ComponentProps<"th"> & {
-  variant?: "default" | "matrix" | "selection" | "actions";
+  variant?: "default" | "matrix" | "selection" | "actions" | "swatch";
 }) {
   return (
     <th
@@ -56,6 +57,7 @@ export function TableHead({
       scope={scope}
       className={cn(
         "sticky top-0 z-10 h-11 min-w-24 whitespace-nowrap bg-background px-3 text-left align-middle font-medium text-muted-foreground",
+        variant === "swatch" && "w-20 min-w-20",
         variant === "selection" && "w-11 min-w-11 text-center",
         variant === "actions" && "w-14 min-w-14",
         variant === "matrix" &&
@@ -121,7 +123,7 @@ export function TableFilter({
   query,
   onQueryChange,
   count,
-  label = "Search table",
+  label = "Search Table",
 }: {
   query: string;
   onQueryChange: (query: string) => void;
@@ -133,7 +135,7 @@ export function TableFilter({
       <Input
         className="w-60 max-w-full"
         aria-label={label}
-        placeholder="Filter rows..."
+        placeholder="Filter Rows..."
         value={query}
         onChange={(e) => onQueryChange(e.target.value)}
       />

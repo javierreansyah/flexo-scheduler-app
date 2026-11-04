@@ -6,12 +6,12 @@ test("generation opens a dialog from the menu and restores focus", async ({
   const menu = page.getByRole("button", { name: "jobs actions" });
   await expect(page.getByLabel("Jobs to generate")).toHaveCount(0);
   await menu.click();
-  await page.getByRole("menuitem", { name: "Generate jobs…" }).click();
+  await page.getByRole("menuitem", { name: "Generate Jobs…" }).click();
   const dialog = page.getByRole("dialog");
   await expect(dialog).toBeVisible();
   await dialog.getByLabel("Jobs to generate").fill("2");
   await dialog
-    .getByRole("button", { name: "Generate jobs", exact: true })
+    .getByRole("button", { name: "Generate Jobs", exact: true })
     .click();
   await expect(dialog).toHaveCount(0);
   await expect(
@@ -23,7 +23,7 @@ test("generation opens a dialog from the menu and restores focus", async ({
   await expect(del).toHaveAttribute("data-slot", "button");
   await page.getByRole("tab", { name: "Machines", exact: true }).click();
   await page.getByRole("button", { name: "machines actions" }).click();
-  await page.getByRole("menuitem", { name: "Generate machines…" }).click();
+  await page.getByRole("menuitem", { name: "Generate Machines…" }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog")).toHaveCount(0);

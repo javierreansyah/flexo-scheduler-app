@@ -107,7 +107,7 @@ export function TransitionTimeMatrix({
     <section>
       <TableToolbar>
         <TableFilter
-          label="Search transitions"
+          label="Search Transitions"
           query={query}
           onQueryChange={setQuery}
         />
@@ -140,7 +140,7 @@ export function TransitionTimeMatrix({
               onChange(defaults);
             }}
           >
-            Restore defaults
+            Restore Defaults
           </Button>
         </div>
       </TableToolbar>

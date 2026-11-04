@@ -13,6 +13,7 @@ import {
 
 import { useState } from "react";
 import { NewTableRow } from "./new-table-row";
+import { AddEntryDialog } from "./add-entry-dialog";
 import { Trash2 } from "lucide-react";
 import type { InkColor } from "@/lib/colors";
 import { Button } from "./ui/button";
@@ -30,42 +31,60 @@ export function ColorCatalog({
 }) {
   const [query, setQuery] = useState("");
   const filtered = colors.filter((c) =>
-    [c.name, c.hex, String(c.darkness ?? "")].some((value) =>
+    [c.name, c.hex].some((value) =>
       value.toLowerCase().includes(query.toLowerCase()),
     ),
   );
+  function addColor(row: Record<string, string>) {
+    const name = row.name?.trim(),
+      hex = row.hex ?? "#808080";
+    if (!name || name.includes(","))
+      return "Enter a color name without commas.";
+    if (colors.some((color) => color.name.toLowerCase() === name.toLowerCase()))
+      return "Color names must be unique.";
+    onChange([
+      ...colors,
+      {
+        id: Math.max(0, ...colors.map((color) => color.id)) + 1,
+        name,
+        hex,
+      },
+    ]);
+    return null;
+  }
   return (
     <section>
       <TableToolbar>
         <TableFilter
-          label="Search colors"
+          label="Search Colors"
           query={query}
           onQueryChange={setQuery}
           count={filtered.length}
         />
         <div className="ml-auto">
-          <Button
-            variant="outline"
-            disabled={disabled}
-            onClick={() => {
-              const id = Math.max(0, ...colors.map((c) => c.id)) + 1;
-              onChange([
-                ...colors,
-                { id, name: `New color ${id}`, hex: "#808080" },
-              ]);
+          <AddEntryDialog
+            title="Add Color"
+            columns={[
+              { key: "name", label: "Color Name" },
+              { key: "hex", label: "Color Swatch", type: "color" },
+            ]}
+            defaults={{
+              name: `New color ${Math.max(0, ...colors.map((c) => c.id)) + 1}`,
+              hex: "#808080",
             }}
-          >
-            Add color
-          </Button>
+            disabled={disabled}
+            onCommit={addColor}
+          />
         </div>
       </TableToolbar>
       <TableScroll>
-        <Table aria-label="Colors">
+        <Table variant="colors" aria-label="Colors">
           <TableHeader>
             <TableRow>
-              <TableHead scope="col">Swatch</TableHead>
-              <TableHead scope="col">Color name</TableHead>
-              <TableHead>Darkness</TableHead>
+              <TableHead variant="swatch" scope="col">
+                Swatch
+              </TableHead>
+              <TableHead scope="col">Color Name</TableHead>
               <TableHead variant="actions" aria-label="Actions" />
             </TableRow>
           </TableHeader>
@@ -92,7 +111,7 @@ export function ColorCatalog({
                   <Input
                     key={`${c.id}:${c.name}`}
                     variant="cell"
-                    aria-label={`Color name ${c.id}`}
+                    aria-label={`Color Name ${c.id}`}
                     defaultValue={c.name}
                     disabled={disabled}
                     onBlur={(e) => {
@@ -115,7 +134,6 @@ export function ColorCatalog({
                     }}
                   />
                 </TableCell>
-                <TableCell>{c.darkness ?? "—"}</TableCell>
                 <TableCell variant="actions">
                   <Button
                     variant="ghost"
@@ -139,40 +157,10 @@ export function ColorCatalog({
             <NewTableRow
               disabled={disabled}
               columns={[
-                { key: "hex", label: "color swatch", type: "color" },
-                { key: "name", label: "color name" },
-                { key: "darkness", label: "color darkness", type: "number" },
+                { key: "hex", label: "Color Swatch", type: "color" },
+                { key: "name", label: "Color Name" },
               ]}
-              onCommit={(row) => {
-                const name = row.name?.trim(),
-                  hex = row.hex ?? "#808080",
-                  darkness = row.darkness?.trim()
-                    ? Number(row.darkness)
-                    : undefined;
-                if (!name || name.includes(","))
-                  return "Enter a color name without commas.";
-                if (
-                  colors.some(
-                    (color) => color.name.toLowerCase() === name.toLowerCase(),
-                  )
-                )
-                  return "Color names must be unique.";
-                if (
-                  darkness !== undefined &&
-                  (!Number.isInteger(darkness) || darkness < 1 || darkness > 9)
-                )
-                  return "Darkness must be a whole number from 1 to 9.";
-                onChange([
-                  ...colors,
-                  {
-                    id: Math.max(0, ...colors.map((color) => color.id)) + 1,
-                    name,
-                    hex,
-                    ...(darkness !== undefined ? { darkness } : {}),
-                  },
-                ]);
-                return null;
-              }}
+              onCommit={addColor}
             />
           </TableBody>
         </Table>

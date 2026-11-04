@@ -1,17 +1,19 @@
 "use client";
 import type { CSSProperties } from "react";
 
-import type { Result } from "@/lib/model";
+import type { Result, Snapshot } from "@/lib/model";
 import { useEffect, useState } from "react";
 import { Button } from "./ui/button";
 import { Slider } from "./ui/slider";
 export function Timeline({
   result,
+  snapshot,
   colorNames = (ids: number[]) => ids.join(", "),
   preferences,
   onPreferences,
 }: {
-  result: Result;
+  result: Result | undefined;
+  snapshot: Snapshot;
   colorNames?: (ids: number[]) => string;
   preferences?: { mode: string; shift: number; scale: number };
   onPreferences: (v: { mode: string; shift: number; scale: number }) => void;
@@ -22,13 +24,19 @@ export function Timeline({
   useEffect(() => {
     onPreferences({ mode: view, shift, scale });
   }, [view, shift, scale]);
-  const end = Math.max(result.makespan, result.now, 1);
+  const now = result?.now ?? snapshot.now;
+  const schedule =
+    result?.schedule ??
+    Object.fromEntries(
+      Object.keys(snapshot.machines).map((machine) => [machine, []]),
+    );
+  const end = Math.max(result?.makespan ?? 0, now, 1);
   const maxShift = Math.max(0, Math.ceil(end / 8) - 1);
   const start = view === "shift" ? Math.min(shift, maxShift) * 8 : 0;
   const span = view === "shift" ? 8 : end;
   const arrivals = [
     ...new Set(
-      Object.values(result.schedule)
+      Object.values(schedule)
         .flat()
         .map((j) => j.arrival_time),
     ),
@@ -52,12 +60,12 @@ export function Timeline({
               key={v}
               onClick={() => setView(v)}
             >
-              {v}
+              {v[0].toUpperCase() + v.slice(1)}
             </Button>
           ))}
           {view === "scroll" && (
             <Slider
-              aria-label="Timeline zoom"
+              aria-label="Timeline Zoom"
               min={20}
               max={240}
               value={scale}
@@ -73,7 +81,9 @@ export function Timeline({
               >
                 Prev
               </Button>
-              <span>Shift {Math.min(shift, maxShift) + 1}</span>
+              <span className="inline-flex h-9 items-center px-3 text-sm font-medium">
+                Shift {Math.min(shift, maxShift) + 1}
+              </span>
               <Button
                 variant="outline"
                 disabled={shift >= maxShift}
@@ -108,7 +118,7 @@ export function Timeline({
               ))}
             </div>
           </div>
-          {Object.entries(result.schedule).map(([machine, jobs]) => (
+          {Object.entries(schedule).map(([machine, jobs]) => (
             <div className="lane" key={machine}>
               <strong>{machine}</strong>
               <div className="track">
@@ -128,12 +138,12 @@ export function Timeline({
                       }
                     />
                   ))}
-                {result.now >= start && result.now <= start + span && (
+                {now >= start && now <= start + span && (
                   <i
                     className="now-line"
                     style={
                       {
-                        "--position": `${((result.now - start) / span) * 100}%`,
+                        "--position": `${((now - start) / span) * 100}%`,
                       } as CSSProperties
                     }
                   />
@@ -180,10 +190,10 @@ export function Timeline({
           ))}
         </div>
       </div>
-      <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-        <span>Hatched: setup</span>
-        <span>Outlined: locked work</span>
-        <span>White line: current time</span>
+      <div className="mt-4 flex flex-wrap gap-4 text-sm text-muted-foreground">
+        <span>Hatched: Setup</span>
+        <span>Outlined: Locked Work</span>
+        <span>White Line: Current Time</span>
         {arrivals.map((a, i) => (
           <span
             key={a}

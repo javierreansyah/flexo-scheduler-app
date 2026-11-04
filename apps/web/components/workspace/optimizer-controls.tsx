@@ -34,7 +34,7 @@ export function OptimizerControls() {
     <section className="flex flex-col gap-4">
       <h3 className="text-base font-medium">Optimizer</h3>
       <Field>
-        Speed preset
+        Speed Preset
         <Select
           value={project.preset}
           disabled={disabled}
@@ -48,7 +48,7 @@ export function OptimizerControls() {
               }));
           }}
         >
-          <SelectTrigger aria-label="Speed preset">
+          <SelectTrigger aria-label="Speed Preset">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

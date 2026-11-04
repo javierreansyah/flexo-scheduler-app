@@ -108,15 +108,10 @@ export function commitResult(p: Project, result: Result): Project {
   };
 }
 export function nodeLabels(p: Project) {
-  const times = [
-    ...new Set(p.horizons!.nodes.map((n) => n.state.snapshot.now)),
-  ].sort((a, b) => a - b);
   return new Map(
     p.horizons!.nodes.map((n) => [
       n.id,
       "Horizon " +
-        (times.indexOf(n.state.snapshot.now) + 1) +
-        " · " +
         n.state.snapshot.now +
         "h · " +
         (n.result === undefined
@@ -132,4 +127,45 @@ export function nodeLabels(p: Project) {
                 .findIndex((x) => x.id === n.id))),
     ]),
   );
+}
+
+export function branchIds(p: Project, id: string): Set<string> {
+  if (!p.horizons!.nodes.some((n) => n.id === id))
+    throw Error("Unknown checkpoint");
+  const ids = new Set([id]);
+  for (const n of p.horizons!.nodes)
+    if (n.parent && ids.has(n.parent)) ids.add(n.id);
+  return ids;
+}
+export function deleteBranch(p: Project, id: string): Project {
+  const node = p.horizons!.nodes.find((n) => n.id === id);
+  if (!node) throw Error("Unknown checkpoint");
+  if (node.parent === null)
+    throw Error("The root checkpoint cannot be deleted");
+  const ids = branchIds(p, id);
+  const deletedResults = new Set(
+    p
+      .horizons!.nodes.filter((n) => ids.has(n.id) && n.result !== undefined)
+      .map((n) => n.result!),
+  );
+  const indices = new Map<number, number>();
+  const history = p.history.filter((_, index) => {
+    if (deletedResults.has(index)) return false;
+    indices.set(index, indices.size);
+    return true;
+  });
+  const nodes = p
+    .horizons!.nodes.filter((n) => !ids.has(n.id))
+    .map((n) =>
+      n.result === undefined ? n : { ...n, result: indices.get(n.result)! },
+    );
+  const next = {
+    ...p,
+    history,
+    horizons: {
+      active: ids.has(p.horizons!.active) ? node.parent : p.horizons!.active,
+      nodes,
+    },
+  };
+  return selectNode(next, next.horizons.active);
 }

@@ -85,11 +85,15 @@ test("CRT hover, processing color and cancellation return to idle", async ({
   }
   await expectContinuousClock();
   await capture("crt-hover.png");
-  await page.getByRole("button", { name: "Add job", exact: true }).click();
-  await page.getByRole("combobox", { name: "Speed preset" }).click();
+  await page.getByRole("button", { name: "Add Job", exact: true }).click();
+  await page
+    .getByRole("dialog", { name: "Add Job" })
+    .getByRole("button", { name: "Add Job", exact: true })
+    .click();
+  await page.getByRole("combobox", { name: "Speed Preset" }).click();
   await page.getByRole("option", { name: "Custom", exact: true }).click();
   await page.getByRole("tab", { name: "Project", exact: true }).click();
-  await page.getByLabel("evaluations", { exact: true }).fill("1000000000");
+  await page.getByLabel("Evaluations", { exact: true }).fill("1000000000");
   await page.getByRole("tab", { name: "Jobs", exact: true }).click();
   await button.click();
   await expect(control).toHaveAttribute("data-phase", "busy");

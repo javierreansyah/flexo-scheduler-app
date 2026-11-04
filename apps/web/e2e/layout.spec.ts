@@ -6,16 +6,16 @@ for (const width of [390, 768, 1440]) {
       await page.setViewportSize({ width, height: 1000 });
       await page.goto("/");
       await page.getByRole("button", { name: "Project actions" }).click();
-      await page.getByRole("menuitem", { name: "Industry example" }).click();
-      const search = page.getByRole("textbox", { name: "Search table" }),
-        add = page.getByRole("button", { name: "Add job", exact: true });
+      await page.getByRole("menuitem", { name: "Industry Example" }).click();
+      const search = page.getByRole("textbox", { name: "Search Table" }),
+        add = page.getByRole("button", { name: "Add Job", exact: true });
       await expect(add).toBeEnabled();
       for (const control of [
         search,
         add,
         page.getByRole("button", { name: "New", exact: true }),
         page.getByRole("button", { name: "Project actions" }),
-        page.getByRole("combobox", { name: "Speed preset" }),
+        page.getByRole("combobox", { name: "Speed Preset" }),
       ]) {
         const box = await control.boundingBox();
         expect(box?.height).toBeCloseTo(36, 0);
@@ -39,7 +39,7 @@ for (const width of [390, 768, 1440]) {
         .screenshot({ path: testInfo.outputPath("jobs-" + width + ".png") });
       await page.getByRole("tab", { name: "Machines", exact: true }).click();
       await expect(
-        page.getByRole("button", { name: "Add machine", exact: true }),
+        page.getByRole("button", { name: "Add Machine", exact: true }),
       ).toBeVisible();
       await page.locator("#workspace").screenshot({
         path: testInfo.outputPath("machines-" + width + ".png"),
@@ -83,17 +83,25 @@ for (const width of [390, 768, 1440]) {
 }
 test("filtered and sorted edits update the correct job", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Add job", exact: true }).click();
+  await page.getByRole("button", { name: "Add Job", exact: true }).click();
+  await page
+    .getByRole("dialog", { name: "Add Job" })
+    .getByRole("button", { name: "Add Job", exact: true })
+    .click();
   await page.getByLabel("Job ID row 1", { exact: true }).fill("Zulu");
   await page.getByLabel("Job ID row 1", { exact: true }).press("Tab");
-  await page.getByRole("button", { name: "Add job", exact: true }).click();
+  await page.getByRole("button", { name: "Add Job", exact: true }).click();
+  await page
+    .getByRole("dialog", { name: "Add Job" })
+    .getByRole("button", { name: "Add Job", exact: true })
+    .click();
   await page.getByLabel("Job ID row 2", { exact: true }).fill("Alpha");
   await page.getByLabel("Job ID row 2", { exact: true }).press("Tab");
   await page.getByRole("button", { name: "Job ID", exact: true }).click();
-  await page.getByLabel("Search table").fill("Alpha");
+  await page.getByLabel("Search Table").fill("Alpha");
   await page.getByLabel("Quantity row 2", { exact: true }).fill("1234");
   await page.getByLabel("Quantity row 2", { exact: true }).press("Tab");
-  await page.getByLabel("Search table").fill("");
+  await page.getByLabel("Search Table").fill("");
   await expect(page.getByLabel("Quantity row 2", { exact: true })).toHaveValue(
     "1234",
   );

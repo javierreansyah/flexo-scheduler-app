@@ -1,9 +1,8 @@
 "use client";
 import { TableFooter } from "@/components/ui/table";
 
-import { Button } from "@/components/ui/button";
 import { colorNames, parseColors } from "@/lib/colors";
-import { Plus } from "lucide-react";
+import { AddEntryDialog } from "../add-entry-dialog";
 import { DataGrid } from "../data-grid";
 
 import { CsvActions } from "./csv-actions";
@@ -12,7 +11,7 @@ const machineColumns = [
   { key: "name", label: "Machine" },
   { key: "rate", label: "Pieces / min" },
   { key: "available", label: "Available (h)" },
-  { key: "inks", label: "Initial inks" },
+  { key: "inks", label: "Initial Inks" },
 ];
 
 export function MachinesPanel() {
@@ -82,57 +81,64 @@ export function MachinesPanel() {
       ),
     });
   }
+  function addMachine(row: Record<string, string>) {
+    const name = row.name?.trim(),
+      rate = Number(row.rate),
+      available = Number(row.available ?? 0),
+      inks = parseColors(row.inks ?? "", colors);
+    if (!name || !Number.isFinite(rate) || rate <= 0)
+      return "Enter a machine name and a positive rate.";
+    if (name in snapshot.machines) return "Machine names must be unique.";
+    if (!Number.isFinite(available) || available < 0)
+      return "Availability must be a nonnegative number.";
+    if (
+      inks.some(
+        (ink) =>
+          !Number.isInteger(ink) || !colors.some((color) => color.id === ink),
+      )
+    )
+      return "Choose inks from the color catalog.";
+    changeSnapshot({
+      machines: { ...snapshot.machines, [name]: rate },
+      machine_states: {
+        ...snapshot.machine_states,
+        [name]: { available_time: available, inks },
+      },
+    });
+    return null;
+  }
   return (
     <>
       <DataGrid
         toolbarActions={
           <>
-            <Button
-              variant="outline"
+            <AddEntryDialog
+              title="Add Machine"
+              columns={[
+                { key: "name", label: "Machine" },
+                { key: "rate", label: "Pieces / min", type: "number" },
+                { key: "available", label: "Available (h)", type: "number" },
+                {
+                  key: "inks",
+                  label: "Initial Inks",
+                  options: colors.map((color) => color.name),
+                },
+              ]}
+              defaults={{
+                name: `Machine ${Object.keys(snapshot.machines).length + 1}`,
+                rate: "150",
+                available: "0",
+                inks: "",
+              }}
               disabled={busy || !ready || physicalLocked}
-              onClick={() =>
-                changeSnapshot({
-                  machines: {
-                    ...snapshot.machines,
-                    [`Machine ${Object.keys(snapshot.machines).length + 1}`]: 150,
-                  },
-                })
-              }
-            >
-              <Plus size={14} /> Add machine
-            </Button>
+              onCommit={addMachine}
+            />
             <CsvActions kind="machines" />
           </>
         }
         rows={rows}
         columns={machineColumns}
-        onAppend={(row) => {
-          const name = row.name?.trim(),
-            rate = Number(row.rate),
-            available = Number(row.available ?? 0),
-            inks = parseColors(row.inks ?? "", colors);
-          if (!name || !Number.isFinite(rate) || rate <= 0)
-            return "Enter a machine name and a positive rate.";
-          if (name in snapshot.machines) return "Machine names must be unique.";
-          if (!Number.isFinite(available) || available < 0)
-            return "Availability must be a nonnegative number.";
-          if (
-            inks.some(
-              (ink) =>
-                !Number.isInteger(ink) ||
-                !colors.some((color) => color.id === ink),
-            )
-          )
-            return "Choose inks from the color catalog.";
-          changeSnapshot({
-            machines: { ...snapshot.machines, [name]: rate },
-            machine_states: {
-              ...snapshot.machine_states,
-              [name]: { available_time: available, inks },
-            },
-          });
-          return null;
-        }}
+        onAppend={addMachine}
         onDeleteMany={removeMachines}
         onPasteCells={(cells, append) =>
           action(() => commitCells(cells, append))

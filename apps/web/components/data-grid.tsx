@@ -23,6 +23,7 @@ import { NewTableRow, type EntryColumn } from "./new-table-row";
 import { Button } from "./ui/button";
 import { Checkbox } from "./ui/checkbox";
 import { Input } from "./ui/input";
+import { InkCombobox } from "./ui/ink-combobox";
 function GridInput({
   value,
   onCommit,
@@ -226,60 +227,70 @@ export function DataGrid({
                       />
                     </TableCell>
                     {columns.map((c, col) => (
-                      <TableCell key={c.key}>
-                        <GridInput
-                          aria-label={`${c.label} row ${i + 1}`}
-                          disabled={
-                            disabled ||
-                            locked ||
-                            c.key === "status" ||
-                            c.key === "arrival"
-                          }
-                          value={original[c.key] ?? ""}
-                          onCommit={(value) => onChange(i, c.key, value)}
-                          onPaste={(e) => {
-                            const text = e.clipboardData.getData("text");
-                            if (!text.includes("\t") && !text.includes("\n"))
-                              return;
-                            e.preventDefault();
-                            const cells: {
-                                i: number;
-                                key: string;
-                                value: string;
-                              }[] = [],
-                              append: Record<string, string>[] = [];
-                            text
-                              .trimEnd()
-                              .split(/\r?\n/)
-                              .forEach((line, ri) => {
-                                const target = data[item.index + ri];
-                                const values: Record<string, string> = {};
-                                line.split("\t").forEach((value, ci) => {
-                                  const column = columns[col + ci];
-                                  if (
-                                    column &&
-                                    !["status", "arrival"].includes(column.key)
-                                  ) {
-                                    if (target) {
-                                      const index = Number(target._index);
-                                      if (rows[index].status !== "Locked")
-                                        cells.push({
-                                          i: index,
-                                          key: column.key,
-                                          value,
-                                        });
-                                    } else values[column.key] = value;
-                                  }
-                                });
-                                if (!target) append.push(values);
+                      <TableCell
+                        key={c.key}
+                        onPaste={(e) => {
+                          const text = e.clipboardData.getData("text");
+                          if (!text.includes("\t") && !text.includes("\n"))
+                            return;
+                          e.preventDefault();
+                          const cells: {
+                              i: number;
+                              key: string;
+                              value: string;
+                            }[] = [],
+                            append: Record<string, string>[] = [];
+                          text
+                            .trimEnd()
+                            .split(/\r?\n/)
+                            .forEach((line, ri) => {
+                              const target = data[item.index + ri];
+                              const values: Record<string, string> = {};
+                              line.split("\t").forEach((value, ci) => {
+                                const column = columns[col + ci];
+                                if (
+                                  column &&
+                                  !["status", "arrival"].includes(column.key)
+                                ) {
+                                  if (target) {
+                                    const index = Number(target._index);
+                                    if (rows[index].status !== "Locked")
+                                      cells.push({
+                                        i: index,
+                                        key: column.key,
+                                        value,
+                                      });
+                                  } else values[column.key] = value;
+                                }
                               });
-                            if (onPasteCells) onPasteCells(cells, append);
-                            else
-                              cells.forEach((c) =>
-                                onChange(c.i, c.key, c.value),
-                              );
-                          }}
-                        />
+                              if (!target) append.push(values);
+                            });
+                          if (onPasteCells) onPasteCells(cells, append);
+                          else
+                            cells.forEach((c) => onChange(c.i, c.key, c.value));
+                        }}
+                      >
+                        {c.options ? (
+                          <InkCombobox
+                            label={`${c.label} row ${i + 1}`}
+                            options={c.options}
+                            value={original[c.key] ?? ""}
+                            disabled={disabled || locked}
+                            onChange={(value) => onChange(i, c.key, value)}
+                          />
+                        ) : (
+                          <GridInput
+                            aria-label={`${c.label} row ${i + 1}`}
+                            disabled={
+                              disabled ||
+                              locked ||
+                              c.key === "status" ||
+                              c.key === "arrival"
+                            }
+                            value={original[c.key] ?? ""}
+                            onCommit={(value) => onChange(i, c.key, value)}
+                          />
+                        )}
                       </TableCell>
                     ))}
                     <TableCell variant="actions">

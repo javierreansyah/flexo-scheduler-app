@@ -2,6 +2,7 @@
 import { useRef, useState } from "react";
 import { TableRow, TableCell } from "./ui/table";
 import { Input } from "./ui/input";
+import { InkCombobox } from "./ui/ink-combobox";
 export type EntryColumn = {
   key: string;
   label: string;
@@ -9,6 +10,7 @@ export type EntryColumn = {
   placeholder?: string;
   value?: string;
   readOnly?: boolean;
+  options?: string[];
 };
 export function NewTableRow({
   columns,
@@ -56,6 +58,17 @@ export function NewTableRow({
               <span className="text-muted-foreground">
                 {column.value ?? "—"}
               </span>
+            ) : column.options ? (
+              <InkCombobox
+                label={"New " + column.label}
+                options={column.options}
+                value={draft[column.key] ?? ""}
+                disabled={disabled}
+                onChange={(value) => {
+                  setDraft((old) => ({ ...old, [column.key]: value }));
+                  setError("");
+                }}
+              />
             ) : (
               <Input
                 variant={column.type === "color" ? "swatch" : "cell"}

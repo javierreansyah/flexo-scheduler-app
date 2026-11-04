@@ -21,6 +21,31 @@ describe("project workflows", () => {
       true,
     );
   });
+  it("samples distinct inks from the available palette", () => {
+    const palette = [
+      { id: 21, name: "A", hex: "#000000" },
+      { id: 42, name: "B", hex: "#ffffff" },
+      { id: 84, name: "C", hex: "#888888" },
+    ];
+    const jobs = randomJobs(100, 7, 0, "x-", palette);
+    expect(jobs).toEqual(randomJobs(100, 7, 0, "x-", palette));
+    expect(
+      jobs.every(
+        (job) =>
+          job.inks.every((id) => palette.some((color) => color.id === id)) &&
+          new Set(job.inks).size === job.inks.length,
+      ),
+    ).toBe(true);
+    expect(new Set(jobs.flatMap((job) => job.inks))).toEqual(
+      new Set([21, 42, 84]),
+    );
+    expect(
+      randomJobs(20, 7, 0, "x-", palette.slice(0, 1)).every(
+        (job) => job.inks.length === 1,
+      ),
+    ).toBe(true);
+    expect(() => randomJobs(1, 7, 0, "x-", [])).toThrow();
+  });
   it("orders effective preset costs", () => {
     for (const n of [10, 30, 50, 100, 500]) {
       expect(parameters(n, "low").evaluations).toBeLessThanOrEqual(

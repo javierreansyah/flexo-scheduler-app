@@ -62,6 +62,7 @@ test("matrix units persist and 10 + 20 minute parallel cleaning schedules as 20 
   await expect(
     page.getByLabel("Transition time A to A (hours)", { exact: true }),
   ).toBeDisabled();
+  await page.getByRole("tab", { name: "Project", exact: true }).click();
   await expect(page.getByText("Saved locally", { exact: true })).toBeVisible();
   await page.reload();
   await expect(
@@ -70,10 +71,10 @@ test("matrix units persist and 10 + 20 minute parallel cleaning schedules as 20 
   await page.getByRole("tab", { name: "Changeovers", exact: true }).click();
   await expect(cell).toHaveValue("20");
   await page.getByRole("button", { name: "Optimize" }).click();
-  await expect(page.locator('[data-slot="metrics"]')).toContainText("0.350h");
+  await expect(page.locator('[data-slot="metrics"]')).toContainText("0.35h");
   const download = page.waitForEvent("download");
   await page.getByRole("button", { name: "Project actions" }).click();
-  await page.getByRole("menuitem", { name: "Export project" }).click();
+  await page.getByRole("menuitem", { name: "Export Project" }).click();
   const artifact = await download;
   const file = await artifact.path();
   const fs = await import("node:fs/promises");

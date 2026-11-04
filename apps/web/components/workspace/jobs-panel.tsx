@@ -2,9 +2,8 @@
 import { editJob } from "@/lib/job-edits";
 import { TableFooter } from "@/components/ui/table";
 
-import { Button } from "@/components/ui/button";
 import { colorNames, parseColors } from "@/lib/colors";
-import { Plus } from "lucide-react";
+import { AddEntryDialog } from "../add-entry-dialog";
 import { DataGrid } from "../data-grid";
 
 import { CsvActions } from "./csv-actions";
@@ -30,28 +29,45 @@ export function JobsPanel() {
     action,
     appendJobs,
   } = useWorkspace();
+  function addJob(row: Record<string, string>) {
+    const id = row.id?.trim(),
+      quantity = Number(row.quantity),
+      inks = parseColors(row.inks ?? "", colors);
+    if (!id || !Number.isInteger(quantity) || quantity < 1)
+      return "Enter a job ID and a positive whole quantity.";
+    if (snapshot.jobs.some((job) => job.id === id))
+      return "Job IDs must be unique.";
+    if (
+      inks.some(
+        (ink) =>
+          !Number.isInteger(ink) || !colors.some((color) => color.id === ink),
+      )
+    )
+      return "Choose inks from the color catalog.";
+    appendJobs([{ id, quantity, inks, arrival_time: snapshot.now }]);
+    return null;
+  }
   return (
     <>
       <DataGrid
         toolbarActions={
           <>
             {" "}
-            <Button
-              variant="outline"
+            <AddEntryDialog
+              title="Add Job"
+              columns={[
+                { key: "id", label: "Job ID" },
+                { key: "quantity", label: "Quantity", type: "number" },
+                {
+                  key: "inks",
+                  label: "Inks",
+                  options: colors.map((color) => color.name),
+                },
+              ]}
+              defaults={{ id: `J-${Date.now()}`, quantity: "10000", inks: "" }}
               disabled={busy || !ready}
-              onClick={() =>
-                appendJobs([
-                  {
-                    id: `J-${Date.now()}`,
-                    quantity: 10000,
-                    inks: [],
-                    arrival_time: snapshot.now,
-                  },
-                ])
-              }
-            >
-              <Plus size={14} /> Add job
-            </Button>
+              onCommit={addJob}
+            />
             <CsvActions kind="jobs" />{" "}
           </>
         }
@@ -62,26 +78,12 @@ export function JobsPanel() {
           arrival: String(j.arrival_time),
           status: fixed.has(String(j.id)) ? "Locked" : "Movable",
         }))}
-        columns={jobColumns}
-        onAppend={(row) => {
-          const id = row.id?.trim(),
-            quantity = Number(row.quantity),
-            inks = parseColors(row.inks ?? "", colors);
-          if (!id || !Number.isInteger(quantity) || quantity < 1)
-            return "Enter a job ID and a positive whole quantity.";
-          if (snapshot.jobs.some((job) => job.id === id))
-            return "Job IDs must be unique.";
-          if (
-            inks.some(
-              (ink) =>
-                !Number.isInteger(ink) ||
-                !colors.some((color) => color.id === ink),
-            )
-          )
-            return "Choose inks from the color catalog.";
-          appendJobs([{ id, quantity, inks, arrival_time: snapshot.now }]);
-          return null;
-        }}
+        columns={jobColumns.map((column) =>
+          column.key === "inks"
+            ? { ...column, options: colors.map((color) => color.name) }
+            : column,
+        )}
+        onAppend={addJob}
         onDeleteMany={(indices) =>
           changeSnapshot({
             jobs: snapshot.jobs.filter((_, i) => !indices.includes(i)),

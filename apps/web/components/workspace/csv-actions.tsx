@@ -70,7 +70,7 @@ export function CsvActions({ kind }: { kind: "jobs" | "machines" }) {
             disabled={busy || !ready || (kind === "machines" && physicalLocked)}
             onClick={() => setGenerate(true)}
           >
-            Generate {kind}…
+            Generate {kind === "jobs" ? "Jobs" : "Machines"}…
           </DropdownMenuItem>
           <DropdownMenuItem
             disabled={busy || !ready || (kind === "machines" && physicalLocked)}
