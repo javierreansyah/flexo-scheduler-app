@@ -7,15 +7,6 @@ settings:
 importers:
 
   .:
-    devDependencies:
-      esbuild:
-        specifier: ^0.25.0
-        version: 0.25.12
-      prettier:
-        specifier: ^3.9.10
-        version: 3.9.10
-
-  apps/web:
     dependencies:
       '@base-ui/react':
         specifier: ^1.9.0
@@ -78,9 +69,15 @@ importers:
       '@types/react-dom':
         specifier: ^19
         version: 19.3.0(@types/react@19.3.0)
+      esbuild:
+        specifier: ^0.25.0
+        version: 0.25.12
       oxlint:
         specifier: ^1.90.0
         version: 1.90.0
+      prettier:
+        specifier: ^3.9.10
+        version: 3.9.10
       stylelint:
         specifier: ^17.16.0
         version: 17.16.0(typescript@5.9.3)
@@ -96,8 +93,6 @@ importers:
       wrangler:
         specifier: ^4
         version: 4.156.0(@types/node@22.20.5)
-
-  packages/optimizer-wasm: {}
 
 packages:
 

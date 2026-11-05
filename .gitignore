@@ -1,28 +1,14 @@
-__pycache__/
-*.py[cod]
-*.pyd
-*.so
-*.egg-info/
-build/
-dist/
-.pytest_cache/
-.venv/
-tmp/
-results/
-instances/smac/
-
 node_modules/
 .next/
 out/
 .toolchains/
 .wrangler/
-packages/optimizer/instances/smac/
-apps/web/public/optimizer/
-packages/optimizer-wasm/dist/
+engine/dist/
+public/optimizer/
 *.tsbuildinfo
 
 test-results/
 playwright-report/
-
-# Browser diagnostic output
-apps/web/debug.log
+debug.log
+node-compile-cache/
+playwright-transform-cache/

@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="apps/web/app/icon.svg" width="100" alt="Flexo Scheduler icon" />
+  <img src="app/icon.svg" width="100" alt="Flexo Scheduler icon" />
   <h1>Flexo Scheduler</h1>
   <p>Shape your production schedule, right in your browser.</p>
 </div>
@@ -91,66 +91,54 @@ also need browser-specific runtime checks before adoption.
 - [TanStack Table](https://tanstack.com/table) and TanStack Virtual
 - C++ simulated annealing, [Emscripten](https://emscripten.org/), WebAssembly,
   and Web Workers
-- Python and [SMAC](https://github.com/automl/SMAC3) for offline parameter tuning
 - [Cloudflare Pages](https://pages.cloudflare.com/) for static hosting
 
 ## Project structure
 
-| Directory | Purpose |
-| --- | --- |
-| `apps/web` | Static Next.js app, editable tables, local persistence, and timeline |
-| `packages/optimizer` | Native Python/C++ optimizer, datasets, tuning, and experiments |
-| `packages/optimizer-wasm` | Browser bindings and optimization workers sharing the C++ engine |
-| `scripts` | WebAssembly setup, builds, profile export, and browser benchmarks |
-| `docs` | Browser verification notes |
+| Directory    | Purpose                                                      |
+| ------------ | ------------------------------------------------------------ |
+| `app`        | Next.js pages, theme, and bundled fonts                      |
+| `components` | Workspace panels, tables, timeline, and shared controls      |
+| `hooks`      | Project persistence and optimizer lifecycle                  |
+| `lib`        | Project model, CSV handling, presets, and scheduling helpers |
+| `engine`     | Minimal C++ engine, browser bindings, and worker             |
+| `scripts`    | WebAssembly toolchain setup and production build             |
+| `e2e`        | Browser tests and native parity fixtures                     |
 
-For offline experiments, see the [optimizer guide](packages/optimizer/README.md)
-and [playground guide](packages/optimizer/experiments/README.md). The
-[tuning guide](packages/optimizer/docs/tuning.md) describes fixed-budget searches,
-exact-result caching, checkpoints, and terminal progress. The latest
-[results report](packages/optimizer/docs/pareto-tuning-report.md) includes the
-paused campaign's completed searches and comparison charts.
-
-Local result caches, generated SMAC instances, toolchains, and build outputs are
-Git-ignored; they are not bundled with the repository. The reports retain numeric
-snapshots of analyzed results.
+The native Python research project, datasets, tuning runs, and experimental
+benchmark scripts have moved out of this repository. A local copy is at
+`../optimizer`. The app has no dependency on that directory. See
+[the browser engine notes](engine/README.md) for the retained source and presets.
 
 ## ✅ Development checks
 
 ```sh
 pnpm lint
+pnpm format:check
 pnpm test
 pnpm build
-pnpm --filter @flexo/web exec playwright install chromium firefox webkit
+pnpm exec playwright install chromium firefox webkit
 pnpm test:e2e
 ```
 
-Build the static export before running browser tests. For the native optimizer,
-run these from `packages/optimizer` with a C++17 compiler installed:
-
-```sh
-python -m pip install -e ".[tuning,test,experiments]"
-python -m pytest -q
-```
-
-See [browser verification](docs/browser-app-verification.md) for native/browser
-comparisons. After building, `pnpm benchmark:browser` runs the representative
-browser benchmark.
+Build the static export before running browser tests. The tests serve `out`
+locally and exercise real WASM workers, persistence, imports, scheduling history,
+and native parity. No research checkout or Python packages are required.
+Python 3 is used by the Emscripten setup and the browser test HTTP server.
 
 ## Deploy to Cloudflare Pages
 
 Use the repository root as the project directory:
 
-| Setting | Value |
-| --- | --- |
-| Build command | `pnpm wasm:setup && pnpm build` |
-| Output directory | `apps/web/out` |
-| Node.js | 22+ |
+| Setting          | Value                           |
+| ---------------- | ------------------------------- |
+| Build command    | `pnpm wasm:setup && pnpm build` |
+| Output directory | `out`                           |
+| Node.js          | 22+                             |
 
 Enable pnpm and allow toolchain downloads during the build. The app exports
-static files; no Pages Functions or runtime API are required. Building regenerates
-browser presets from `packages/optimizer/flexo/profiles.json`, so review those
-profiles before deploying.
+static files; no Pages Functions or runtime API are required. The engine builds
+from `engine/src` using the checked-in presets in `lib/profiles.json`.
 
 ## 📄 License
 
@@ -165,4 +153,4 @@ native scheduling engine into the browser.
 
 ### Web UI maintenance
 
-The web app uses strict shadcn/Oxlint policies and Stylelint. Run `pnpm lint` for types and design checks, `pnpm --filter @flexo/web format:check` for formatting, and `pnpm test` for unit checks. UI rules and component ownership are documented in `apps/web/AGENTS.md`. Workspace panels live in `components/workspace`; hooks own persistence and optimizer execution; shared controls and tables live in `components/ui`.
+The web app uses strict shadcn/Oxlint policies and Stylelint. Run `pnpm lint` for types and design checks, `pnpm format:check` for formatting, and `pnpm test` for unit checks. UI rules and component ownership are documented in `AGENTS.md`. Workspace panels live in `components/workspace`; hooks own persistence and optimizer execution; shared controls and tables live in `components/ui`.

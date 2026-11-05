@@ -1,55 +1,76 @@
+import { createHash } from "node:crypto";
 import {
   mkdirSync,
-  copyFileSync,
   readFileSync,
   writeFileSync,
   rmSync,
+  copyFileSync,
 } from "node:fs";
-import { createHash } from "node:crypto";
+import { spawnSync } from "node:child_process";
 import { resolve } from "node:path";
-import { compileWasm } from "./compile-wasm.mjs";
-const out = "packages/optimizer-wasm/dist";
-await compileWasm(out);
-const summaryPath = "packages/optimizer/docs/fixed-budget-summary.json";
-const summary = JSON.parse(readFileSync(summaryPath, "utf8"));
-const slim = {};
-for (const [size, budgets] of Object.entries(summary.campaign.budgets)) {
-  slim[size] = {};
-  for (const [name, budget] of Object.entries(budgets)) {
-    const parameters = summary.sizes[size].completed[budget]?.parameters;
-    if (!parameters || parameters.evaluations !== budget)
-      throw Error(`Missing completed tuning winner: ${size} / ${name}`);
-    slim[size][name] = parameters;
-  }
-}
-writeFileSync(
-  "apps/web/lib/profiles.json",
-  JSON.stringify(slim, null, 2) + "\n",
-);
-// apps/web/lib/industry.json is curated UI data, not the research hue-level fixture.
+import { build } from "esbuild";
 
+const out = resolve("engine/dist");
+mkdirSync(out, { recursive: true });
+const compiler = resolve(
+  ".toolchains/emsdk/upstream/emscripten/em++" +
+    (process.platform === "win32" ? ".exe" : ""),
+);
+const result = spawnSync(
+  compiler,
+  [
+    "engine/bindings.cpp",
+    "-std=c++17",
+    "-O3",
+    "--bind",
+    "--no-entry",
+    "-flto",
+    "-fwasm-exceptions",
+    "-sMODULARIZE=1",
+    "-sEXPORT_ES6=1",
+    "-sENVIRONMENT=worker",
+    "-sALLOW_MEMORY_GROWTH=1",
+    "-sFILESYSTEM=0",
+    "-sMAXIMUM_MEMORY=536870912",
+    "-o",
+    resolve(out, "engine.mjs"),
+  ],
+  { stdio: "inherit", shell: false },
+);
+if (result.error)
+  throw new Error("WASM compiler unavailable. Run pnpm wasm:setup first.", {
+    cause: result.error,
+  });
+if (result.status !== 0) throw new Error("WASM compilation failed");
+await build({
+  entryPoints: ["engine/worker.ts"],
+  outfile: resolve(out, "worker.mjs"),
+  bundle: true,
+  format: "esm",
+  platform: "browser",
+  external: ["./engine.mjs"],
+});
+
+const assets = ["engine.mjs", "engine.wasm", "worker.mjs"];
 const hash = createHash("sha256");
-for (const name of ["engine.mjs", "engine.wasm", "worker.mjs"])
-  hash.update(readFileSync(out + "/" + name));
+for (const name of assets) hash.update(readFileSync(resolve(out, name)));
 const version = hash.digest("hex").slice(0, 16);
-const publicRoot = resolve("apps/web/public/optimizer");
-const expected = resolve("apps/web/public") + "/optimizer";
-if (publicRoot.replaceAll("\\", "/") !== expected.replaceAll("\\", "/"))
-  throw Error("Unexpected asset path");
+const publicRoot = resolve("public/optimizer");
+if (publicRoot !== resolve("public", "optimizer"))
+  throw new Error("Unexpected asset path");
 rmSync(publicRoot, { recursive: true, force: true });
-const target = publicRoot + "/" + version;
+const target = resolve(publicRoot, version);
 mkdirSync(target, { recursive: true });
-for (const name of ["engine.mjs", "engine.wasm", "worker.mjs"])
-  copyFileSync(out + "/" + name, target + "/" + name);
+for (const name of assets)
+  copyFileSync(resolve(out, name), resolve(target, name));
 writeFileSync(
-  "apps/web/lib/engine-manifest.json",
+  "lib/engine-manifest.json",
   JSON.stringify(
     {
       version,
       workerUrl: "/optimizer/" + version + "/worker.mjs",
       profileVersion: createHash("sha256")
-        .update(readFileSync(summaryPath))
-        .update("fixed-budget-presets-v1")
+        .update(readFileSync("lib/profiles.json"))
         .digest("hex"),
     },
     null,
