@@ -2,7 +2,7 @@
 
 After changes, run `pnpm lint`, `pnpm format:check`, `pnpm test`, and the relevant browser tests. Fix every error and warning.
 
-- Keep the square monochrome theme and fluid portfolio typography. UI spacing uses a fixed 4px scale: 8px control gaps, 16px field/toolbar spacing, and 24px section gaps.
+- Keep the square monochrome editorial theme. Use Lora for headings and strong labels, and Source Sans 3 for supporting text and controls. Use heavy section rules and fine dividers. Control spacing uses a 4px scale; page sections and columns use the fluid `--section-space` and `--column-space` tokens.
 - Components in `components/ui` own their appearance. Callers may place them with layout utilities; use explicit variants for padding, dimensions, typography, and colors. Normal controls are 36px high and table rows 44px.
 - Use semantic theme colors. Raw color values belong only in theme definitions or user ink data. Do not add global element selectors to restyle controls.
 - All six shadcn rules are errors. Only `no-restyle` and `require-static-classes` are disabled within UI implementations so variant factories can work. Never disable a rule to silence a caller.

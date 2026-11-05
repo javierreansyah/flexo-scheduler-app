@@ -157,7 +157,7 @@ export function TransitionTimeMatrix({
         <Table variant="matrix" aria-label="Ink transition time matrix">
           <TableHeader>
             <TableRow>
-              <TableHead variant="matrix" scope="col">
+              <TableHead variant="matrix-label" scope="col">
                 From / To
               </TableHead>
               {labels.map((to) => (
@@ -170,7 +170,23 @@ export function TransitionTimeMatrix({
           <TableBody>
             {visibleRows.map((from) => (
               <TableRow key={from}>
-                <TableHead scope="row">{name(from)}</TableHead>
+                <TableHead variant="matrix-label" scope="row">
+                  <span className="flex items-center gap-2">
+                    {from !== "empty" && (
+                      <Input
+                        variant="indicator"
+                        type="color"
+                        value={
+                          colors.find((color) => String(color.id) === from)?.hex
+                        }
+                        disabled
+                        aria-hidden="true"
+                        tabIndex={-1}
+                      />
+                    )}
+                    {name(from)}
+                  </span>
+                </TableHead>
                 {labels.map((to) => (
                   <TableCell
                     variant="matrix"

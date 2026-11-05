@@ -36,6 +36,12 @@ export function GenerationDialog({
     physicalLocked,
   } = useWorkspace();
   const disabled = busy || !ready || (kind === "machines" && physicalLocked);
+  const canGenerate =
+    !disabled &&
+    Number.isInteger(count) &&
+    count >= 1 &&
+    count <= (kind === "jobs" ? 10000 : 100) &&
+    (kind !== "jobs" || colors.length > 0);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent finalFocus={trigger}>
@@ -51,7 +57,7 @@ export function GenerationDialog({
           className="flex flex-col gap-4"
           onSubmit={(e) => {
             e.preventDefault();
-            if (disabled) return;
+            if (!canGenerate) return;
             try {
               if (kind === "jobs")
                 appendJobs(
@@ -116,7 +122,7 @@ export function GenerationDialog({
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={disabled}>
+            <Button type="submit" disabled={!canGenerate}>
               Generate {kind === "jobs" ? "Jobs" : "Machines"}
             </Button>
           </div>

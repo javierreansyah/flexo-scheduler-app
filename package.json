@@ -11,7 +11,8 @@
     "test": "pnpm --filter @flexo/web test",
     "lint": "pnpm --filter @flexo/web lint",
     "test:e2e": "pnpm --filter @flexo/web test:e2e",
-    "benchmark:browser": "node scripts/benchmark-browser.mjs"
+    "benchmark:browser": "node scripts/benchmark-browser.mjs",
+    "benchmark:wasm": "node scripts/benchmark-wasm.mjs"
   },
   "devDependencies": {
     "esbuild": "^0.25.0",

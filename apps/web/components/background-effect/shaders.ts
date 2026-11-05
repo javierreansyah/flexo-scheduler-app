@@ -36,17 +36,6 @@ uniform vec3 uColor3;
 uniform vec3 uColor4;
 uniform vec3 uColor5;
 
-uniform float uGradationRowCount;
-uniform float uGradationDir;
-uniform float uScrollDissolveProgress;
-uniform float uScrollDissolveMode;
-uniform float uScrollDissolveDir;
-
-float hash(vec2 p) {
-  vec3 p3 = fract(vec3(p.xyx) * 0.1031);
-  p3 += dot(p3, p3.yzx + 33.33);
-  return fract((p3.x + p3.y) * p3.z);
-}
 
 // 2D Simplex Noise function (from Ashima Arts)
 vec3 permute(vec3 x) { return mod(((x*34.0)+1.0)*x, 289.0); }
@@ -127,87 +116,6 @@ vec3 getPaletteColor(float t) {
 }
 
 void main() {
-  vec2 cellIndex = floor(vUv * uGridColsRows);
-
-  // ── Scroll Dissolve / Appear Effect ──
-  if (uScrollDissolveMode < 0.5) {
-    // ══ MODE: DISSOLVE (Default - Hero Section) ══
-    if (uScrollDissolveProgress > 0.0) {
-      float cellRow = cellIndex.y;
-      float totalRows = uGridColsRows.y;
-      float physicalRow = (uScrollDissolveDir < 0.5)
-        ? (totalRows - 1.0 - cellRow)
-        : cellRow;
-
-      float bandRows = max(3.0, totalRows * 0.35);
-      float totalTravel = totalRows + bandRows;
-      float currentWave = uScrollDissolveProgress * totalTravel;
-      float rowDiff = physicalRow - (currentWave - bandRows);
-
-      if (rowDiff <= 0.0) {
-        fragColor = vec4(0.0);
-        return;
-      } else if (rowDiff < bandRows) {
-        float probability = rowDiff / bandRows;
-        float r = hash(cellIndex * 13.37 + 73.1 + uSeed * 0.17);
-        if (r > probability) {
-          fragColor = vec4(0.0);
-          return;
-        }
-      }
-    }
-  } else {
-    // ══ MODE: APPEAR (Reverse Dissolve - Footer Section) ══
-    if (uScrollDissolveProgress < 1.0) {
-      float cellRow = cellIndex.y;
-      float totalRows = uGridColsRows.y;
-      float physicalRow = (uScrollDissolveDir < 0.5)
-        ? cellRow
-        : (totalRows - 1.0 - cellRow);
-
-      float bandRows = max(3.0, totalRows * 0.35);
-      float totalTravel = totalRows + bandRows;
-      float currentWave = uScrollDissolveProgress * totalTravel;
-      float rowDiff = physicalRow - (currentWave - bandRows);
-
-      if (rowDiff <= 0.0) {
-        // Passed wave front: fully visible
-      } else if (rowDiff < bandRows) {
-        float probability = 1.0 - (rowDiff / bandRows);
-        float r = hash(cellIndex * 13.37 + 73.1 + uSeed * 0.17);
-        if (r > probability) {
-          fragColor = vec4(0.0);
-          return;
-        }
-      } else {
-        // Not reached yet: completely invisible
-        fragColor = vec4(0.0);
-        return;
-      }
-    }
-  }
-
-  if (uGradationRowCount > 0.0) {
-    float cellRow = cellIndex.y;
-    float totalRows = uGridColsRows.y;
-    float distFromFadeEdge = 0.0;
-
-    if (uGradationDir > 0.5) { // 'up' -> fade out at screen top (texture bottom)
-      distFromFadeEdge = cellRow;
-    } else { // 'down' -> fade out at screen bottom (texture top)
-      distFromFadeEdge = totalRows - 1.0 - cellRow;
-    }
-
-    if (distFromFadeEdge < uGradationRowCount) {
-      float probability = (distFromFadeEdge + 0.5) / uGradationRowCount;
-      float r = hash(cellIndex * 13.37 + 73.1);
-      if (r > probability) {
-        fragColor = vec4(0.0);
-        return;
-      }
-    }
-  }
-
   // Build world-space noise coordinate with frequency multiplier
   vec2 seedOff = seedOffset();
   vec2 centeredUv = vUv - uAnchor;

@@ -23,9 +23,11 @@ test("industry scheduling, arrivals, history, views and reload", async ({
   ).toBeVisible();
   await page.getByRole("menuitem", { name: "Industry Example" }).click();
   await page.getByRole("button", { name: "Optimize" }).click();
+  await page.getByRole("tab", { name: "Table", exact: true }).click();
   await expect(
     page.getByRole("button", { name: "Export Schedule CSV", exact: true }),
   ).toBeEnabled();
+  await page.getByRole("tab", { name: "Timeline", exact: true }).click();
   const firstFitness = await page
     .locator('[data-slot="metrics"] strong')
     .first()
@@ -289,6 +291,7 @@ test("named palette drives job input and matrix labels", async ({ page }) => {
   await inks.press("Enter");
   await expect(page.getByRole("button", { name: "Remove Blue" })).toBeVisible();
   await page.getByRole("button", { name: "Optimize" }).click();
+  await page.getByRole("tab", { name: "Table", exact: true }).click();
   await expect(
     page.getByRole("button", { name: "Export Schedule CSV", exact: true }),
   ).toBeEnabled();
@@ -298,9 +301,7 @@ test("schedule is visible and follows machine changes before optimization", asyn
   page,
 }) => {
   await page.goto("/");
-  const schedule = page.locator("section").filter({
-    has: page.getByRole("heading", { name: "Schedule", exact: true }),
-  });
+  const schedule = page.getByRole("region", { name: "Schedule timeline" });
   await expect(schedule).toBeVisible();
   await expect(page.locator('[data-slot="metrics"] strong')).toHaveText([
     "0.00",
@@ -309,12 +310,16 @@ test("schedule is visible and follows machine changes before optimization", asyn
     "0.00h",
     "0.00s",
   ]);
+  await page.getByRole("tab", { name: "Table", exact: true }).click();
+  await expect(schedule).toBeHidden();
   await expect(
-    page.getByRole("region", { name: "Schedule Details" }).getByRole("table"),
+    page.getByRole("region", { name: "Schedule Table" }).getByRole("table"),
   ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Export Schedule CSV" }),
   ).toBeDisabled();
+  await page.getByRole("tab", { name: "Timeline", exact: true }).click();
+  await expect(schedule).toBeVisible();
   await page.getByRole("tab", { name: "Machines", exact: true }).click();
   const machine = page.getByLabel("Machine row 1", { exact: true });
   await machine.fill("Renamed press");
@@ -323,6 +328,14 @@ test("schedule is visible and follows machine changes before optimization", asyn
     schedule.locator(".lane strong", { hasText: "Renamed press" }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Add Machine", exact: true }).click();
+  await page
+    .getByRole("dialog", { name: "Add Machine" })
+    .getByLabel("Machine", { exact: true })
+    .fill("Machine 4");
+  await page
+    .getByRole("dialog", { name: "Add Machine" })
+    .getByLabel("Pieces / min", { exact: true })
+    .fill("150");
   await page
     .getByRole("dialog", { name: "Add Machine" })
     .getByRole("button", { name: "Add Machine", exact: true })

@@ -1,19 +1,14 @@
 import type { RefObject } from "react";
 import {
   checkSequences,
-  enqueueInitialEvents,
   stepAnimations,
   type ActiveAnimation,
 } from "./animation-engine";
 import { createGridRenderer, type GridRenderer } from "./renderer";
 import type { BackgroundState } from "./runtime-state";
-import { dissolveProgress, resolveDissolve } from "./scroll-dissolve";
 import type { GridBackgroundConfig, GridBackgroundProps } from "./types";
 
-export type RuntimeOptions = Pick<
-  GridBackgroundProps,
-  "scrollDissolve" | "gradation" | "initialEvents" | "sequences"
->;
+export type RuntimeOptions = Pick<GridBackgroundProps, "sequences">;
 
 /** Schedules at most 20 draws/second; an unchanged, offscreen, or hidden canvas sleeps. */
 export function createBackgroundRuntime(
@@ -34,9 +29,6 @@ export function createBackgroundRuntime(
   let visible = true;
   let disposed = false;
   let contextLost = false;
-  let initialEventsRun = false;
-  let viewportHeight = window.innerHeight;
-  let scrollHeight = document.documentElement.scrollHeight;
 
   function stop() {
     if (raf !== null) cancelAnimationFrame(raf);
@@ -73,25 +65,6 @@ export function createBackgroundRuntime(
     wake();
   }
 
-  function updateScroll() {
-    const value = dissolveProgress(
-      resolveDissolve(options.current.scrollDissolve),
-      window.scrollY,
-      viewportHeight,
-      scrollHeight,
-    );
-    if (value !== state.currentDissolveProgress) {
-      state.currentDissolveProgress = value;
-      invalidate();
-    }
-  }
-
-  function updateMetrics() {
-    viewportHeight = window.innerHeight;
-    scrollHeight = document.documentElement.scrollHeight;
-    updateScroll();
-  }
-
   function onWindowResize() {
     // Also refresh the backing buffer when zoom or device pixel ratio changes.
     resize(container.clientWidth, container.clientHeight);
@@ -101,7 +74,6 @@ export function createBackgroundRuntime(
     state.containerWidth = width;
     state.containerHeight = height;
     renderer?.resize(width, height, config.current.gridCellSizePx);
-    updateMetrics();
     invalidate();
   }
 
@@ -116,22 +88,6 @@ export function createBackgroundRuntime(
       ? 0
       : (options.current.sequences?.timeSpeed ?? 0);
     if (timeSpeed) config.current.time += (elapsed / 1000) * timeSpeed;
-    if (!initialEventsRun) {
-      initialEventsRun = true;
-      const events = options.current.initialEvents;
-      enqueueInitialEvents(
-        reducedMotion.matches
-          ? events?.map((event) => ({
-              ...event,
-              keyframes: [
-                { ...event.keyframes.at(-1), duration: 0, pause: 0, delay: 0 },
-              ],
-            }))
-          : events,
-        time,
-        animations,
-      );
-    }
     if (!reducedMotion.matches) {
       lastSequenceCheck = checkSequences(
         options.current.sequences,
@@ -152,12 +108,7 @@ export function createBackgroundRuntime(
         state.containerHeight,
         config.current.gridCellSizePx,
       );
-      renderer!.draw(
-        config.current,
-        state.currentDissolveProgress,
-        options.current.gradation,
-        resolveDissolve(options.current.scrollDissolve),
-      );
+      renderer!.draw(config.current);
       state.needsRender = false;
     }
     if (animations.length > 0 || state.needsRender || timeSpeed) {
@@ -209,7 +160,6 @@ export function createBackgroundRuntime(
   function onVisibilityChange() {
     if (document.hidden) stop();
     else {
-      updateMetrics();
       invalidate();
     }
   }
@@ -223,19 +173,14 @@ export function createBackgroundRuntime(
     for (const entry of entries) {
       if (entry.target === container)
         resize(entry.contentRect.width, entry.contentRect.height);
-      else updateMetrics();
     }
   });
-  state.resizeFn = resize;
-  state.wakeLoop = wake;
   canvas.addEventListener("webglcontextlost", onContextLost);
   canvas.addEventListener("webglcontextrestored", onContextRestored);
   document.addEventListener("visibilitychange", onVisibilityChange);
-  window.addEventListener("scroll", updateScroll, { passive: true });
   window.addEventListener("resize", onWindowResize, { passive: true });
   intersection.observe(container);
   sizes.observe(container);
-  sizes.observe(document.documentElement);
   initializeRenderer();
 
   return {
@@ -251,11 +196,9 @@ export function createBackgroundRuntime(
       canvas.removeEventListener("webglcontextlost", onContextLost);
       canvas.removeEventListener("webglcontextrestored", onContextRestored);
       document.removeEventListener("visibilitychange", onVisibilityChange);
-      window.removeEventListener("scroll", updateScroll);
       window.removeEventListener("resize", onWindowResize);
       renderer?.dispose();
       renderer = null;
-      state.resizeFn = state.wakeLoop = null;
     },
   };
 }

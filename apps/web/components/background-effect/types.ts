@@ -94,61 +94,12 @@ export interface AnimationSequenceConfig {
   sequences: AnimationSequence[];
 }
 
-export interface ScrollDissolveConfig {
-  /** Distance in px over which the transition occurs. */
-  distance?: number;
-  /** Transition mode: "dissolve" (visible -> hidden) or "appear" (hidden -> visible). Defaults to "dissolve". */
-  mode?: "dissolve" | "appear";
-  /** Transition direction. Defaults to "down-to-up". */
-  direction?: "down-to-up" | "up-to-down";
-  /** Target scroll boundary: "top" (based on scrollY from top) or "bottom" (based on approaching bottom of document). Defaults to "top" for dissolve, "bottom" for appear. */
-  target?: "top" | "bottom";
-}
-
-export interface GradationConfig {
-  rowCount: number;
-  direction: "up" | "down";
-}
-
 export interface GridBackgroundProps extends React.HTMLAttributes<HTMLDivElement> {
   children?: React.ReactNode;
   className?: string;
-  /** Enable developer camera inspection mode: drag to pan, adjust zoom via HUD, with live HUD in top right */
-  devMode?: boolean;
   /** Defer GPU initialization while retaining the same DOM and children. */
   enabled?: boolean;
-  /** Enable scroll-driven cell disappearance/appearance. */
-  scrollDissolve?: boolean | ScrollDissolveConfig;
   config?: Partial<GridBackgroundConfig>;
   /** Optional array of probabilistic animation sequences to apply over time */
   sequences?: AnimationSequenceConfig;
-  /** Optional array of events to run exactly once when the canvas first loads */
-  initialEvents?: AnimationEvent[];
-  /** Optional cell gradation (fade out effect) */
-  gradation?: GradationConfig;
-}
-
-export interface DevStats {
-  cameraX: number;
-  cameraY: number;
-  zoom: number;
-  anchorX: number;
-  anchorY: number;
-  gridCellSizePx: number;
-  warpAmount: number;
-  noiseFrequency: number;
-  noiseRidgedMix: number;
-  noiseBrightness: number;
-  noiseContrast: number;
-  seed: number;
-  time: number;
-  lineDisplaceAmount: number;
-  ldSmoothness: number;
-  hScanPeriod: number;
-  hScanIntensity: number;
-  hScanFuzziness: number;
-  hBleedSpread: number;
-  hBleedIntensity: number;
-  vScanSoftness: number;
-  phosphorIntensity: number;
 }

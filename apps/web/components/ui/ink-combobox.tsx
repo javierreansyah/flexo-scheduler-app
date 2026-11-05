@@ -5,12 +5,14 @@ import { X } from "lucide-react";
 
 export function InkCombobox({
   label,
+  variant = "cell",
   options,
   value,
   disabled,
   onChange,
 }: {
   label: string;
+  variant?: "cell" | "default";
   options: string[];
   value: string;
   disabled?: boolean;
@@ -42,7 +44,7 @@ export function InkCombobox({
     >
       <Combobox.Chips
         ref={anchor}
-        className="flex min-h-9 min-w-24 flex-nowrap overflow-x-auto items-center gap-1 border border-transparent px-2 py-1 focus-within:border-input focus-within:ring-2 focus-within:ring-ring/50 data-disabled:opacity-50"
+        className={`flex h-9 w-full min-w-0 flex-nowrap items-center gap-1 overflow-x-auto rounded-none border bg-transparent py-1 transition-colors focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/30 data-disabled:cursor-not-allowed data-disabled:opacity-50 ${variant === "default" ? "border-input px-3" : "border-transparent px-2"}`}
       >
         {selected.map((name, index) => (
           <Combobox.Chip
@@ -61,7 +63,7 @@ export function InkCombobox({
         <Combobox.Input
           aria-label={label}
           placeholder={selected.length ? "" : "Choose Inks"}
-          className="min-w-12 flex-1 bg-transparent text-sm outline-none"
+          className="min-w-12 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
           onKeyDown={(event) => {
             if (event.key === "Enter") event.stopPropagation();
             if (event.key === "Tab" && query.trim()) {

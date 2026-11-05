@@ -68,10 +68,6 @@ export function ColorCatalog({
               { key: "name", label: "Color Name" },
               { key: "hex", label: "Color Swatch", type: "color" },
             ]}
-            defaults={{
-              name: `New color ${Math.max(0, ...colors.map((c) => c.id)) + 1}`,
-              hex: "#808080",
-            }}
             disabled={disabled}
             onCommit={addColor}
           />

@@ -38,11 +38,7 @@ export function ProjectPanel() {
     ready,
     busy,
     snapshot,
-    movable,
     changeSnapshot,
-    progress,
-    elapsed,
-    bestFitness,
     saveError,
     savedProject,
     selectCheckpoint,
@@ -123,48 +119,13 @@ export function ProjectPanel() {
       </Dialog>
 
       {!isIndustryInkMatrix(snapshot.ink_costs) && (
-        <p className="border-l-2 border-warning pl-3 text-sm leading-relaxed text-warning">
-          Custom ink costs: preset quality was calibrated using the industry
-          matrix.
+        <p className="border-l-2 border-warning pl-4 text-sm leading-relaxed text-warning">
+          Presets were calibrated for standard ink costs.
         </p>
       )}
-      {movable > 100 && (
-        <p className="border-l-2 border-warning pl-3 text-sm leading-relaxed text-warning">
-          Above the calibrated range of 100 movable jobs. Browser runtime and
-          preset quality are unvalidated.
-        </p>
-      )}
-      <div className="flex flex-col gap-4">
-        {project.preset === "custom" && (
-          <fieldset className="flex flex-col gap-4">
-            <legend className="mb-4 text-base font-medium">
-              Optimizer Parameters
-            </legend>
-            <div className="grid w-full max-w-xl grid-cols-1 gap-4 sm:grid-cols-2">
-              {Object.entries(project.custom).map(([key, value]) => (
-                <Field key={key}>
-                  {parameterLabels[key as keyof typeof parameterLabels]}
-                  <Input
-                    disabled={disabled}
-                    aria-label={
-                      parameterLabels[key as keyof typeof parameterLabels]
-                    }
-                    type="number"
-                    step="any"
-                    value={value}
-                    onChange={(e) =>
-                      update((p) => ({
-                        ...p,
-                        custom: { ...p.custom, [key]: +e.target.value },
-                      }))
-                    }
-                  />
-                </Field>
-              ))}
-            </div>
-          </fieldset>
-        )}
-        <div className="grid w-full max-w-xl grid-cols-1 gap-4 sm:grid-cols-2">
+      <section className="flex flex-col gap-6">
+        <h3 className="section-heading">Optimizer Parameters</h3>
+        <div className="grid grid-cols-1 items-end gap-x-4 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
           <Field>
             Random Seed
             <Input
@@ -175,8 +136,6 @@ export function ProjectPanel() {
               onChange={(e) => update((p) => ({ ...p, seed: e.target.value }))}
             />
           </Field>
-        </div>
-        <div className="grid w-full max-w-xl grid-cols-1 gap-4 sm:grid-cols-2">
           <Field>
             {snapshot.transition_times ? "Cleaning Weight" : "Ink Weight"}
             <Input
@@ -201,28 +160,39 @@ export function ProjectPanel() {
               }
             />
           </Field>
+          {project.preset === "custom" &&
+            (
+              [
+                "evaluations",
+                "starts",
+                "stage_length",
+                "t_max",
+                "t_min",
+                "rcl_alpha",
+                "p_inter",
+                "p_shift",
+                "p_block",
+              ] as const
+            ).map((key) => (
+              <Field key={key}>
+                {parameterLabels[key]}
+                <Input
+                  disabled={disabled}
+                  aria-label={parameterLabels[key]}
+                  type="number"
+                  step="any"
+                  value={project.custom[key]}
+                  onChange={(e) =>
+                    update((p) => ({
+                      ...p,
+                      custom: { ...p.custom, [key]: +e.target.value },
+                    }))
+                  }
+                />
+              </Field>
+            ))}
         </div>
-      </div>
-      {busy && (
-        <>
-          <div
-            role="progressbar"
-            aria-label="Optimization progress"
-            aria-valuenow={Math.round(progress * 100)}
-            className="run-progress"
-          >
-            <i
-              style={
-                { "--progress": progress * 100 + "%" } as React.CSSProperties
-              }
-            />
-          </div>
-          <p role="status" className="text-sm text-muted-foreground">
-            {Math.round(progress * 100)}% · {elapsed.toFixed(1)}s
-            {bestFitness !== null ? " · Best " + bestFitness.toFixed(5) : ""}
-          </p>
-        </>
-      )}
+      </section>
       <p className="text-xs text-muted-foreground" role="status">
         {saveError
           ? "Autosave unavailable"

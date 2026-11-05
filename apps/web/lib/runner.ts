@@ -13,10 +13,10 @@ export function run(
         (parameters as any)[k] >= 1 &&
         (parameters as any)[k] <= 2000000000,
     ) ||
-    parameters.starts > 10
+    parameters.starts > 20
   )
     throw Error(
-      "Proposal budget and stage length must be positive integers; starts must be 1-10",
+      "Proposal budget and stage length must be positive integers; starts must be 1-20",
     );
   const requested = parameters;
   parameters = {

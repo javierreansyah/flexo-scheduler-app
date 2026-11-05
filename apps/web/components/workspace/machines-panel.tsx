@@ -124,12 +124,6 @@ export function MachinesPanel() {
                   options: colors.map((color) => color.name),
                 },
               ]}
-              defaults={{
-                name: `Machine ${Object.keys(snapshot.machines).length + 1}`,
-                rate: "150",
-                available: "0",
-                inks: "",
-              }}
               disabled={busy || !ready || physicalLocked}
               onCommit={addMachine}
             />

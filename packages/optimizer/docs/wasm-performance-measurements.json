@@ -1,0 +1,184 @@
+{
+  "date": "2026-11-05",
+  "platform": "Windows-10-10.0.26300-SP0",
+  "compiler": "Emscripten 6.0.13; bundled Clang 24",
+  "browser": {
+    "chromium": "156.0.8078.4"
+  },
+  "native_sha256": "22a829671563f7c618471ff4144125aee103dae9617e4e2f5ce76310e2749fee",
+  "shipped_version": "dac50b62282a2711",
+  "selected_variant": "lto-eh",
+  "selected_version": "44ca0d78c0646700",
+  "evaluations_per_solve": 1000000,
+  "starts": 1,
+  "threads": 1,
+  "heldout_cases": 8,
+  "seeds": [142, 143, 144],
+  "rounds": 3,
+  "independent_rescore_passed": true,
+  "identical_wasm_schedules": true,
+  "summary": {
+    "shipped": {
+      "panel_ms": [8158.200001239777, 7928.400000572205, 7991.099999666214],
+      "median_panel_ms": 7991.099999666214,
+      "native_panel_ms": 4568.4263,
+      "fresh_worker_panel_ms": 8270.100000143051,
+      "wasm_bytes": 92058,
+      "engine_sha256": "e72a93fc40fdd398ba3f90199da49e5566542fd2e89a066313c722107c14cb5f",
+      "native_schedule_matches": [69, 72],
+      "speedup_vs_shipped": 1,
+      "speedup_vs_fresh": 1.0014516149097268,
+      "wasm_over_native": 1.749201907813685
+    },
+    "baseline": {
+      "panel_ms": [8331.800000429153, 7887.300000429153, 8002.699999570847],
+      "median_panel_ms": 8002.699999570847,
+      "native_panel_ms": 4568.4263,
+      "fresh_worker_panel_ms": 8406.700000047684,
+      "wasm_bytes": 92058,
+      "engine_sha256": "e72a93fc40fdd398ba3f90199da49e5566542fd2e89a066313c722107c14cb5f",
+      "native_schedule_matches": [69, 72],
+      "speedup_vs_shipped": 0.9985504892217308,
+      "speedup_vs_fresh": 1,
+      "wasm_over_native": 1.7517410753831897
+    },
+    "lto": {
+      "panel_ms": [7036.900000333786, 7177.900000333786, 6766.099999904633],
+      "median_panel_ms": 7036.900000333786,
+      "native_panel_ms": 4568.4263,
+      "fresh_worker_panel_ms": null,
+      "wasm_bytes": 85791,
+      "engine_sha256": "32f897cabe386327f7053a3ba2c3f2b6fc4bd51c6df18bc1203d7c9eb8f3711d",
+      "native_schedule_matches": [69, 72],
+      "speedup_vs_shipped": 1.1355994826254696,
+      "speedup_vs_fresh": 1.1372479357659266,
+      "wasm_over_native": 1.5403334842752714
+    },
+    "eh": {
+      "panel_ms": [6952.400000095367, 6944.800000429153, 6511.699999570847],
+      "median_panel_ms": 6944.800000429153,
+      "native_panel_ms": 4568.4263,
+      "fresh_worker_panel_ms": null,
+      "wasm_bytes": 75436,
+      "engine_sha256": "e93f2a9c15684520b458a75e824f7dcdcb705963dff9f43b8a92380aae8e8fbe",
+      "native_schedule_matches": [69, 72],
+      "speedup_vs_shipped": 1.1506594861151371,
+      "speedup_vs_fresh": 1.1523298005812004,
+      "wasm_over_native": 1.52017336920356
+    },
+    "lto-eh": {
+      "panel_ms": [6660.900000810623, 6714.599999666214, 6247.800000905991],
+      "median_panel_ms": 6660.900000810623,
+      "native_panel_ms": 4568.4263,
+      "fresh_worker_panel_ms": 7165.5,
+      "wasm_bytes": 74008,
+      "engine_sha256": "b58dc75d89eb530ab2173f7de915d2f7b041791fe59b860ed2147da177ba60d0",
+      "native_schedule_matches": [69, 72],
+      "speedup_vs_shipped": 1.1997027426764713,
+      "speedup_vs_fresh": 1.2014442490649804,
+      "wasm_over_native": 1.4580294314500866
+    },
+    "simd": {
+      "panel_ms": [6870.099999427795, 6793.200000286102, 6343.099999666214],
+      "median_panel_ms": 6793.200000286102,
+      "native_panel_ms": 4568.4263,
+      "fresh_worker_panel_ms": null,
+      "wasm_bytes": 75140,
+      "engine_sha256": "c02b28126a9e9356037e7f03b7aba2191846024ef9738021d44279cb1a200b3e",
+      "native_schedule_matches": [69, 72],
+      "speedup_vs_shipped": 1.176338102710013,
+      "speedup_vs_fresh": 1.1780456926387866,
+      "wasm_over_native": 1.4869890754910728
+    }
+  },
+  "pgo_failure": "Bundled runtime writes raw profile format 10; bundled llvm-profdata expects 11. No PGO build promoted.",
+  "hotspots": {
+    "browser": "156.0.8078.4",
+    "case": "N100_carryover_01",
+    "evaluations": 5000000,
+    "sampling_interval_us": 1000,
+    "total_samples": 1598,
+    "hotspots": [
+      {
+        "name": "flexo::Problem::step(int, int, double, int) const",
+        "samples": 684
+      },
+      {
+        "name": "void flexo::Problem::suffix_impl<2>(flexo::Cache&, flexo::Cache const&, std::__2::vector<int, std::__2::allocator<int>> const&, int, int) const",
+        "samples": 524
+      },
+      {
+        "name": "flexo::search(flexo::Problem const&, flexo::Parameters const&, unsigned long long, int, bool)",
+        "samples": 214
+      },
+      {
+        "name": "flexo::Problem::score(std::__2::vector<std::__2::vector<int, std::__2::allocator<int>>, std::__2::allocator<std::__2::vector<int, std::__2::allocator<int>>>> const&, std::__2::vector<flexo::Cache, std::__2::allocator<flexo::Cache>> const&, int, flexo::Cache const*, int, flexo::Cache const*) const",
+        "samples": 81
+      },
+      {
+        "name": "std::__2::vector<int, std::__2::allocator<int>>::insert(std::__2::__wrap_iter<int const*>, int const&)",
+        "samples": 21
+      },
+      {
+        "name": "std::__2::__wrap_iter<int*> std::__2::vector<int, std::__2::allocator<int>>::__insert_with_size[abi:nqe220108]<std::__2::_ClassicAlgPolicy, std::__2::__wrap_iter<int*>, std::__2::__wrap_iter<int*>>(std::__2::__wrap_iter<int const*>, std::__2::__wrap_iter<int*>, std::__2::__wrap_iter<int*>, long)",
+        "samples": 18
+      },
+      {
+        "name": "__multi3",
+        "samples": 17
+      },
+      {
+        "name": "std::__2::__wrap_iter<int*> std::__2::vector<int, std::__2::allocator<int>>::__insert_with_size[abi:nqe220108]<std::__2::_ClassicAlgPolicy, std::__2::__wrap_iter<int const*>, std::__2::__wrap_iter<int const*>>(std::__2::__wrap_iter<int const*>, std::__2::__wrap_iter<int const*>, std::__2::__wrap_iter<int const*>, long)",
+        "samples": 14
+      },
+      {
+        "name": "run(emscripten::val, emscripten::val, unsigned int)",
+        "samples": 8
+      },
+      {
+        "name": "(idle)",
+        "samples": 4
+      },
+      {
+        "name": "flexo::Problem::step(int, int, double, int) const",
+        "samples": 3
+      },
+      {
+        "name": "now",
+        "samples": 2
+      },
+      {
+        "name": "emscripten_builtin_malloc",
+        "samples": 1
+      },
+      {
+        "name": "std::__2::vector<int, std::__2::allocator<int>>::insert(std::__2::__wrap_iter<int const*>, int const&)",
+        "samples": 1
+      },
+      {
+        "name": "flexo::search(flexo::Problem const&, flexo::Parameters const&, unsigned long long, int, bool)",
+        "samples": 1
+      },
+      {
+        "name": "flexo::Problem::score(std::__2::vector<std::__2::vector<int, std::__2::allocator<int>>, std::__2::allocator<std::__2::vector<int, std::__2::allocator<int>>>> const&, std::__2::vector<flexo::Cache, std::__2::allocator<flexo::Cache>> const&, int, flexo::Cache const*, int, flexo::Cache const*) const",
+        "samples": 1
+      },
+      {
+        "name": "std::__2::vector<int, std::__2::allocator<int>>::insert(std::__2::__wrap_iter<int const*>, int const&)",
+        "samples": 1
+      },
+      {
+        "name": "__multi3",
+        "samples": 1
+      },
+      {
+        "name": "std::__2::__wrap_iter<int*> std::__2::vector<int, std::__2::allocator<int>>::__insert_with_size[abi:nqe220108]<std::__2::_ClassicAlgPolicy, std::__2::__wrap_iter<int const*>, std::__2::__wrap_iter<int const*>>(std::__2::__wrap_iter<int const*>, std::__2::__wrap_iter<int const*>, std::__2::__wrap_iter<int const*>, long)",
+        "samples": 1
+      },
+      {
+        "name": "(garbage collector)",
+        "samples": 1
+      }
+    ]
+  }
+}

@@ -20,7 +20,7 @@ self.onmessage = async ({
         throw Error(`Invalid ${key}`);
     number(p.t_max, "Initial temperature");
     number(p.t_min, "Final temperature");
-    if (p.starts > 10 || !(p.t_max > p.t_min && p.t_min > 0))
+    if (p.starts > 20 || !(p.t_max > p.t_min && p.t_min > 0))
       throw Error("Invalid starts or temperatures");
     for (const key of ["rcl_alpha", "p_inter", "p_shift", "p_block"])
       if (number(p[key], key) > 1) throw Error(`Invalid ${key}`);

@@ -1,4 +1,5 @@
 "use client";
+import { canOptimize } from "@/lib/can-optimize";
 import { commitResult } from "@/lib/horizons";
 import type { Project } from "@/lib/model";
 import { run } from "@/lib/runner";
@@ -18,37 +19,20 @@ export function useOptimizer(
 ) {
   const snapshot = project.snapshot;
   const [busy, setBusy] = useState(false),
-    [progress, setProgress] = useState(0),
-    [elapsed, setElapsed] = useState(0),
-    [bestFitness, setBestFitness] = useState<number | null>(null);
+    [progress, setProgress] = useState(0);
   const active = useRef<ReturnType<typeof run> | null>(null);
-  useEffect(() => {
-    if (!busy) return;
-    const start = performance.now();
-    const id = setInterval(
-      () => setElapsed((performance.now() - start) / 1000),
-      250,
-    );
-    return () => clearInterval(id);
-  }, [busy]);
+  const cancelled = useRef(false);
 
   useEffect(() => () => active.current?.cancel(), []);
   async function optimize() {
+    if (busy || !canOptimize(project, params)) return;
+    cancelled.current = false;
     setError("");
     setBusy(true);
     setProgress(0);
-    setElapsed(0);
-    setBestFitness(null);
     try {
-      if (
-        !/^\d+$/.test(project.seed) ||
-        BigInt(project.seed) > 18446744073709551615n
-      )
-        throw Error("Seed must be an unsigned 64-bit integer");
-      if (!snapshot.jobs.length) throw Error("Add jobs before optimizing");
-      const task = run(snapshot, params, project.seed, (value, best) => {
+      const task = run(snapshot, params, project.seed, (value) => {
         setProgress(value);
-        if (best !== undefined) setBestFitness(best);
       });
       active.current = task;
       const output = await task.promise;
@@ -62,7 +46,7 @@ export function useOptimizer(
       }
       update(next);
     } catch (e) {
-      setError(String(e));
+      if (!cancelled.current) setError(String(e));
     } finally {
       setBusy(false);
       active.current = null;
@@ -72,9 +56,10 @@ export function useOptimizer(
   return {
     busy,
     progress,
-    elapsed,
-    bestFitness,
     optimize,
-    cancel: () => active.current?.cancel(),
+    cancel: () => {
+      cancelled.current = true;
+      active.current?.cancel();
+    },
   };
 }

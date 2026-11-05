@@ -3,11 +3,7 @@ import {
   VERTEX_SHADER,
   getMainFragmentShader,
 } from "./shaders";
-import type {
-  GradationConfig,
-  GridBackgroundConfig,
-  ScrollDissolveConfig,
-} from "./types";
+import type { GridBackgroundConfig } from "./types";
 import {
   QUAD_VERTS,
   createGpuResources,
@@ -109,11 +105,6 @@ export function createGridRenderer(
     "uColor3",
     "uColor4",
     "uColor5",
-    "uGradationRowCount",
-    "uGradationDir",
-    "uScrollDissolveProgress",
-    "uScrollDissolveMode",
-    "uScrollDissolveDir",
   ] as const);
   const mainNames = [
     "uCellInset",
@@ -178,12 +169,7 @@ export function createGridRenderer(
     }
   }
 
-  const draw = (
-    activeConfig: GridBackgroundConfig,
-    progress: number,
-    gradation?: GradationConfig,
-    dissolve?: ScrollDissolveConfig,
-  ) => {
+  const draw = (activeConfig: GridBackgroundConfig) => {
     // Pass 1: Render continuous noise to low-res FBO texture
     gl.bindFramebuffer(gl.FRAMEBUFFER, state.fbo);
     gl.viewport(0, 0, state.gridCols, state.gridRows);
@@ -233,21 +219,6 @@ export function createGridRenderer(
       activeConfig.color5[0] / 255,
       activeConfig.color5[1] / 255,
       activeConfig.color5[2] / 255,
-    );
-
-    const g = gradation;
-    const gRows = g?.rowCount || 0;
-    const gDir = g ? (g.direction === "up" ? 1.0 : 0.0) : -1.0;
-    gl.uniform1f(noise.uGradationRowCount, gRows);
-    gl.uniform1f(noise.uGradationDir, gDir);
-    gl.uniform1f(noise.uScrollDissolveProgress, progress);
-    gl.uniform1f(
-      noise.uScrollDissolveMode,
-      dissolve?.mode === "appear" ? 1.0 : 0.0,
-    );
-    gl.uniform1f(
-      noise.uScrollDissolveDir,
-      dissolve?.direction === "up-to-down" ? 1.0 : 0.0,
     );
 
     gl.bindVertexArray(state.vao);

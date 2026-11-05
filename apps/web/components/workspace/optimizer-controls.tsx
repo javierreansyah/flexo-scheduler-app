@@ -1,5 +1,7 @@
 "use client";
 
+import { activeNode } from "@/lib/horizons";
+import { canOptimize } from "@/lib/can-optimize";
 import { OptimizeButton } from "@/components/ui/optimize-button";
 
 import { Field } from "@/components/ui/field";
@@ -21,18 +23,20 @@ const presets: { value: Project["preset"]; label: string }[] = [
 export function OptimizerControls() {
   const {
     project,
+    result,
     update,
     ready,
     busy,
+    progress,
     params,
     unavailable,
     optimize,
     cancel,
   } = useWorkspace();
-  const disabled = busy || !ready;
+  const disabled = busy || !ready || unavailable;
   return (
     <section className="flex flex-col gap-4">
-      <h3 className="text-base font-medium">Optimizer</h3>
+      <h3 className="section-heading">Optimizer</h3>
       <Field>
         Speed Preset
         <Select
@@ -62,10 +66,18 @@ export function OptimizerControls() {
       </Field>
       <OptimizeButton
         busy={busy}
-        disabled={!ready || unavailable}
+        progress={progress}
+        disabled={
+          !ready || unavailable || (!busy && !canOptimize(project, params))
+        }
         onClick={optimize}
         onCancel={cancel}
       />
+      {result && activeNode(project).result === undefined && (
+        <p className="border-l-2 border-warning pl-4 text-sm leading-relaxed text-warning">
+          Inputs changed. Optimize again to update the schedule.
+        </p>
+      )}
     </section>
   );
 }

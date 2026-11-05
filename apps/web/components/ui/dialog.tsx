@@ -2,7 +2,9 @@
 import { Dialog as Primitive } from "@base-ui/react/dialog";
 export const Dialog = Primitive.Root;
 export function DialogTitle(props: Primitive.Title.Props) {
-  return <Primitive.Title className="text-base font-medium" {...props} />;
+  return (
+    <Primitive.Title className="font-serif text-2xl font-normal" {...props} />
+  );
 }
 export function DialogDescription(props: Primitive.Description.Props) {
   return (

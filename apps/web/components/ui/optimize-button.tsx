@@ -52,11 +52,13 @@ const PROCESSING: AnimationSequenceConfig = {
 };
 export function OptimizeButton({
   busy,
+  progress,
   disabled,
   onClick,
   onCancel,
 }: {
   busy: boolean;
+  progress: number;
   disabled: boolean;
   onClick: () => void;
   onCancel: () => void;
@@ -168,7 +170,7 @@ export function OptimizeButton({
           ) : (
             <Play />
           )}
-          {busy ? "Cancel" : "Optimize"}
+          {busy ? `Cancel · ${Math.round(progress * 100)}%` : "Optimize"}
         </span>
       </Button>
     </div>

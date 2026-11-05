@@ -2,12 +2,7 @@
 import { useRef, useState } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "./ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-} from "./ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "./ui/dialog";
 import { Field } from "./ui/field";
 import { Input } from "./ui/input";
 import { InkCombobox } from "./ui/ink-combobox";
@@ -16,13 +11,11 @@ import type { EntryColumn } from "./new-table-row";
 export function AddEntryDialog({
   title,
   columns,
-  defaults,
   disabled,
   onCommit,
 }: {
   title: string;
   columns: EntryColumn[];
-  defaults: Record<string, string>;
   disabled: boolean;
   onCommit: (values: Record<string, string>) => string | null;
 }) {
@@ -37,7 +30,7 @@ export function AddEntryDialog({
         variant="outline"
         disabled={disabled}
         onClick={() => {
-          setValues(defaults);
+          setValues({});
           setError("");
           setOpen(true);
         }}
@@ -48,7 +41,6 @@ export function AddEntryDialog({
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent finalFocus={trigger}>
           <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>Enter the details below.</DialogDescription>
           <form
             className="flex flex-col gap-4"
             onSubmit={(event) => {
@@ -60,11 +52,12 @@ export function AddEntryDialog({
             }}
           >
             {columns.map((column) => (
-              <Field key={column.key}>
+              <Field key={column.key} compact={column.type === "color"}>
                 {column.label}
                 {column.options ? (
                   <InkCombobox
                     label={column.label}
+                    variant="default"
                     options={column.options}
                     value={values[column.key] ?? ""}
                     disabled={disabled}
@@ -78,7 +71,11 @@ export function AddEntryDialog({
                     type={column.type ?? "text"}
                     step={column.type === "number" ? "any" : undefined}
                     variant={column.type === "color" ? "swatch" : "default"}
-                    value={values[column.key] ?? ""}
+                    placeholder={column.placeholder ?? column.label}
+                    value={
+                      values[column.key] ??
+                      (column.type === "color" ? "#808080" : "")
+                    }
                     disabled={disabled}
                     onChange={(event) =>
                       setValues((old) => ({

@@ -60,9 +60,9 @@ and final `profiles.json`. Existing native and browser application profiles stay
 unchanged unless `--output` explicitly targets them. The export remains readable
 by `select_parameters` and the app build. Its `frontier` retains all preset points
 for ID lookup; `pareto_frontier` contains the actual nondominated subset.
-Before promoting results, also check browser support: current browser input and
-worker validation cap starts at ten, while this native tuning permits twenty.
-Any winner above ten starts needs that browser limit updated and tested first.
+The browser build uses the completed winners in `docs/fixed-budget-summary.json`
+for its presets. Browser validation and workers support up to twenty starts,
+matching the tuning campaign.
 
 Training chooses winners; heldout seeds 142/143/144 only measure selected winners.
 The exported validation records include overall, clean and carryover gaps to

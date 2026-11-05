@@ -1,6 +1,6 @@
 "use client";
 
-import { lazy, Suspense, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { afterTextPaint } from "./after-paint";
 import { DEFAULT_CONFIG } from "./config";
 import type { createBackgroundRuntime, RuntimeOptions } from "./runtime";
@@ -9,21 +9,13 @@ import type { GridBackgroundConfig, GridBackgroundProps } from "./types";
 import { whenNearViewport } from "./when-visible";
 
 const EMPTY_CONFIG: Partial<GridBackgroundConfig> = {};
-const DevOverlay =
-  process.env.NODE_ENV !== "production"
-    ? lazy(() => import("./dev-overlay"))
-    : null;
 
 export default function GridBackground({
   children,
   className = "",
   enabled = true,
-  devMode = false,
-  scrollDissolve = false,
   config = EMPTY_CONFIG,
   sequences,
-  initialEvents,
-  gradation,
   ...props
 }: GridBackgroundProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -31,10 +23,7 @@ export default function GridBackground({
   const stateRef = useRef(createBackgroundState());
   const dynamicConfigRef = useRef({ ...DEFAULT_CONFIG, ...config });
   const optionsRef = useRef<RuntimeOptions>({
-    scrollDissolve,
     sequences,
-    initialEvents,
-    gradation,
   });
   const runtimeRef = useRef<ReturnType<typeof createBackgroundRuntime> | null>(
     null,
@@ -44,13 +33,10 @@ export default function GridBackground({
     // Preserve animated/HUD values while applying explicitly changed props.
     Object.assign(dynamicConfigRef.current, config);
     optionsRef.current = {
-      scrollDissolve,
       sequences,
-      initialEvents,
-      gradation,
     };
     runtimeRef.current?.sync();
-  }, [config, scrollDissolve, sequences, initialEvents, gradation]);
+  }, [config, sequences]);
 
   useEffect(() => {
     if (!enabled || !canvasRef.current || !containerRef.current) return;
@@ -61,7 +47,6 @@ export default function GridBackground({
     let cancelPaint: (() => void) | undefined;
     const cancelVisibility = whenNearViewport(container, () => {
       cancelPaint = afterTextPaint(() => {
-        // Offscreen footers must not compile shaders alongside the visible header.
         import("./runtime")
           .then(({ createBackgroundRuntime }) => {
             if (cancelled) return;
@@ -100,17 +85,6 @@ export default function GridBackground({
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 -z-10 h-full w-full"
       />
-      {DevOverlay && devMode && (
-        <Suspense fallback={null}>
-          <DevOverlay
-            initialConfig={{ ...DEFAULT_CONFIG, ...config }}
-            dynamicConfigRef={dynamicConfigRef}
-            stateRef={stateRef}
-            containerRef={containerRef}
-            config={config}
-          />
-        </Suspense>
-      )}
       {children}
     </div>
   );

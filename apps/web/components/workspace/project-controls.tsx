@@ -29,6 +29,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+import { activeNode } from "@/lib/horizons";
 import { advance, example, importProject, initial } from "@/lib/model";
 
 import { download } from "@/lib/download";
@@ -49,12 +50,13 @@ export function ProjectControls() {
     action,
     replace,
   } = useWorkspace();
-  const [arrival, setArrival] = useState(1);
+  const [arrival, setArrival] = useState("1");
+  const arrivalHour = Number(arrival);
   const file = useRef<HTMLInputElement>(null);
   return (
     <>
       <section className="flex flex-col gap-4" aria-label="Project controls">
-        <h3 className="text-base font-medium">Project</h3>
+        <h3 className="section-heading">Project</h3>
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
@@ -154,18 +156,24 @@ export function ProjectControls() {
                 min={snapshot.now}
                 step="any"
                 value={arrival}
-                onChange={(e) => setArrival(+e.target.value)}
+                onChange={(e) => setArrival(e.target.value)}
               />
             </Field>
             <Button
               variant="outline"
               disabled={
-                busy || !ready || unavailable || arrival <= snapshot.now
+                busy ||
+                !ready ||
+                unavailable ||
+                !arrival.trim() ||
+                !Number.isFinite(arrivalHour) ||
+                arrivalHour <= snapshot.now ||
+                activeNode(project).result === undefined
               }
               onClick={() =>
                 action(() => {
-                  update(advance(project, arrival));
-                  setArrival(arrival + 1);
+                  update(advance(project, arrivalHour));
+                  setArrival(String(arrivalHour + 1));
                 })
               }
             >

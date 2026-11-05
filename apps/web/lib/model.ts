@@ -229,7 +229,7 @@ export function importProject(v: unknown): Project {
         (v as any)[k] >= 1 &&
         (v as any)[k] <= 2000000000,
     ) &&
-    v.starts <= 10 &&
+    v.starts <= 20 &&
     finite(v.t_max) &&
     finite(v.t_min) &&
     v.t_min > 0 &&

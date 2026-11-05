@@ -64,7 +64,6 @@ export function JobsPanel() {
                   options: colors.map((color) => color.name),
                 },
               ]}
-              defaults={{ id: `J-${Date.now()}`, quantity: "10000", inks: "" }}
               disabled={busy || !ready}
               onCommit={addJob}
             />

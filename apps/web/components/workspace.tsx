@@ -19,7 +19,6 @@ function WorkspaceContent() {
     <main>
       <AppHeader />
       <div id="workspace" className="workspace">
-        {!ready && <p role="status">Loading workspace…</p>}
         {error && (
           <div
             className="my-4 border border-destructive p-4 text-sm text-destructive"
@@ -49,7 +48,7 @@ function WorkspaceContent() {
                 )}
               </TabsList>
             </Tabs>
-            {unavailable && tab !== "project" ? (
+            {!ready ? null : unavailable && tab !== "project" ? (
               <p>
                 Inputs unavailable for this legacy checkpoint. Select a current
                 checkpoint to continue.
@@ -71,7 +70,7 @@ function WorkspaceContent() {
             <OptimizerControls />
           </aside>
         </div>
-        <ScheduleResults />
+        {ready && <ScheduleResults />}
       </div>
       <AppFooter />
     </main>

@@ -31,6 +31,8 @@ test("CRT hover, processing color and cancellation return to idle", async ({
     };
   });
   await page.goto("/");
+  await page.getByRole("button", { name: "Project actions" }).click();
+  await page.getByRole("menuitem", { name: "Industry Example" }).click();
   const button = page.locator('[data-slot="optimize-control"] button'),
     control = page.locator('[data-slot="optimize-control"]');
   await expect(button).toBeEnabled();
@@ -86,10 +88,12 @@ test("CRT hover, processing color and cancellation return to idle", async ({
   await expectContinuousClock();
   await capture("crt-hover.png");
   await page.getByRole("button", { name: "Add Job", exact: true }).click();
-  await page
-    .getByRole("dialog", { name: "Add Job" })
-    .getByRole("button", { name: "Add Job", exact: true })
-    .click();
+  const dialog = page.getByRole("dialog", { name: "Add Job" });
+  await dialog.getByLabel("Job ID", { exact: true }).fill("Order A");
+  await dialog.getByLabel("Quantity", { exact: true }).fill("1200");
+  await dialog.getByLabel("Inks", { exact: true }).fill("red");
+  await page.getByRole("option", { name: "Red", exact: true }).click();
+  await dialog.getByRole("button", { name: "Add Job", exact: true }).click();
   await page.getByRole("combobox", { name: "Speed Preset" }).click();
   await page.getByRole("option", { name: "Custom", exact: true }).click();
   await page.getByRole("tab", { name: "Project", exact: true }).click();
@@ -99,7 +103,7 @@ test("CRT hover, processing color and cancellation return to idle", async ({
   await expect(control).toHaveAttribute("data-phase", "busy");
   await expect(button).toBeEnabled();
   await expect(button).toHaveAttribute("aria-busy", "true");
-  await expect(button).toHaveText("Cancel");
+  await expect(button).toHaveText(/Cancel · \d+%/);
   await expect(
     page.getByRole("button", { name: "Cancel", exact: true }),
   ).toHaveCount(1);
@@ -110,12 +114,15 @@ test("CRT hover, processing color and cancellation return to idle", async ({
   await expect(control).toHaveAttribute("data-phase", "idle");
   await expect(button).toBeEnabled();
   await expect(button).toHaveAttribute("aria-busy", "false");
+  await expect(page.locator("main").getByRole("alert")).toHaveCount(0);
 });
 test("touch hold previews without starting and reduced motion skips GPU effects", async ({
   page,
 }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/");
+  await page.getByRole("button", { name: "Project actions" }).click();
+  await page.getByRole("menuitem", { name: "Industry Example" }).click();
   const button = page.locator('[data-slot="optimize-control"] button'),
     control = page.locator('[data-slot="optimize-control"]');
   await expect(button).toBeEnabled();
@@ -129,6 +136,7 @@ test("touch hold previews without starting and reduced motion skips GPU effects"
   await expect(control.locator(".crt-button-surface")).toBeHidden();
   await button.dispatchEvent("pointercancel", { pointerType: "touch" });
   await expect(control).toHaveAttribute("data-phase", "idle");
+  await page.keyboard.press("Tab");
   await button.focus();
   await expect(control).toHaveAttribute("data-phase", "active");
   await button.blur();

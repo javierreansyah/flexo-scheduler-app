@@ -9,6 +9,7 @@ test("Project graph preserves branches and unfinished edits", async ({
     .getByRole("button", { name: "Add Job", exact: true })
     .click();
   await page.getByRole("button", { name: "Optimize", exact: true }).click();
+  await page.getByRole("tab", { name: "Table", exact: true }).click();
   await expect(
     page.getByRole("button", { name: "Export Schedule CSV", exact: true }),
   ).toBeEnabled();

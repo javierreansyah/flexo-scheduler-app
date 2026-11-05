@@ -20,7 +20,13 @@ export function Table({
   );
 }
 export function TableHeader(props: ComponentProps<"thead">) {
-  return <thead data-slot="table-header" {...props} />;
+  return (
+    <thead
+      data-slot="table-header"
+      className="border-b-2 border-foreground"
+      {...props}
+    />
+  );
 }
 export function TableBody(props: ComponentProps<"tbody">) {
   return <tbody data-slot="table-body" {...props} />;
@@ -49,7 +55,8 @@ export function TableHead({
   variant = "default",
   ...props
 }: ComponentProps<"th"> & {
-  variant?: "default" | "matrix" | "selection" | "actions" | "swatch";
+  variant?:
+    "default" | "matrix" | "matrix-label" | "selection" | "actions" | "swatch";
 }) {
   return (
     <th
@@ -58,6 +65,7 @@ export function TableHead({
       className={cn(
         "sticky top-0 z-10 h-11 min-w-24 whitespace-nowrap bg-background px-3 text-left align-middle font-medium text-muted-foreground",
         variant === "swatch" && "w-20 min-w-20",
+        variant === "matrix-label" && "w-40 min-w-40 first:left-0 first:z-20",
         variant === "selection" && "w-11 min-w-11 text-center",
         variant === "actions" && "w-14 min-w-14",
         variant === "matrix" &&

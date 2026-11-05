@@ -1,29 +1,84 @@
 "use client";
-import type { CSSProperties } from "react";
+import { Fragment, type CSSProperties } from "react";
+import { timelineSegment } from "@/lib/timeline-segment";
 
 import type { Result, Snapshot } from "@/lib/model";
-import { useEffect, useState } from "react";
 import { Button } from "./ui/button";
 import { Slider } from "./ui/slider";
+type TimelinePreferences = { mode: string; shift: number; scale: number };
+
+export function TimelineControls({
+  preferences,
+  onPreferences,
+  end,
+}: {
+  preferences: TimelinePreferences;
+  onPreferences: (value: TimelinePreferences) => void;
+  end: number;
+}) {
+  const { mode: view, shift, scale } = preferences;
+  const maxShift = Math.max(0, Math.ceil(end / 8) - 1);
+  const setView = (mode: string) => onPreferences({ ...preferences, mode });
+  const setShift = (shift: number) => onPreferences({ ...preferences, shift });
+  const setScale = (scale: number) => onPreferences({ ...preferences, scale });
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {["full", "scroll", "shift"].map((v) => (
+        <Button
+          variant="toggle"
+          aria-pressed={view === v}
+          key={v}
+          onClick={() => setView(v)}
+        >
+          {v[0].toUpperCase() + v.slice(1)}
+        </Button>
+      ))}
+      {view === "scroll" && (
+        <Slider
+          aria-label="Timeline Zoom"
+          min={20}
+          max={240}
+          value={scale}
+          onValueChange={(value) => setScale(Number(value))}
+        />
+      )}{" "}
+      {view === "shift" && (
+        <>
+          <Button
+            variant="outline"
+            disabled={shift === 0}
+            onClick={() => setShift(Math.max(0, shift - 1))}
+          >
+            Prev
+          </Button>
+          <span className="inline-flex h-9 items-center px-3 text-sm font-medium">
+            Shift {Math.min(shift, maxShift) + 1}
+          </span>
+          <Button
+            variant="outline"
+            disabled={shift >= maxShift}
+            onClick={() => setShift(shift + 1)}
+          >
+            Next
+          </Button>
+        </>
+      )}
+    </div>
+  );
+}
+
 export function Timeline({
   result,
   snapshot,
   colorNames = (ids: number[]) => ids.join(", "),
   preferences,
-  onPreferences,
 }: {
   result: Result | undefined;
   snapshot: Snapshot;
   colorNames?: (ids: number[]) => string;
-  preferences?: { mode: string; shift: number; scale: number };
-  onPreferences: (v: { mode: string; shift: number; scale: number }) => void;
+  preferences: TimelinePreferences;
 }) {
-  const [view, setView] = useState(preferences?.mode ?? "full"),
-    [shift, setShift] = useState(preferences?.shift ?? 0),
-    [scale, setScale] = useState(preferences?.scale ?? 80);
-  useEffect(() => {
-    onPreferences({ mode: view, shift, scale });
-  }, [view, shift, scale]);
+  const { mode: view, shift, scale } = preferences;
   const now = result?.now ?? snapshot.now;
   const schedule =
     result?.schedule ??
@@ -49,52 +104,7 @@ export function Timeline({
     "var(--chart-5)",
   ];
   return (
-    <section className="mt-6 min-w-0">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <h2>Schedule</h2>
-        <div className="flex flex-wrap items-center gap-2">
-          {["full", "scroll", "shift"].map((v) => (
-            <Button
-              variant="toggle"
-              aria-pressed={view === v}
-              key={v}
-              onClick={() => setView(v)}
-            >
-              {v[0].toUpperCase() + v.slice(1)}
-            </Button>
-          ))}
-          {view === "scroll" && (
-            <Slider
-              aria-label="Timeline Zoom"
-              min={20}
-              max={240}
-              value={scale}
-              onValueChange={(value) => setScale(Number(value))}
-            />
-          )}{" "}
-          {view === "shift" && (
-            <>
-              <Button
-                variant="outline"
-                disabled={shift === 0}
-                onClick={() => setShift(Math.max(0, shift - 1))}
-              >
-                Prev
-              </Button>
-              <span className="inline-flex h-9 items-center px-3 text-sm font-medium">
-                Shift {Math.min(shift, maxShift) + 1}
-              </span>
-              <Button
-                variant="outline"
-                disabled={shift >= maxShift}
-                onClick={() => setShift(shift + 1)}
-              >
-                Next
-              </Button>
-            </>
-          )}
-        </div>
-      </div>
+    <section className="min-w-0" aria-label="Schedule timeline">
       <div className="timeline-scroll">
         <div
           className="timeline-content"
@@ -154,35 +164,54 @@ export function Timeline({
                       j.completion! > start && j.setup_start! < start + span,
                   )
                   .map((j) => {
-                    const left = Math.max(start, j.setup_start!);
-                    const right = Math.min(start + span, j.completion!);
-                    const duration = j.completion! - j.setup_start!;
+                    const setup = timelineSegment(
+                      j.setup_start!,
+                      j.start!,
+                      start,
+                      span,
+                    );
+                    const production = timelineSegment(
+                      j.start!,
+                      j.completion!,
+                      start,
+                      span,
+                    );
+                    const batchColor =
+                      colors[arrivals.indexOf(j.arrival_time) % colors.length];
+                    const title = `${j.id} | ${j.quantity} pieces | inks ${colorNames(j.inks)} | setup ${j.setup_start?.toFixed(3)} · ${j.start?.toFixed(3)} | complete ${j.completion?.toFixed(3)}h${j.locked ? " | locked" : ""}`;
                     return (
-                      <button
-                        key={j.id}
-                        className={`job-bar ${j.locked ? "locked" : ""}`}
-                        style={
-                          {
-                            "--position": `${((left - start) / span) * 100}%`,
-                            "--job-width": `${((right - left) / span) * 100}%`,
-                            "--batch-color":
-                              colors[
-                                arrivals.indexOf(j.arrival_time) % colors.length
-                              ],
-                          } as CSSProperties
-                        }
-                        title={`${j.id} | ${j.quantity} pieces | inks ${colorNames(j.inks)} | setup ${j.setup_start?.toFixed(3)} · ${j.start?.toFixed(3)} | complete ${j.completion?.toFixed(3)}h${j.locked ? " | locked" : ""}`}
-                      >
-                        <span
-                          className="setup"
-                          style={
-                            {
-                              "--setup-width": `${((j.start! - j.setup_start!) / duration) * 100}%`,
-                            } as CSSProperties
-                          }
-                        />
-                        {j.id}
-                      </button>
+                      <Fragment key={j.id}>
+                        {setup && (
+                          <span
+                            className={`setup-bar ${j.locked ? "locked" : ""}`}
+                            role="img"
+                            aria-label={`Setup for ${j.id}, ${j.setup_start?.toFixed(3)} to ${j.start?.toFixed(3)} hours`}
+                            title={`Setup for ${j.id} | ${j.setup_start?.toFixed(3)}–${j.start?.toFixed(3)}h`}
+                            style={
+                              {
+                                "--position": `${setup.left}%`,
+                                "--job-width": `${setup.width}%`,
+                                "--batch-color": batchColor,
+                              } as CSSProperties
+                            }
+                          />
+                        )}
+                        {production && (
+                          <button
+                            className={`job-bar ${j.locked ? "locked" : ""}`}
+                            style={
+                              {
+                                "--position": `${production.left}%`,
+                                "--job-width": `${production.width}%`,
+                                "--batch-color": batchColor,
+                              } as CSSProperties
+                            }
+                            title={title}
+                          >
+                            {j.id}
+                          </button>
+                        )}
+                      </Fragment>
                     );
                   })}
               </div>
