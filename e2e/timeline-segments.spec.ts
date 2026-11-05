@@ -13,6 +13,9 @@ test("setup is a separate bar from production", async ({ page }) => {
   const setup = page.locator(".setup-bar").first();
   await expect(setup).toBeVisible({ timeout: 30000 });
   await expect(page.locator(".job-bar").first()).toBeVisible();
+  await page.locator(".job-bar").first().hover();
+  await expect(page.getByRole("tooltip")).toContainText("pieces");
+  await expect(page.getByRole("tooltip")).toContainText("complete");
   expect(
     await setup.locator("xpath=..").locator(".job-bar .setup-bar").count(),
   ).toBe(0);

@@ -4,10 +4,10 @@
   <p>Shape your production schedule, right in your browser.</p>
 </div>
 
-Flexo Scheduler helps plan flexographic production across machines, jobs, and
-color changes. Set up your equipment, add orders, and find a schedule with a
-simulated annealing optimizer running entirely on your device. No account,
-optimization API, or server-side job processing is required.
+Schedule flexographic print jobs across your presses, minimize costly ink
+changeovers, and let simulated annealing adapt your queue as new orders arrive.
+The optimizer runs entirely on your device. No account, optimization API, or
+server-side job processing is required.
 
 ## ✨ Features
 
@@ -17,8 +17,8 @@ optimization API, or server-side job processing is required.
   costs in a matrix, and configure setup-duration overrides.
 - **Choose your compute budget:** Use Quick, Balanced, or Thorough presets, or
   adjust the optimizer parameters yourself.
-- **See the schedule:** Explore the production timeline, shift views, schedule
-  details, objective metrics, and optimization progress.
+- **See the schedule:** Explore the production timeline and job tooltips, shift
+  views, schedule details, objective metrics, and optimization progress.
 - **Handle new arrivals:** Advance the current horizon, retain started work, and
   reschedule remaining jobs alongside new orders. Review previous horizons.
 - **Try realistic inputs:** Load the original industry example or generate jobs
@@ -31,7 +31,7 @@ optimization API, or server-side job processing is required.
 
 ## 🚀 Get started
 
-You'll need **Node.js 22+**, **Python 3**, Git, and
+You'll need **Node.js 22+**, Git, and
 [pnpm](https://pnpm.io/). The repository pins pnpm 10.33.2 in `package.json`.
 The first WebAssembly setup downloads and activates Emscripten SDK 6.0.13.
 
@@ -105,10 +105,7 @@ also need browser-specific runtime checks before adoption.
 | `scripts`    | WebAssembly toolchain setup and production build             |
 | `e2e`        | Browser tests and native parity fixtures                     |
 
-The native Python research project, datasets, tuning runs, and experimental
-benchmark scripts have moved out of this repository. A local copy is at
-`../optimizer`. The app has no dependency on that directory. See
-[the browser engine notes](engine/README.md) for the retained source and presets.
+See [the browser engine notes](engine/README.md) for the engine source and presets.
 
 ## ✅ Development checks
 
@@ -123,8 +120,7 @@ pnpm test:e2e
 
 Build the static export before running browser tests. The tests serve `out`
 locally and exercise real WASM workers, persistence, imports, scheduling history,
-and native parity. No research checkout or Python packages are required.
-Python 3 is used by the Emscripten setup and the browser test HTTP server.
+and native parity. No research checkout is required.
 
 ## Deploy to Cloudflare Pages
 
@@ -143,14 +139,3 @@ from `engine/src` using the checked-in presets in `lib/profiles.json`.
 ## 📄 License
 
 Flexo Scheduler is available under the [MIT License](LICENSE).
-
-## 🙏 Acknowledgments
-
-The visual language and grid background draw from
-[Javier Reansyah's portfolio](https://github.com/javierreansyah).
-The optimizer uses SMAC for offline tuning and Emscripten to bring its shared
-native scheduling engine into the browser.
-
-### Web UI maintenance
-
-The web app uses strict shadcn/Oxlint policies and Stylelint. Run `pnpm lint` for types and design checks, `pnpm format:check` for formatting, and `pnpm test` for unit checks. UI rules and component ownership are documented in `AGENTS.md`. Workspace panels live in `components/workspace`; hooks own persistence and optimizer execution; shared controls and tables live in `components/ui`.

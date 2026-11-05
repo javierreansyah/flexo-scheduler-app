@@ -11,9 +11,9 @@ export function AppHeader() {
         </p>
         <h1>Flexo Scheduler</h1>
         <p className="mt-6 max-w-prose text-base leading-relaxed text-muted-foreground">
-          Plan flexographic print jobs across your machines. Balance ink
-          changeovers and production time, then compare schedules as new work
-          arrives. Use simulated annealing to optimize your schedule.
+          Schedule flexographic print jobs across your presses, minimize costly
+          ink changeovers, and let simulated annealing adapt your queue as new
+          orders arrive
         </p>
       </div>
     </header>
@@ -25,7 +25,7 @@ export function AppFooter() {
       <div className="product-footer-content">
         <div>
           <p className="mb-4 text-xs uppercase tracking-widest text-muted-foreground">
-            Production Planning · Open Source
+            Industrial Production Planning
           </p>
           <h2>Flexo Scheduler</h2>
         </div>
