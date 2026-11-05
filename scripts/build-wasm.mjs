@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import {
+  existsSync,
   mkdirSync,
   readFileSync,
   writeFileSync,
@@ -16,6 +17,14 @@ const compiler = resolve(
   ".toolchains/emsdk/upstream/emscripten/em++" +
     (process.platform === "win32" ? ".exe" : ""),
 );
+if (!existsSync(compiler)) {
+  const setup = spawnSync(process.execPath, ["scripts/wasm-setup.mjs"], {
+    stdio: "inherit",
+    shell: false,
+  });
+  if (setup.error) throw setup.error;
+  if (setup.status !== 0) throw new Error("WASM toolchain setup failed");
+}
 const result = spawnSync(
   compiler,
   [

@@ -31,7 +31,7 @@ server-side job processing is required.
 
 ## 🚀 Get started
 
-You'll need **Node.js 22+**, Git, and
+You'll need **Node.js 22+**, **Python 3** (for the WASM toolchain), Git, and
 [pnpm](https://pnpm.io/). The repository pins pnpm 10.33.2 in `package.json`.
 The first WebAssembly setup downloads and activates Emscripten SDK 6.0.13.
 
@@ -41,21 +41,16 @@ The first WebAssembly setup downloads and activates Emscripten SDK 6.0.13.
    pnpm install --frozen-lockfile
    ```
 
-2. Set up the WebAssembly toolchain:
-
-   ```sh
-   pnpm wasm:setup
-   ```
-
-3. Start the development server:
+2. Start the development server:
 
    ```sh
    pnpm dev
    ```
 
-4. Open [http://localhost:3000](http://localhost:3000).
+3. Open [http://localhost:3000](http://localhost:3000).
 
-The development command builds the optimizer before starting Next.js. No API
+Development and production builds install the WASM toolchain automatically when
+needed, then compile the optimizer. No API
 keys or environment variables are needed for the scheduling app.
 
 For a production export and local Cloudflare preview:
@@ -91,7 +86,7 @@ also need browser-specific runtime checks before adoption.
 - [TanStack Table](https://tanstack.com/table) and TanStack Virtual
 - C++ simulated annealing, [Emscripten](https://emscripten.org/), WebAssembly,
   and Web Workers
-- [Cloudflare Pages](https://pages.cloudflare.com/) for static hosting
+- [Cloudflare Workers static assets](https://developers.cloudflare.com/workers/static-assets/) for static hosting
 
 ## Project structure
 
@@ -122,18 +117,19 @@ Build the static export before running browser tests. The tests serve `out`
 locally and exercise real WASM workers, persistence, imports, scheduling history,
 and native parity. No research checkout is required.
 
-## Deploy to Cloudflare Pages
+## Deploy to Cloudflare
 
 Use the repository root as the project directory:
 
-| Setting          | Value                           |
-| ---------------- | ------------------------------- |
-| Build command    | `pnpm wasm:setup && pnpm build` |
-| Output directory | `out`                           |
-| Node.js          | 22+                             |
+| Setting        | Value                 |
+| -------------- | --------------------- |
+| Build command  | `pnpm run build`      |
+| Deploy command | `npx wrangler deploy` |
+| Node.js        | 22+                   |
 
 Enable pnpm and allow toolchain downloads during the build. The app exports
-static files; no Pages Functions or runtime API are required. The engine builds
+static files from `out` through Workers static-asset hosting. No server script or
+runtime API is required. The engine builds
 from `engine/src` using the checked-in presets in `lib/profiles.json`.
 
 ## 📄 License
