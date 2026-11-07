@@ -23,7 +23,7 @@ export function TableHeader(props: ComponentProps<"thead">) {
   return (
     <thead
       data-slot="table-header"
-      className="border-b-2 border-foreground"
+      className="border-b-2 border-border"
       {...props}
     />
   );
@@ -103,7 +103,13 @@ export function TableScroll({ className, ...props }: ComponentProps<"div">) {
   return (
     <div
       data-slot="table-scroll"
-      className={cn("max-h-120 overflow-auto", className)}
+      role="region"
+      aria-label="Scrollable table"
+      tabIndex={0}
+      className={cn(
+        "max-h-120 overflow-auto focus-visible:outline-2 focus-visible:outline-ring focus-visible:-outline-offset-2",
+        className,
+      )}
       {...props}
     />
   );
@@ -141,14 +147,14 @@ export function TableFilter({
   return (
     <>
       <Input
-        className="w-60 max-w-full"
+        className="w-32 min-w-0 max-w-full sm:w-60"
         aria-label={label}
         placeholder="Filter Rows..."
         value={query}
         onChange={(e) => onQueryChange(e.target.value)}
       />
       {count !== undefined && (
-        <span className="whitespace-nowrap text-sm text-muted-foreground">
+        <span className="order-last w-full whitespace-nowrap text-sm text-muted-foreground sm:order-none sm:w-auto">
           {count} rows
         </span>
       )}

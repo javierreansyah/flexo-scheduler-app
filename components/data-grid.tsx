@@ -128,7 +128,7 @@ export function DataGrid({
           onQueryChange={setQuery}
           count={data.length}
         />
-        <div className="ml-auto flex flex-wrap items-center gap-2 max-sm:w-full max-sm:justify-between">
+        <div className="ml-auto flex shrink-0 items-center gap-2">
           {toolbarActions}
         </div>
         {selected.size > 0 && (

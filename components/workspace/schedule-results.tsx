@@ -32,12 +32,20 @@ export function ScheduleResults() {
   return (
     <section className="schedule-results" aria-label="Schedule results">
       <Tabs value={tab} onValueChange={(value) => setTab(String(value))}>
-        <div className="flex flex-wrap items-center justify-between gap-x-4 border-b border-border">
-          <TabsList aria-label="Schedule views" borderless>
-            <TabsTrigger value="timeline">Timeline</TabsTrigger>
-            <TabsTrigger value="table">Table</TabsTrigger>
-          </TabsList>
-          <div className="py-2">
+        <div className="flex items-center justify-between gap-x-2 border-b border-border">
+          <div className="shrink-0">
+            <TabsList aria-label="Schedule views" borderless>
+              <TabsTrigger value="timeline">Timeline</TabsTrigger>
+              <TabsTrigger value="table">Table</TabsTrigger>
+            </TabsList>
+          </div>
+          <div
+            className={
+              tab === "timeline"
+                ? "min-w-0 flex-1 py-2 sm:flex-none"
+                : "min-w-0 py-2"
+            }
+          >
             {tab === "timeline" ? (
               <TimelineControls
                 preferences={preferences}

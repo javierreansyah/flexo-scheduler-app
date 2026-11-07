@@ -19,6 +19,7 @@ test("setup is a separate bar from production", async ({ page }) => {
   expect(
     await setup.locator("xpath=..").locator(".job-bar .setup-bar").count(),
   ).toBe(0);
-  await page.getByRole("button", { name: "Shift", exact: true }).click();
-  await expect(page.getByText("Shift 1", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Timeline view" }).click();
+  await page.getByRole("menuitem", { name: "Shift", exact: true }).click();
+  await expect(page.getByLabel("Current shift")).toHaveText("1");
 });

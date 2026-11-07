@@ -43,14 +43,16 @@ test("industry scheduling, arrivals, history, views and reload", async ({
       timelineScroll.evaluate((el) => el.scrollWidth - el.clientWidth),
     )
     .toBe(0);
-  await page.getByRole("button", { name: "Shift", exact: true }).click();
-  await expect(page.getByText("Shift 1", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Timeline view" }).click();
+  await page.getByRole("menuitem", { name: "Shift", exact: true }).click();
+  await expect(page.getByLabel("Current shift")).toHaveText("1");
   await expect
     .poll(() =>
       timelineScroll.evaluate((el) => el.scrollWidth - el.clientWidth),
     )
     .toBe(0);
-  await page.getByRole("button", { name: "Scroll", exact: true }).click();
+  await page.getByRole("button", { name: "Timeline view" }).click();
+  await page.getByRole("menuitem", { name: "Scroll", exact: true }).click();
   await page.getByLabel("Timeline Zoom").press("End");
   await expect
     .poll(() =>

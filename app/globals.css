@@ -39,6 +39,7 @@
   --column-space: clamp(1.5rem, 3vw, 3rem);
   --rule-heavy: 3px solid var(--foreground);
   --rule-fine: 1px solid var(--border);
+  --horizon-scale: 1;
 }
 
 @theme inline {
@@ -206,6 +207,11 @@
 .product-footer {
   margin-top: calc(var(--section-space) * 2);
 }
+@media (min-width: 640px) {
+  .metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
 @media (min-width: 1100px) {
   .metrics {
     grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -217,6 +223,11 @@
 .timeline-scroll {
   overflow: auto;
   padding-top: 1.5rem;
+}
+.timeline-scroll:focus-visible,
+.horizon-scroll:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
 }
 .timeline-content {
   min-width: var(--timeline-width);
@@ -240,6 +251,8 @@
 }
 .track {
   position: relative;
+}
+.lane:not(:last-child) .track {
   border-bottom: 1px solid var(--border);
 }
 .axis {
@@ -320,7 +333,7 @@
   color: var(--batch-color);
 }
 
-@media (hover: hover) and (pointer: fine) {
+@media (any-pointer: fine) {
   * {
     scrollbar-width: thin;
     scrollbar-color: color-mix(in srgb, var(--foreground) 20%, transparent)
@@ -342,7 +355,21 @@
     background: color-mix(in srgb, var(--foreground) 35%, transparent);
   }
 }
-@media (max-width: 1000px) {
+@media not all and (any-pointer: fine) {
+  .timeline-scroll,
+  .horizon-scroll,
+  [data-slot="table-scroll"],
+  [data-slot="tabs-list"] {
+    scrollbar-width: none;
+  }
+  .timeline-scroll::-webkit-scrollbar,
+  .horizon-scroll::-webkit-scrollbar,
+  [data-slot="table-scroll"]::-webkit-scrollbar,
+  [data-slot="tabs-list"]::-webkit-scrollbar {
+    display: none;
+  }
+}
+@media (max-width: 1279px) {
   .editor-layout {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -350,9 +377,62 @@
     padding-top: 1.5rem;
   }
 }
+@media (min-width: 768px) and (max-width: 1279px) {
+  .optimizer {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: var(--column-space);
+  }
+  .optimizer > section:first-child > div:first-of-type {
+    margin-top: 1.75rem;
+  }
+}
 @media (max-width: 600px) {
   .product-footer-content {
     grid-template-columns: minmax(0, 1fr);
+  }
+  .timeline-scroll,
+  .horizon-scroll,
+  [data-slot="table-scroll"] {
+    margin-inline: calc(-1 * var(--gutter));
+    padding-inline: var(--gutter);
+  }
+  .horizon-scroll {
+    --horizon-scale: 0.7;
+  }
+  .lane {
+    grid-template-columns: 2rem minmax(0, 1fr);
+  }
+  .lane > strong {
+    padding-right: 0.5rem;
+  }
+  .lane > strong::before {
+    position: absolute;
+    inset: 0 100% 0 calc(-1 * var(--gutter));
+    background: var(--background);
+    content: "";
+  }
+  [data-slot="tabs-list"][aria-label="Production inputs"] {
+    width: calc(100% + 2 * var(--gutter));
+    max-width: none;
+    margin-inline: calc(-1 * var(--gutter));
+    padding-inline: var(--gutter);
+    border-bottom: 0;
+  }
+  [data-slot="tabs-list"]:not([data-borderless]) {
+    background: linear-gradient(var(--border), var(--border)) bottom center /
+      calc(100% - 2 * var(--gutter)) 1px no-repeat;
+  }
+  .lane:not(.axis) > strong span {
+    writing-mode: vertical-rl;
+    max-height: 5rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .axis > strong {
+    font-size: 0;
   }
   .axis span:nth-child(even) {
     display: none;
@@ -397,12 +477,14 @@
 }
 .horizon-graph {
   position: relative;
-  min-width: var(--graph-width);
+  min-width: calc(var(--graph-width) * var(--horizon-scale));
   height: var(--graph-height);
 }
 .horizon-graph svg {
   position: absolute;
   inset: 0;
+  transform: scaleX(var(--horizon-scale));
+  transform-origin: left;
   pointer-events: none;
 }
 .horizon-path,
@@ -414,18 +496,19 @@
 .horizon-path-active {
   stroke: var(--foreground);
 }
-.horizon-node {
+.horizon-node,
+.horizon-column-label {
   position: absolute;
-  left: var(--node-x);
+  left: calc(var(--node-x) * var(--horizon-scale));
+}
+.horizon-node {
   top: var(--node-y);
-  width: 176px;
+  width: calc(176px * var(--horizon-scale));
 }
 .horizon-node button {
   width: 100%;
 }
 .horizon-column-label {
-  position: absolute;
   top: 16px;
-  left: var(--node-x);
   font-size: 14px;
 }

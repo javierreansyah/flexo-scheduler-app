@@ -11,6 +11,7 @@ export function TabsList({
   return (
     <TabsPrimitive.List
       data-slot="tabs-list"
+      data-borderless={borderless || undefined}
       className={cn(
         "flex overflow-x-auto gap-2",
         borderless ? "" : "border-b border-border",

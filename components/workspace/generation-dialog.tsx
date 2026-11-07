@@ -22,7 +22,7 @@ export function GenerationDialog({
   onOpenChange: (open: boolean) => void;
   trigger: RefObject<HTMLElement | null>;
 }) {
-  const [count, setCount] = useState(kind === "jobs" ? 30 : 3),
+  const [count, setCount] = useState(kind === "jobs" ? "" : "3"),
     [error, setError] = useState("");
   const {
     project,
@@ -38,9 +38,10 @@ export function GenerationDialog({
   const disabled = busy || !ready || (kind === "machines" && physicalLocked);
   const canGenerate =
     !disabled &&
-    Number.isInteger(count) &&
-    count >= 1 &&
-    count <= (kind === "jobs" ? 10000 : 100) &&
+    Number.isInteger(Number(count)) &&
+    count !== "" &&
+    Number(count) >= 1 &&
+    Number(count) <= (kind === "jobs" ? 10000 : 100) &&
     (kind !== "jobs" || colors.length > 0);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -62,7 +63,7 @@ export function GenerationDialog({
               if (kind === "jobs")
                 appendJobs(
                   randomJobs(
-                    count,
+                    Number(count),
                     Number(project.seed),
                     snapshot.now,
                     "B" + history.length + "-" + snapshot.jobs.length + "-",
@@ -70,12 +71,16 @@ export function GenerationDialog({
                   ),
                 );
               else {
-                if (!Number.isInteger(count) || count < 1 || count > 100)
+                if (
+                  !Number.isInteger(Number(count)) ||
+                  Number(count) < 1 ||
+                  Number(count) > 100
+                )
                   throw Error("Generate 1–100 machines");
                 const rng = random(Number(project.seed));
                 changeSnapshot({
                   machines: Object.fromEntries(
-                    Array.from({ length: count }, (_, i) => [
+                    Array.from({ length: Number(count) }, (_, i) => [
                       "Machine " + (i + 1),
                       Math.round(
                         [112, 224, 175][Math.floor(rng() * 3)] *
@@ -104,8 +109,9 @@ export function GenerationDialog({
               required
               min={1}
               max={kind === "jobs" ? 10000 : 100}
+              placeholder="Count"
               value={count}
-              onChange={(e) => setCount(+e.target.value)}
+              onChange={(e) => setCount(e.target.value)}
               disabled={disabled}
             />
           </Field>

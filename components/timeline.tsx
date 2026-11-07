@@ -6,6 +6,18 @@ import type { Result, Snapshot } from "@/lib/model";
 import { Button } from "./ui/button";
 import { Slider } from "./ui/slider";
 import {
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  MoreVertical,
+} from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "./ui/dropdown-menu";
+import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -28,19 +40,10 @@ export function TimelineControls({
   const setShift = (shift: number) => onPreferences({ ...preferences, shift });
   const setScale = (scale: number) => onPreferences({ ...preferences, scale });
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      {["full", "scroll", "shift"].map((v) => (
-        <Button
-          variant="toggle"
-          aria-pressed={view === v}
-          key={v}
-          onClick={() => setView(v)}
-        >
-          {v[0].toUpperCase() + v.slice(1)}
-        </Button>
-      ))}
+    <div className="flex w-full items-center justify-end gap-2">
       {view === "scroll" && (
         <Slider
+          variant="timeline"
           aria-label="Timeline Zoom"
           min={20}
           max={240}
@@ -52,23 +55,60 @@ export function TimelineControls({
         <>
           <Button
             variant="outline"
+            size="icon"
+            aria-label="Previous shift"
             disabled={shift === 0}
             onClick={() => setShift(Math.max(0, shift - 1))}
           >
-            Prev
+            <ChevronLeft />
           </Button>
-          <span className="inline-flex h-9 items-center px-3 text-sm font-medium">
-            Shift {Math.min(shift, maxShift) + 1}
+          <span
+            aria-label="Current shift"
+            className="hidden h-9 items-center px-3 text-sm font-medium sm:inline-flex"
+          >
+            {Math.min(shift, maxShift) + 1}
           </span>
           <Button
             variant="outline"
+            size="icon"
+            aria-label="Next shift"
             disabled={shift >= maxShift}
             onClick={() => setShift(shift + 1)}
           >
-            Next
+            <ChevronRight />
           </Button>
         </>
       )}
+      <div>
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={
+              <Button
+                variant="outline"
+                size="responsive-menu"
+                aria-label="Timeline view"
+              />
+            }
+          >
+            <span className="md:hidden">
+              <MoreVertical />
+            </span>
+            <span className="hidden md:inline">
+              {view[0].toUpperCase() + view.slice(1)}
+            </span>
+            <span className="hidden md:inline">
+              <ChevronDown />
+            </span>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            {["full", "scroll", "shift"].map((mode) => (
+              <DropdownMenuItem key={mode} onClick={() => setView(mode)}>
+                {mode[0].toUpperCase() + mode.slice(1)}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
     </div>
   );
 }
@@ -112,7 +152,12 @@ export function Timeline({
   return (
     <TooltipProvider>
       <section className="min-w-0" aria-label="Schedule timeline">
-        <div className="timeline-scroll">
+        <div
+          className="timeline-scroll"
+          role="region"
+          aria-label="Scrollable timeline"
+          tabIndex={0}
+        >
           <div
             className="timeline-content"
             style={
@@ -139,7 +184,9 @@ export function Timeline({
             </div>
             {Object.entries(schedule).map(([machine, jobs]) => (
               <div className="lane" key={machine}>
-                <strong>{machine}</strong>
+                <strong title={machine}>
+                  <span>{machine}</span>
+                </strong>
                 <div className="track">
                   {Array.from(
                     { length: Math.ceil((start + span) / 8) + 1 },

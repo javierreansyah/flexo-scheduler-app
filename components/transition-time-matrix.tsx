@@ -111,27 +111,27 @@ export function TransitionTimeMatrix({
           query={query}
           onQueryChange={setQuery}
         />
-        <div className="ml-auto flex flex-wrap items-center gap-2">
-          <div className="w-32">
-            <Select
-              value={unit}
-              items={[
-                { value: "minutes", label: "Minutes" },
-                { value: "hours", label: "Hours" },
-              ]}
-              onValueChange={(value) => {
-                if (value) setUnit(value);
-              }}
-            >
-              <SelectTrigger aria-label="Transition time unit">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="minutes">Minutes</SelectItem>
-                <SelectItem value="hours">Hours</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+        <div className="ml-auto w-32">
+          <Select
+            value={unit}
+            items={[
+              { value: "minutes", label: "Minutes" },
+              { value: "hours", label: "Hours" },
+            ]}
+            onValueChange={(value) => {
+              if (value) setUnit(value);
+            }}
+          >
+            <SelectTrigger aria-label="Transition time unit">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="minutes">Minutes</SelectItem>
+              <SelectItem value="hours">Hours</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="w-full sm:w-auto">
           <Button
             variant="outline"
             disabled={disabled}

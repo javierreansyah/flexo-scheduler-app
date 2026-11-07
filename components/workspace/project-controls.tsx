@@ -55,7 +55,10 @@ export function ProjectControls() {
   const file = useRef<HTMLInputElement>(null);
   return (
     <>
-      <section className="flex flex-col gap-4" aria-label="Project controls">
+      <section
+        className="flex w-full flex-col gap-4 md:max-w-sm"
+        aria-label="Project controls"
+      >
         <h3 className="section-heading">Project</h3>
         <div className="flex items-center gap-2">
           <Button
@@ -148,17 +151,19 @@ export function ProjectControls() {
         </Field>
         {history.length > 0 && (
           <div className="flex items-end gap-2">
-            <Field>
-              Arrival Hour{" "}
-              <Input
-                aria-label="Next batch arrival hour"
-                type="number"
-                min={snapshot.now}
-                step="any"
-                value={arrival}
-                onChange={(e) => setArrival(e.target.value)}
-              />
-            </Field>
+            <div className="min-w-0 flex-1">
+              <Field>
+                Arrival Hour{" "}
+                <Input
+                  aria-label="Next batch arrival hour"
+                  type="number"
+                  min={snapshot.now}
+                  step="any"
+                  value={arrival}
+                  onChange={(e) => setArrival(e.target.value)}
+                />
+              </Field>
+            </div>
             <Button
               variant="outline"
               disabled={

@@ -35,7 +35,7 @@ export function OptimizerControls() {
   } = useWorkspace();
   const disabled = busy || !ready || unavailable;
   return (
-    <section className="flex flex-col gap-4">
+    <section className="flex w-full flex-col gap-4 md:max-w-sm">
       <h3 className="section-heading">Optimizer</h3>
       <Field>
         Speed Preset
