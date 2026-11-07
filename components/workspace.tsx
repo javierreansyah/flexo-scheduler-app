@@ -1,17 +1,26 @@
 "use client";
-import { ProjectPanel } from "./workspace/project-panel";
+import dynamic from "next/dynamic";
 
 import { useState } from "react";
 import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
 import { AppFooter, AppHeader } from "./workspace/app-chrome";
-import { ColorsPanel } from "./workspace/colors-panel";
-import { ChangeoversPanel } from "./workspace/changeovers-panel";
 import { JobsPanel } from "./workspace/jobs-panel";
-import { MachinesPanel } from "./workspace/machines-panel";
 import { OptimizerControls } from "./workspace/optimizer-controls";
 import { ProjectControls } from "./workspace/project-controls";
 import { ScheduleResults } from "./workspace/schedule-results";
 import { WorkspaceProvider, useWorkspace } from "./workspace/workspace-context";
+const ProjectPanel = dynamic(() =>
+  import("./workspace/project-panel").then((m) => m.ProjectPanel),
+);
+const ColorsPanel = dynamic(() =>
+  import("./workspace/colors-panel").then((m) => m.ColorsPanel),
+);
+const ChangeoversPanel = dynamic(() =>
+  import("./workspace/changeovers-panel").then((m) => m.ChangeoversPanel),
+);
+const MachinesPanel = dynamic(() =>
+  import("./workspace/machines-panel").then((m) => m.MachinesPanel),
+);
 function WorkspaceContent() {
   const { ready, error, unavailable } = useWorkspace();
   const [tab, setTab] = useState("jobs");
@@ -19,6 +28,7 @@ function WorkspaceContent() {
     <main>
       <AppHeader />
       <div id="workspace" className="workspace">
+        <h2 className="sr-only">Scheduling workspace</h2>
         {error && (
           <div
             className="my-4 border border-destructive p-4 text-sm text-destructive"
@@ -48,7 +58,7 @@ function WorkspaceContent() {
                 )}
               </TabsList>
             </Tabs>
-            {!ready ? null : unavailable && tab !== "project" ? (
+            {unavailable && tab !== "project" ? (
               <p>
                 Inputs unavailable for this legacy checkpoint. Select a current
                 checkpoint to continue.
@@ -70,7 +80,7 @@ function WorkspaceContent() {
             <OptimizerControls />
           </aside>
         </div>
-        {ready && <ScheduleResults />}
+        <ScheduleResults />
       </div>
       <AppFooter />
     </main>

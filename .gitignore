@@ -12,3 +12,5 @@ playwright-report/
 debug.log
 node-compile-cache/
 playwright-transform-cache/
+
+lighthouse-reports/

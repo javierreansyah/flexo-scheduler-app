@@ -4,9 +4,21 @@ import { initial, importProject, type Project } from "@/lib/model";
 import { get, set } from "idb-keyval";
 import { useEffect, useRef, useState } from "react";
 export function useProject() {
+  const restoreFailed = useRef(false);
   const saves = useRef(Promise.resolve());
   const persisted = useRef<Project | null>(null);
   function persist(next: Project) {
+    if (restoreFailed.current)
+      return Promise.reject(
+        Error(
+          "Saved workspace could not be restored. Import a backup or create a new project to replace it.",
+        ),
+      );
+    try {
+      importProject(next);
+    } catch (error) {
+      return Promise.reject(error);
+    }
     saves.current = saves.current
       .catch(() => {})
       .then(() => set("flexo-project-v1", next))
@@ -36,18 +48,29 @@ export function useProject() {
           rawUpdate(normalizeHorizons(importProject(v)));
         }
       })
-      .catch((e) => setError(`Could not restore saved work: ${e}`))
+      .catch((e) => {
+        restoreFailed.current = true;
+        setSaveError(true);
+        setError(
+          `Could not restore saved work: ${e}. The saved copy has been preserved.`,
+        );
+      })
       .finally(() => setReady(true));
   }, []);
   useEffect(() => {
-    if (!ready) return;
+    if (!ready || restoreFailed.current) return;
     let current = true;
     setSaveError(false);
     const pending =
       persisted.current === project ? Promise.resolve() : persist(project);
     pending
       .then(() => {
-        if (current) setSavedProject(project);
+        if (current) {
+          setSavedProject(project);
+          setError((previous) =>
+            previous.startsWith("Autosave unavailable:") ? "" : previous,
+          );
+        }
       })
       .catch((e) => {
         if (current) {
@@ -64,14 +87,19 @@ export function useProject() {
 
   return {
     persist,
+    replaceProject: (next: Project) => {
+      restoreFailed.current = false;
+      rawUpdate(normalizeHorizons(next));
+    },
     project,
-    update: (value: React.SetStateAction<Project>) =>
+    update: (value: React.SetStateAction<Project>) => {
       rawUpdate((previous) =>
         trackChanges(
           previous,
           typeof value === "function" ? value(previous) : value,
         ),
-      ),
+      );
+    },
     ready,
     savedProject,
     saveError,

@@ -1,3 +1,4 @@
+import { validParameters } from "./validation";
 import engineManifest from "./engine-manifest.json";
 import { Parameters, Result, Snapshot } from "./model";
 export function run(
@@ -6,18 +7,7 @@ export function run(
   seed: string,
   onProgress: (n: number, best?: number) => void,
 ) {
-  if (
-    !["evaluations", "starts", "stage_length"].every(
-      (k) =>
-        Number.isInteger((parameters as any)[k]) &&
-        (parameters as any)[k] >= 1 &&
-        (parameters as any)[k] <= 2000000000,
-    ) ||
-    parameters.starts > 20
-  )
-    throw Error(
-      "Proposal budget and stage length must be positive integers; starts must be 1-20",
-    );
+  if (!validParameters(parameters)) throw Error("Invalid optimizer parameters");
   const requested = parameters;
   parameters = {
     ...parameters,

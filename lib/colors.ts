@@ -37,7 +37,14 @@ export function colorNames(ids: number[], colors: InkColor[]) {
     .join(", ");
 }
 export function parseColors(value: string, colors: InkColor[]) {
-  if (/^[\d\s,]*$/.test(value))
+  if (
+    /^[\d\s,]*$/.test(value) &&
+    !value
+      .split(",")
+      .some((name) =>
+        colors.some((c) => c.name.toLowerCase() === name.trim().toLowerCase()),
+      )
+  )
     return value.split(/[ ,]+/).filter(Boolean).map(Number);
   return value
     .split(",")
@@ -46,6 +53,6 @@ export function parseColors(value: string, colors: InkColor[]) {
     .map(
       (name) =>
         colors.find((c) => c.name.toLowerCase() === name.toLowerCase())?.id ??
-        NaN,
+        (/^\d+$/.test(name) ? Number(name) : NaN),
     );
 }

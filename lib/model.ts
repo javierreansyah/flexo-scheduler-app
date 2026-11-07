@@ -1,3 +1,4 @@
+import { validParameters } from "./validation";
 import { activeNode, selectedResult } from "./horizons";
 import { transitionTimes, validateTransitionTimes } from "./transition-times";
 import { starterColors } from "./colors";
@@ -221,22 +222,6 @@ export function importProject(v: unknown): Project {
     new Set(p.snapshot.jobs.map((j) => j.id)).size !== p.snapshot.jobs.length
   )
     throw Error("Invalid or unsupported project file");
-  const validParameters = (v: Parameters) =>
-    v &&
-    ["evaluations", "starts", "stage_length"].every(
-      (k) =>
-        Number.isInteger((v as any)[k]) &&
-        (v as any)[k] >= 1 &&
-        (v as any)[k] <= 2000000000,
-    ) &&
-    v.starts <= 20 &&
-    finite(v.t_max) &&
-    finite(v.t_min) &&
-    v.t_min > 0 &&
-    v.t_max > v.t_min &&
-    ["rcl_alpha", "p_inter", "p_shift", "p_block"].every(
-      (k) => finite((v as any)[k]) && (v as any)[k] >= 0 && (v as any)[k] <= 1,
-    );
   if (
     !validParameters(p.custom) ||
     BigInt(p.seed) > 18446744073709551615n ||

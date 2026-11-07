@@ -1,4 +1,5 @@
 "use client";
+import { validateJobs, validateMachines } from "@/lib/validation";
 import {
   activeNode,
   selectNode,
@@ -16,6 +17,7 @@ import { createContext, useContext, useEffect, type ReactNode } from "react";
 function useWorkspaceState() {
   const {
     persist,
+    replaceProject,
     project,
     update,
     ready,
@@ -83,6 +85,9 @@ function useWorkspaceState() {
   }
 
   function changeSnapshot(change: Partial<Project["snapshot"]>) {
+    const next = { ...snapshot, ...change };
+    validateJobs(next.jobs, colors);
+    validateMachines(next.machines, next.machine_states, colors);
     update((p) => ({ ...p, snapshot: { ...p.snapshot, ...change } }));
   }
   function action(fn: () => void) {
@@ -101,14 +106,11 @@ function useWorkspaceState() {
       )
     )
       return;
-    update(p);
+    replaceProject(p);
     setError("");
   }
   function appendJobs(jobs: Job[]) {
-    update((p) => ({
-      ...p,
-      snapshot: { ...p.snapshot, jobs: [...p.snapshot.jobs, ...jobs] },
-    }));
+    changeSnapshot({ jobs: [...snapshot.jobs, ...jobs] });
   }
 
   const optimizer = useOptimizer(project, persist, params, update, setError);

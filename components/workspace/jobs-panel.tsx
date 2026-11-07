@@ -18,7 +18,6 @@ const jobColumns = [
 
 export function JobsPanel() {
   const {
-    update,
     ready,
     busy,
     snapshot,
@@ -85,7 +84,9 @@ export function JobsPanel() {
         onAppend={addJob}
         onDeleteMany={(indices) =>
           changeSnapshot({
-            jobs: snapshot.jobs.filter((_, i) => !indices.includes(i)),
+            jobs: snapshot.jobs.filter(
+              (_, i) => !indices.includes(i) || fixed.has(snapshot.jobs[i].id),
+            ),
           })
         }
         onPasteCells={(cells, append) =>
@@ -111,15 +112,13 @@ export function JobsPanel() {
           })
         }
         onChange={(i, key, value) =>
-          update((p) => ({
-            ...p,
-            snapshot: {
-              ...p.snapshot,
-              jobs: p.snapshot.jobs.map((j, k) =>
-                k !== i ? j : editJob(j, key, value, colors),
-              ),
-            },
-          }))
+          action(() => {
+            if (fixed.has(snapshot.jobs[i].id)) return;
+            const jobs = snapshot.jobs.map((j, k) =>
+              k !== i ? j : editJob(j, key, value, colors),
+            );
+            changeSnapshot({ jobs });
+          })
         }
       />
       <TableFooter>

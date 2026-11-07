@@ -1,6 +1,5 @@
 "use client";
 import { useState } from "react";
-import { scheduleCsv } from "@/lib/csv";
 
 import {
   Table,
@@ -23,7 +22,8 @@ import { download } from "@/lib/download";
 import { useWorkspace } from "./workspace-context";
 
 export function ScheduleResults() {
-  const { project, update, colors, result, snapshot } = useWorkspace();
+  const { project, update, colors, result, snapshot, setError } =
+    useWorkspace();
   const [tab, setTab] = useState("timeline");
   const preferences = project.view ?? { mode: "full", shift: 0, scale: 80 };
   const cleaningTime = result
@@ -59,14 +59,19 @@ export function ScheduleResults() {
             ) : (
               <Button
                 disabled={!result}
-                onClick={() =>
-                  result &&
-                  download(
-                    "schedule.csv",
-                    scheduleCsv(result, colors),
-                    "text/csv",
-                  )
-                }
+                onClick={async () => {
+                  if (!result) return;
+                  try {
+                    const { scheduleCsv } = await import("@/lib/csv");
+                    download(
+                      "schedule.csv",
+                      scheduleCsv(result, colors),
+                      "text/csv",
+                    );
+                  } catch (error) {
+                    setError(String(error));
+                  }
+                }}
               >
                 Export Schedule CSV
               </Button>

@@ -14,7 +14,7 @@ const lora = localFont({
   variable: "--font-lora",
 });
 export const metadata: Metadata = {
-  title: "Flexo - Scheduling workspace",
+  title: "Flexo | Scheduling workspace",
   description:
     "Private, local production scheduling. Powered by simulated annealing.",
 };

@@ -7,7 +7,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { importCsv, jobCsv, machineCsv } from "@/lib/csv";
 import { download } from "@/lib/download";
 import { MoreHorizontal } from "lucide-react";
 import { GenerationDialog } from "./generation-dialog";
@@ -37,6 +36,7 @@ export function CsvActions({ kind }: { kind: "jobs" | "machines" }) {
           const f = e.target.files?.[0];
           if (f)
             try {
+              const { importCsv } = await import("@/lib/csv");
               changeSnapshot(
                 importCsv(
                   await f.text(),
@@ -79,15 +79,20 @@ export function CsvActions({ kind }: { kind: "jobs" | "machines" }) {
             Import CSV
           </DropdownMenuItem>
           <DropdownMenuItem
-            onClick={() =>
-              download(
-                kind + ".csv",
-                kind === "jobs"
-                  ? jobCsv(snapshot, colors)
-                  : machineCsv(snapshot, colors),
-                "text/csv",
-              )
-            }
+            onClick={async () => {
+              try {
+                const { jobCsv, machineCsv } = await import("@/lib/csv");
+                download(
+                  kind + ".csv",
+                  kind === "jobs"
+                    ? jobCsv(snapshot, colors)
+                    : machineCsv(snapshot, colors),
+                  "text/csv",
+                );
+              } catch (error) {
+                setError(String(error));
+              }
+            }}
           >
             Export CSV
           </DropdownMenuItem>

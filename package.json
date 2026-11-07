@@ -13,7 +13,8 @@
     "lint:css": "stylelint \"app/**/*.css\" --max-warnings 0",
     "format:check": "prettier --check app components hooks lib engine/*.ts scripts e2e *.json *.mjs *.ts *.md .oxlintrc.json",
     "wasm:setup": "node scripts/wasm-setup.mjs",
-    "wasm:build": "node scripts/build-wasm.mjs"
+    "wasm:build": "node scripts/build-wasm.mjs",
+    "test:lighthouse": "node scripts/lighthouse.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",

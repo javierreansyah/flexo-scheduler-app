@@ -135,3 +135,12 @@ from `engine/src` using the checked-in presets in `lib/profiles.json`.
 ## 📄 License
 
 Flexo Scheduler is available under the [MIT License](LICENSE).
+
+## Production Lighthouse checks
+
+Run `pnpm build`, then serve the export with `pnpm preview --port 8787`. In a
+second terminal run `pnpm test:lighthouse`. This runs pinned Lighthouse 13.6.0
+against the production preview for mobile and desktop, saving HTML and JSON
+reports in `lighthouse-reports/`. Chrome must be installed; set `CHROME_PATH`
+if it is not detected. Pass a different production URL after the command if needed.
+Scores are local lab measurements and vary by machine and run.

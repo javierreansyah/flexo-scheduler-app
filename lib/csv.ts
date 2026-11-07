@@ -1,3 +1,4 @@
+import { validateJobs, validateMachines } from "./validation";
 import Papa from "papaparse";
 import { colorNames, parseColors, type InkColor } from "./colors";
 import type { Result, Snapshot } from "./model";
@@ -21,7 +22,7 @@ export function importCsv(
         throw Error("Invalid or duplicate machine CSV row");
       machines[row.name] = +row.rate;
     }
-    return {
+    const change = {
       machines,
       machine_states: Object.fromEntries(
         parsed.data.map((row) => [
@@ -33,6 +34,8 @@ export function importCsv(
         ]),
       ),
     };
+    validateMachines(change.machines, change.machine_states, colors);
+    return change;
   } else {
     const jobs = parsed.data.map((row) => ({
       id: row.id,
@@ -48,6 +51,7 @@ export function importCsv(
         snapshot.jobs.length + jobs.length
     )
       throw Error("Invalid or duplicate job CSV rows");
+    validateJobs([...snapshot.jobs, ...jobs], colors);
     return { jobs: [...snapshot.jobs, ...jobs] };
   }
 }

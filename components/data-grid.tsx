@@ -79,6 +79,10 @@ export function DataGrid({
   ) => void;
 }) {
   const [selected, setSelected] = useState<Set<number>>(new Set());
+  const selectionKey = JSON.stringify(
+    rows.map((r) => [r.id ?? r.name, r.status]),
+  );
+  useEffect(() => setSelected(new Set()), [selectionKey]);
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState("");
   const [descending, setDescending] = useState(false);
@@ -139,7 +143,11 @@ export function DataGrid({
             title={`Delete ${selected.size} selected`}
             disabled={disabled}
             onClick={() => {
-              onDeleteMany?.([...selected]);
+              onDeleteMany?.(
+                [...selected].filter(
+                  (i) => rows[i] && rows[i].status !== "Locked",
+                ),
+              );
               setSelected(new Set());
             }}
           >
@@ -265,6 +273,8 @@ export function DataGrid({
                               });
                               if (!target) append.push(values);
                             });
+                          if (disabled) return;
+                          setSelected(new Set());
                           if (onPasteCells) onPasteCells(cells, append);
                           else
                             cells.forEach((c) => onChange(c.i, c.key, c.value));
@@ -300,7 +310,10 @@ export function DataGrid({
                         title={`Delete row ${i + 1}`}
                         aria-label={`Delete row ${i + 1}`}
                         disabled={disabled || locked}
-                        onClick={() => onDelete(i)}
+                        onClick={() => {
+                          onDelete(i);
+                          setSelected(new Set());
+                        }}
                       >
                         <Trash2 />
                       </Button>
