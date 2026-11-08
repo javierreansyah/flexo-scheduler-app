@@ -7,9 +7,7 @@ const inputVariants = cva(
     variants: {
       variant: {
         default: "w-full px-3",
-        cell: "w-full border-transparent px-1 focus-visible:bg-muted",
-        matrix:
-          "w-full border-transparent px-1 text-center focus-visible:bg-muted appearance-none",
+        cell: "w-full min-w-12 border-transparent px-1 focus-visible:bg-muted sm:min-w-0",
         swatch: "w-9 self-start cursor-pointer p-1",
         indicator:
           "pointer-events-none h-4 w-4 shrink-0 border-0 p-0 disabled:opacity-100",
@@ -27,6 +25,7 @@ export function Input({
     <input
       data-slot="input"
       type={type}
+      size={variant === "cell" ? 1 : undefined}
       className={cn(inputVariants({ variant }), className)}
       {...props}
     />

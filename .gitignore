@@ -1,16 +1,30 @@
-node_modules/
-.next/
-out/
-.toolchains/
-.wrangler/
-engine/dist/
-public/optimizer/
+# Dependencies, builds, and local toolchains
+/node_modules/
+/.next/
+/out/
+/.toolchains/
+/.wrangler/
+/engine/dist/
+/public/optimizer/
+
+# Generated reports, logs, and caches
+/docs/
+/.cache/
+/coverage/
+/test-results/
+/playwright-report/
+/lighthouse-reports/
+/node-compile-cache/
+/playwright-transform-cache/
 *.tsbuildinfo
+*.log
 
-test-results/
-playwright-report/
-debug.log
-node-compile-cache/
-playwright-transform-cache/
-
-lighthouse-reports/
+# Local environment and editor/OS files
+.env
+.env.*
+!.env.example
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.swp
+*.swo

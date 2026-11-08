@@ -45,12 +45,9 @@ function TimeCell({
   useEffect(() => setDraft(String(value)), [value]);
   return (
     <Input
-      variant="matrix"
+      variant="cell"
       aria-label={`Transition time ${from} to ${to} (${unit})`}
-      type="number"
-      min="0"
-      max={unit === "minutes" ? 480 : 8}
-      step="any"
+      inputMode="decimal"
       value={draft}
       disabled={disabled || from === to}
       onChange={(e) => setDraft(e.target.value)}
@@ -153,7 +150,7 @@ export function TransitionTimeMatrix({
           {error}
         </p>
       )}
-      <TableScroll>
+      <TableScroll variant="matrix">
         <Table variant="matrix" aria-label="Ink transition time matrix">
           <TableHeader>
             <TableRow>

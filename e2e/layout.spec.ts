@@ -11,6 +11,13 @@ for (const width of [390, 768, 1440]) {
       const search = page.getByRole("textbox", { name: "Search Table" }),
         add = page.getByRole("button", { name: "Add Job", exact: true });
       await expect(add).toBeEnabled();
+      if (width === 390) {
+        expect(
+          (await page
+            .getByLabel("Quantity row 1", { exact: true })
+            .boundingBox())!.width,
+        ).toBeLessThan(120);
+      }
       for (const control of [
         search,
         add,
@@ -42,6 +49,13 @@ for (const width of [390, 768, 1440]) {
       await expect(
         page.getByRole("button", { name: "Add Machine", exact: true }),
       ).toBeVisible();
+      if (width === 390) {
+        expect(
+          (await page
+            .getByLabel("Pieces / min row 1", { exact: true })
+            .boundingBox())!.width,
+        ).toBeLessThan(120);
+      }
       await page.locator("#workspace").screenshot({
         path: testInfo.outputPath("machines-" + width + ".png"),
       });
@@ -52,6 +66,13 @@ for (const width of [390, 768, 1440]) {
       await expect(
         page.getByRole("table", { name: "Colors", exact: true }),
       ).toBeVisible();
+      if (width === 390) {
+        expect(
+          (await page
+            .getByRole("columnheader", { name: "Swatch", exact: true })
+            .boundingBox())!.width,
+        ).toBeLessThanOrEqual(64);
+      }
       await page
         .locator("#workspace")
         .screenshot({ path: testInfo.outputPath("colors-" + width + ".png") });

@@ -20,6 +20,7 @@
     },
     "allowJs": true,
     "incremental": true,
+    "tsBuildInfoFile": ".cache/tsconfig.tsbuildinfo",
     "isolatedModules": true
   },
   "include": [

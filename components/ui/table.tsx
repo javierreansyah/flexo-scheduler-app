@@ -11,7 +11,7 @@ export function Table({
       data-slot="table"
       className={cn(
         "w-full border-collapse text-sm",
-        variant === "matrix" && "w-max min-w-full table-fixed",
+        variant === "matrix" && "w-max min-w-full sm:table-fixed",
         variant === "colors" && "table-fixed",
         className,
       )}
@@ -63,11 +63,13 @@ export function TableHead({
       data-slot="table-head"
       scope={scope}
       className={cn(
-        "sticky top-0 z-10 h-11 min-w-24 whitespace-nowrap bg-background px-3 text-left align-middle font-medium text-muted-foreground",
-        variant === "swatch" && "w-20 min-w-20",
-        variant === "matrix-label" && "w-40 min-w-40 first:left-0 first:z-20",
-        variant === "selection" && "w-11 min-w-11 text-center",
-        variant === "actions" && "w-14 min-w-14",
+        "sticky top-0 z-10 h-11 min-w-0 whitespace-nowrap bg-background px-2 sm:min-w-24 sm:px-3 text-left align-middle font-medium text-muted-foreground",
+        variant === "swatch" && "w-16 min-w-16 sm:w-20 sm:min-w-20",
+        variant === "matrix-label" &&
+          "w-px min-w-0 first:left-0 first:z-20 sm:w-40 sm:min-w-40",
+        variant === "selection" && "w-11 min-w-11 text-center sm:min-w-11",
+        variant === "actions" &&
+          "w-11 min-w-11 px-1 sm:w-14 sm:min-w-14 sm:px-3",
         variant === "matrix" &&
           "w-24 min-w-24 max-w-24 text-center first:left-0 first:z-20",
         scope === "row" && "left-0 top-auto z-10 whitespace-nowrap text-left",
@@ -88,21 +90,27 @@ export function TableCell({
     <td
       data-slot="table-cell"
       className={cn(
-        "h-11 min-w-24 px-3 py-0 align-middle",
-        variant === "selection" && "w-11 min-w-11 text-center",
-        variant === "actions" && "w-14 min-w-14",
+        "h-11 min-w-0 px-2 py-0 align-middle sm:min-w-24 sm:px-3",
+        variant === "selection" && "w-11 min-w-11 text-center sm:min-w-11",
+        variant === "actions" &&
+          "w-11 min-w-11 px-1 sm:w-14 sm:min-w-14 sm:px-3",
         variant === "matrix" &&
-          "w-24 min-w-24 max-w-24 data-[custom=true]:bg-accent/50",
+          "w-16 min-w-16 max-w-16 data-[custom=true]:bg-accent/50 sm:w-24 sm:min-w-24 sm:max-w-24",
         className,
       )}
       {...props}
     />
   );
 }
-export function TableScroll({ className, ...props }: ComponentProps<"div">) {
+export function TableScroll({
+  className,
+  variant = "default",
+  ...props
+}: ComponentProps<"div"> & { variant?: "default" | "matrix" }) {
   return (
     <div
       data-slot="table-scroll"
+      data-variant={variant}
       role="region"
       aria-label="Scrollable table"
       tabIndex={0}

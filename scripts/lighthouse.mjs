@@ -6,7 +6,7 @@ const url = process.argv[2] ?? "http://127.0.0.1:8787";
 const pnpm = process.env.npm_execpath;
 if (!pnpm) throw Error("Run this script with pnpm test:lighthouse");
 const standalone = pnpm.endsWith(".exe");
-mkdirSync("lighthouse-reports", { recursive: true });
+mkdirSync("docs/lighthouse-reports", { recursive: true });
 for (const device of ["mobile", "desktop"]) {
   const result = spawnSync(
     standalone ? pnpm : process.execPath,
@@ -18,7 +18,7 @@ for (const device of ["mobile", "desktop"]) {
       "--chrome-flags=--headless=new",
       "--output=json",
       "--output=html",
-      `--output-path=lighthouse-reports/${device}`,
+      `--output-path=docs/lighthouse-reports/${device}`,
       ...(device === "desktop" ? ["--preset=desktop"] : []),
     ],
     { stdio: "inherit", windowsHide: true },

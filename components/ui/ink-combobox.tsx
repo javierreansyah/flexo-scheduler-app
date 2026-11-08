@@ -43,6 +43,7 @@ export function InkCombobox({
       }}
     >
       <Combobox.Chips
+        data-slot="ink-chips"
         ref={anchor}
         className={`flex h-9 w-full min-w-0 flex-nowrap items-center gap-1 overflow-x-auto rounded-none border bg-transparent py-1 transition-colors focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/30 data-disabled:cursor-not-allowed data-disabled:opacity-50 ${variant === "default" ? "border-input px-3" : "border-transparent px-2"}`}
       >
